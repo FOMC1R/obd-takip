@@ -103,6 +103,14 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .g.crit{border-color:var(--crit);background:var(--crit-bg)} .g.crit .fill{background:var(--crit)} .g.crit .val{color:var(--crit)}
 .g.stale{opacity:.5}
 .g.unsup{opacity:.4}
+.g{cursor:pointer}
+.g:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.g canvas.spark{display:block;width:100%;height:34px}
+.g .sparkinfo{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;min-height:1.3em;line-height:1.3}
+.g:not(.big) .sparkinfo{display:none}
+.g.big{grid-column:1/-1}
+.g.big canvas.spark{height:170px}
+.g.unsup canvas.spark{visibility:hidden}
 
 /* geçmiş ve ayarlar */
 .log{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:260px;overflow:auto;font-size:14px}
@@ -191,7 +199,7 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
 </section>
 
 <section aria-labelledby="gTitle" style="display:grid;gap:10px">
-  <h2 id="gTitle">Anlık değerler</h2>
+  <div class="row"><h2 id="gTitle" style="margin-right:auto">Anlık değerler</h2><span class="empty">Grafiği büyütmek için göstergeye dokun</span></div>
   <div class="gauges" id="gauges"></div>
 </section>
 
@@ -234,6 +242,12 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
   <div class="row">
     <label for="dtcEvery">Arıza tarama aralığı (saniye)</label>
     <input type="number" id="dtcEvery" min="10" max="600" step="5">
+  </div>
+  <div class="row">
+    <label for="trendMin">Trend grafiği süresi</label>
+    <select id="trendMin" style="font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--text)">
+      <option value="1">Son 1 dakika</option><option value="2">Son 2 dakika</option><option value="5">Son 5 dakika</option><option value="10">Son 10 dakika</option>
+    </select>
   </div>
   <div class="row">
     <label><input type="checkbox" id="optVibrate"> Uyarıda titreşim</label>
@@ -353,7 +367,7 @@ function dtcInfo(code){
 const STORE_KEY = "obdTakip.v1";
 function defaults(){
   const lim={}; GAUGES.forEach(g=>lim[g.pid]={show:true,min:g.min,max:g.max});
-  return {lim, dtcEvery:30, vibrate:true, wake:true, mute:false, record:true, gps:true};
+  return {lim, dtcEvery:30, trendMin:2, vibrate:true, wake:true, mute:false, record:true, gps:true};
 }
 let settings = defaults();
 try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)||"null"); if(s){ settings={...settings,...s,lim:{...settings.lim,...(s.lim||{})}}; } }catch(e){}
@@ -513,8 +527,8 @@ class DemoLink{
 // ---------- Durum ----------
 const $ = id=>document.getElementById(id);
 const S = {elm:null, link:null, active:false, supported:null, isCan:true, useAtrv:false,
-  g:{}, dtc:{stored:[],pending:[],perm:[]}, known:new Set(), lastDtc:0, alarms:new Map(), log:[], wake:null, audio:null};
-GAUGES.forEach(g=>S.g[g.pid]={v:null,out:0,inn:0,alarm:false,ts:0,miss:0});
+  g:{}, big:new Set(), dtc:{stored:[],pending:[],perm:[]}, known:new Set(), lastDtc:0, alarms:new Map(), log:[], wake:null, audio:null};
+GAUGES.forEach(g=>S.g[g.pid]={v:null,out:0,inn:0,alarm:false,ts:0,miss:0,hist:[]});
 
 // ---------- Arayüz: göstergeler ----------
 function fmt(v,dec){ return v==null ? "—" : v.toLocaleString("tr-TR",{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
@@ -523,10 +537,71 @@ function buildGauges(){
   for(const g of GAUGES){
     if(!settings.lim[g.pid].show) continue;
     const el=document.createElement("div"); el.className="g"; el.id="g"+g.pid;
+    el.tabIndex=0; el.setAttribute("role","button"); el.setAttribute("aria-label",g.name+" — trend grafiğini büyüt");
     el.innerHTML=`<div class="name">${g.name}</div><div class="val"><span class="n">—</span><small>${g.unit}</small></div>
-      <div class="bar"><div class="fill"></div></div><div class="range"></div>`;
-    box.appendChild(el); paintRange(g);
+      <div class="bar"><div class="fill"></div></div><canvas class="spark" aria-hidden="true"></canvas>
+      <div class="sparkinfo"></div><div class="range"></div>`;
+    const toggle=()=>{ S.big.has(g.pid)?S.big.delete(g.pid):S.big.add(g.pid); paintGauge(g); };
+    el.addEventListener("click",toggle);
+    el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(); } });
+    box.appendChild(el); paintRange(g); paintGauge(g);
   }
+}
+
+// ---------- Trend grafikleri (gösterge içinde) ----------
+let TC=null, TCt=0;
+function trendColors(){
+  if(TC && Date.now()-TCt<5000) return TC;
+  const cs=getComputedStyle(document.documentElement), c=n=>cs.getPropertyValue(n).trim();
+  TC={ok:c("--ok"),warn:c("--warn"),crit:c("--crit"),muted:c("--muted"),grid:c("--grid"),text:c("--text"),font:c("--f-body")}; TCt=Date.now();
+  return TC;
+}
+function pushHist(g){
+  const st=S.g[g.pid], now=Date.now();
+  st.hist.push({t:now,v:st.v});
+  while(st.hist.length && now-st.hist[0].t>600000) st.hist.shift();   // en fazla 10 dk tutulur
+}
+function drawSpark(g, el, state){
+  const c=el.querySelector("canvas.spark"); if(!c) return;
+  const big=S.big.has(g.pid), W=c.clientWidth, H=c.clientHeight; if(!W||!H) return;
+  const dpr=window.devicePixelRatio||1;
+  if(c.width!==Math.round(W*dpr)||c.height!==Math.round(H*dpr)){ c.width=Math.round(W*dpr); c.height=Math.round(H*dpr); }
+  const x=c.getContext("2d"); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
+  const K=trendColors(), win=settings.trendMin*60000, now=Date.now();
+  const pts=S.g[g.pid].hist.filter(p=>now-p.t<=win);
+  const info=el.querySelector(".sparkinfo");
+  if(pts.length<2){ info.textContent=""; return; }
+  const L=settings.lim[g.pid];
+  let mn=Math.min(...pts.map(p=>p.v)), mx=Math.max(...pts.map(p=>p.v));
+  // sınır çizgisi verinin yakınındaysa ölçeğe dahil et
+  [L.min,L.max].forEach(v=>{ if(v!=null && v>=mn-(g.hi-g.lo)*0.15 && v<=mx+(g.hi-g.lo)*0.15){ mn=Math.min(mn,v); mx=Math.max(mx,v); } });
+  if(mx-mn < (g.hi-g.lo)*0.02){ const m=(mx+mn)/2, h=(g.hi-g.lo)*0.01; mn=m-h; mx=m+h; }
+  const pl=big?40:0, pb=big?16:2, pt=big?6:3;
+  const X=t=>pl+(1-(now-t)/win)*(W-pl-2), Y=v=>pt+(1-(v-mn)/(mx-mn))*(H-pt-pb);
+  if(big){
+    x.font="11px "+K.font; x.fillStyle=K.muted; x.strokeStyle=K.grid; x.lineWidth=1;
+    for(let i=0;i<=2;i++){ const v=mx-i/2*(mx-mn), yy=Y(v); x.beginPath(); x.moveTo(pl,yy); x.lineTo(W,yy); x.stroke();
+      x.textAlign="right"; x.fillText(fmt(v,g.dec),pl-5,yy+4); }
+    x.textAlign="left"; x.fillText(`−${settings.trendMin} dk`,pl,H-3); x.textAlign="right"; x.fillText("şimdi",W-2,H-3);
+  }
+  x.strokeStyle=K.crit; x.globalAlpha=.6; x.setLineDash([3,3]); x.lineWidth=1;
+  [L.min,L.max].forEach(v=>{ if(v==null||v<mn||v>mx) return; x.beginPath(); x.moveTo(pl,Y(v)); x.lineTo(W,Y(v)); x.stroke(); });
+  x.setLineDash([]); x.globalAlpha=1;
+  const color = state==="crit"?K.crit : state==="warn"?K.warn : K.ok;
+  // çizgi + alan dolgusu; 5 sn'den uzun boşlukta çizgi kopar
+  const runs=[]; let run=[pts[0]];
+  for(let i=1;i<pts.length;i++){ if(pts[i].t-pts[i-1].t>5000){ runs.push(run); run=[]; } run.push(pts[i]); }
+  runs.push(run);
+  for(const r of runs){
+    if(r.length<2) continue;
+    x.beginPath(); r.forEach((p,i)=>i?x.lineTo(X(p.t),Y(p.v)):x.moveTo(X(p.t),Y(p.v)));
+    x.strokeStyle=color; x.lineWidth=big?2:1.5; x.lineJoin="round"; x.stroke();
+    x.lineTo(X(r[r.length-1].t),H-pb); x.lineTo(X(r[0].t),H-pb); x.closePath();
+    x.globalAlpha=.14; x.fillStyle=color; x.fill(); x.globalAlpha=1;
+  }
+  const last=pts[pts.length-1]; x.fillStyle=color; x.beginPath(); x.arc(X(last.t),Y(last.v),big?4:2.5,0,Math.PI*2); x.fill();
+  const vs=pts.map(p=>p.v);
+  info.textContent=`Son ${settings.trendMin} dk · en düşük ${fmt(Math.min(...vs),g.dec)} · en yüksek ${fmt(Math.max(...vs),g.dec)}`;
 }
 function pos(g,v){ return Math.max(0,Math.min(100,(v-g.lo)/(g.hi-g.lo)*100)); }
 function paintRange(g){
@@ -550,8 +625,12 @@ function paintGauge(g){
     if((L.max!=null && st.v>L.max-span) || (L.min!=null && st.v<L.min+span)) cls+=" warn";
   }
   if(S.active && st.ts && Date.now()-st.ts>6000) cls+=" stale";
-  el.className=cls;
+  const state = cls.includes("crit")?"crit":cls.includes("warn")?"warn":"ok";
+  if(S.big.has(g.pid)) cls+=" big";
+  if(el.className!==cls) el.className=cls;
+  el.setAttribute("aria-expanded",String(S.big.has(g.pid)));
   if(cls.includes("unsup")) el.querySelector(".range").textContent="Araç bu değeri vermiyor";
+  else drawSpark(g,el,state);
 }
 
 // ---------- Uyarılar ----------
@@ -679,14 +758,15 @@ async function init(){
   return `${ver||"ELM327"}${S.isCan?" · CAN":""}`;
 }
 async function readGauge(g){
-  const st=S.g[g.pid];
+  const st=S.g[g.pid]; let fresh=false;
   if(g.pid==="42" && S.useAtrv){
-    const m=(await S.elm.send("ATRV")).match(/(\d+(\.\d+)?)/); if(m){ st.v=parseFloat(m[1]); st.ts=Date.now(); }
+    const m=(await S.elm.send("ATRV")).match(/(\d+(\.\d+)?)/); if(m){ st.v=parseFloat(m[1]); st.ts=Date.now(); fresh=true; }
   }else{
     const b=pidBytes(await S.elm.send("01"+g.pid),g.pid);
-    if(b && b.length){ st.v=g.f(b[0],b[1]||0); st.ts=Date.now(); st.miss=0; } else st.miss++;
+    if(b && b.length){ st.v=g.f(b[0],b[1]||0); st.ts=Date.now(); st.miss=0; fresh=true; } else st.miss++;
   }
-  checkLimits(g); paintGauge(g);
+  if(fresh){ pushHist(g); checkLimits(g); }
+  paintGauge(g);
 }
 async function loop(){
   let errors=0;
@@ -1026,12 +1106,13 @@ function buildSettings(){
     tr.querySelector(`#s_max_${g.pid}`).addEventListener("change",e=>{ L.max=numOrNull(e.target.value); save(); paintRange(g); });
   }
   $("dtcEvery").value=settings.dtcEvery; $("optVibrate").checked=settings.vibrate; $("optWake").checked=settings.wake;
-  $("optRecord").checked=settings.record; $("optGps").checked=settings.gps;
+  $("optRecord").checked=settings.record; $("optGps").checked=settings.gps; $("trendMin").value=String(settings.trendMin);
   $("btnMute").textContent = settings.mute ? "Ses: kapalı" : "Ses: açık"; $("btnMute").setAttribute("aria-pressed",String(settings.mute));
 }
 $("dtcEvery").addEventListener("change",e=>{ settings.dtcEvery=Math.max(10,Number(e.target.value)||30); save(); });
 $("optVibrate").addEventListener("change",e=>{ settings.vibrate=e.target.checked; save(); });
 $("optWake").addEventListener("change",e=>{ settings.wake=e.target.checked; save(); });
+$("trendMin").addEventListener("change",e=>{ settings.trendMin=Number(e.target.value)||2; save(); GAUGES.forEach(paintGauge); });
 $("optRecord").addEventListener("change",e=>{ settings.record=e.target.checked; save(); });
 $("optGps").addEventListener("change",e=>{ settings.gps=e.target.checked; save(); });
 $("btnReset").addEventListener("click",()=>{ const d=defaults(); settings.lim=d.lim; save(); buildSettings(); buildGauges(); GAUGES.forEach(paintGauge); });
