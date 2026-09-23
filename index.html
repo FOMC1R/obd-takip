@@ -184,7 +184,10 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
 .field label{font-size:14px;color:var(--muted)}
 .field input,.field select,.chart-ctl select{font:inherit;min-height:44px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);width:100%}
 label.check{display:flex;gap:12px;align-items:center;min-height:44px}
-.set-table td input[type=number]{width:64px;min-height:40px}
+.set-table td input[type=number]{width:66px;min-height:40px;padding:6px;font-size:15px}
+.set-table td:nth-child(2){white-space:normal;line-height:1.25;width:100%}
+.set-table td:nth-child(2) span{display:block;font-size:12px}
+.set-table th,.set-table td{padding:6px 4px}
 /* yatay tutucuda: başlık yapışmasın, yer kazan */
 @media (orientation:landscape) and (max-height:520px){
   header{position:static}
@@ -328,7 +331,7 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
 <section class="tab" data-tab="ayar" hidden aria-label="Ayarlar">
   <section class="card" id="settings" aria-labelledby="setTitle">
     <h2 id="setTitle">Uyarı sınırları</h2>
-    <p class="help" style="margin:0">Bir değer sınırın dışına <b>3 ölçüm üst üste</b> çıkarsa uyarı verilir. Boş bırakılan sınır kontrol edilmez. Ayarlar bu telefonda saklanır.</p>
+    <p class="sub">Bir değer sınırın dışına <b>3 ölçüm üst üste</b> çıkarsa uyarı verilir. Boş bırakılan sınır kontrol edilmez. Ayarlar bu telefonda saklanır.</p>
     <div class="set-table"><table>
       <thead><tr><th>Göster</th><th>Değer</th><th>Alt</th><th>Üst</th></tr></thead>
       <tbody id="setBody"></tbody>
@@ -1586,7 +1589,9 @@ $("btnLogClear").addEventListener("click",()=>{ S.log=[]; $("log").innerHTML='<l
 setInterval(()=>{ if(S.active) GAUGES.forEach(paintGauge); },2000);
 
 buildSettings(); buildGauges(); renderTrips(); showTab(settings.tab||"canli");
-if(location.hash==="#demo") start(new DemoLink());
+// Bağlantıdan açılış: #demo deneme modunu başlatır, #ariza / #surus / #ayar sekmeyi açar (örn. #demo-ariza)
+{ const h=location.hash.slice(1).split("-"); const tab=h.find(x=>["canli","ariza","surus","ayar"].includes(x));
+  if(tab) showTab(tab); if(h.includes("demo")) start(new DemoLink()); }
 
 // ---------- Uygulama olarak kurulum ve çevrimdışı açılış ----------
 if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost")) navigator.serviceWorker.register("sw.js").catch(()=>{});
