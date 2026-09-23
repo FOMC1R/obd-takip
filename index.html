@@ -361,6 +361,9 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
         <option value="1">Son 1 dakika</option><option value="2">Son 2 dakika</option><option value="5">Son 5 dakika</option><option value="10">Son 10 dakika</option>
       </select>
     </div>
+    <label class="check"><input type="checkbox" id="optVoice"> Sesli uyarı (Türkçe konuşma)</label>
+    <div class="actions"><button id="btnVoiceTest">Sesli uyarıyı dene</button></div>
+    <p class="sub" id="voiceNote"></p>
     <label class="check"><input type="checkbox" id="optVibrate"> Uyarıda titreşim</label>
     <label class="check"><input type="checkbox" id="optWake"> Ekranı açık tut</label>
     <label class="check"><input type="checkbox" id="optRecord"> Sürüşü kaydet</label>
@@ -501,7 +504,7 @@ function dtcInfo(code){
 const STORE_KEY = "obdTakip.v1";
 function defaults(){
   const lim={}; GAUGES.forEach(g=>lim[g.pid]={show:!g.hide,min:g.min,max:g.max});
-  return {lim, fuel:"benzin", disp:1.6, ve:85, price:45, calib:100, dtcEvery:30, trendMin:2, vibrate:true, wake:true, mute:false, record:true, gps:true};
+  return {lim, fuel:"benzin", disp:1.6, ve:85, price:45, calib:100, dtcEvery:30, trendMin:2, voice:true, vibrate:true, wake:true, mute:false, record:true, gps:true};
 }
 let settings = defaults();
 try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)||"null"); if(s){ settings={...settings,...s,lim:{...settings.lim,...(s.lim||{})}}; } }catch(e){}
@@ -832,11 +835,28 @@ function beep(level){
   }catch(e){}
   if(settings.vibrate && navigator.vibrate) navigator.vibrate(level==="crit"?[300,120,300,120,300]:[200]);
 }
-function raise(key, level, text){
+function raise(key, level, text, say){
   if(S.alarms.has(key)) return;
   S.alarms.set(key,{level,text,since:new Date()});
   addLog(level,text); beep(level); paintAlarms();
+  speak(say||text);
 }
+
+// ---------- Sesli uyarı (telefonun metin okuma motoru, Türkçe) ----------
+let TR_VOICE=null;
+function pickVoice(){ try{ const vs=speechSynthesis.getVoices(); TR_VOICE=vs.find(v=>/^tr/i.test(v.lang))||null; }catch(e){} }
+if("speechSynthesis" in window){ pickVoice(); speechSynthesis.addEventListener?.("voiceschanged",pickVoice); }
+function speak(text){
+  if(settings.mute || !settings.voice || !("speechSynthesis" in window)) return;
+  try{
+    const u=new SpeechSynthesisUtterance(text); u.lang="tr-TR"; if(TR_VOICE) u.voice=TR_VOICE; u.rate=1.05;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+// Birimleri okunur hâle getir: "108 °C" → "108 derece"
+const SAY_UNIT={"°C":"derece","km/sa":"kilometre","V":"volt","d/dk":"devir","kPa":"kilopaskal","g/sn":"gram","L/sa":"litre","L/100 km":"litre","°":"derece"};
+function sayValue(g,v){ const n=fmt(v,g.dec); return g.unit==="%" ? `yüzde ${n}` : `${n} ${SAY_UNIT[g.unit]||""}`; }
+const sayCode = c=>c.split("").join(" ");
 function drop(key){ if(S.alarms.delete(key)) paintAlarms(); }
 function paintAlarms(){
   const box=$("alarms"); box.innerHTML="";
@@ -861,7 +881,7 @@ function checkLimits(g){
   if(out && st.out>=3 && !st.alarm){
     st.alarm=true;
     const side = (L.max!=null && st.v>L.max) ? `üst sınır ${fmt(L.max,g.dec)}` : `alt sınır ${fmt(L.min,g.dec)}`;
-    raise("g"+g.pid,"crit",`${g.name}: ${fmt(st.v,g.dec)} ${g.unit} (${side})`);
+    raise("g"+g.pid,"crit",`${g.name}: ${fmt(st.v,g.dec)} ${g.unit} (${side})`, `Dikkat. ${g.name} ${sayValue(g,st.v)}`);
   }
   if(!out && st.alarm && st.inn>=3){ st.alarm=false; drop("g"+g.pid); addLog("warn",`${g.name} normale döndü: ${fmt(st.v,g.dec)} ${g.unit}`); }
 }
@@ -900,7 +920,7 @@ async function scanDtc(){
     const i=dtcInfo(c);
     const level = i.severe||kind==="stored" ? "crit" : "warn";
     const prefix = kind==="pending" ? "Yeni bekleyen arıza" : "Yeni arıza";
-    raise("dtc"+c, level, `${prefix}: ${c} — ${i.desc}`);
+    raise("dtc"+c, level, `${prefix}: ${c} — ${i.desc}`, `${prefix}. ${sayCode(c)}. ${i.desc.split(" — ")[0]}`);
   }
   if(REC.trip) all.forEach(([c])=>{ if(!REC.trip.dtcs.includes(c)) REC.trip.dtcs.push(c); });
   const now=new Set(all.map(([c])=>c));
@@ -1106,6 +1126,8 @@ function lost(){
 async function start(link){
   $("btNotice").hidden=true;
   try{ if(!S.audio) S.audio=new (window.AudioContext||window.webkitAudioContext)(); S.audio.resume(); }catch(e){}
+  // Konuşmanın kilidini dokunuş anında aç; sonraki uyarılar kendiliğinden konuşabilsin
+  try{ const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); }catch(e){}
   S.link=link; S.elm=new Elm(link); link.onLost=lost;
   $("btnConnect").disabled=$("btnDemo").disabled=true;
   setStatus("busy","Bağlanıyor…");
@@ -1432,7 +1454,7 @@ function buildSettings(){
     tr.querySelector(`#s_max_${g.pid}`).addEventListener("change",e=>{ L.max=numOrNull(e.target.value); save(); paintRange(g); });
   }
   $("dtcEvery").value=settings.dtcEvery; $("optVibrate").checked=settings.vibrate; $("optWake").checked=settings.wake;
-  $("optRecord").checked=settings.record; $("optGps").checked=settings.gps; $("trendMin").value=String(settings.trendMin);
+  $("optVoice").checked=settings.voice; $("optRecord").checked=settings.record; $("optGps").checked=settings.gps; $("trendMin").value=String(settings.trendMin);
   $("fuelType").value=settings.fuel; $("fuelPrice").value=settings.price; $("fuelDisp").value=settings.disp; $("fuelCalib").value=settings.calib;
   $("fuelNote").textContent = settings.fuel==="dizel" ? "Dizelde tüketim yalnızca araç kendi yakıt debisini veriyorsa gösterilir; hava akışından yapılan hesap dizelde yanıltıcıdır." : "";
   $("btnMute").setAttribute("aria-pressed",String(settings.mute));
@@ -1445,6 +1467,15 @@ $("trendMin").addEventListener("change",e=>{ settings.trendMin=Number(e.target.v
 for(const [id,key,num] of [["fuelType","fuel",false],["fuelPrice","price",true],["fuelDisp","disp",true],["fuelCalib","calib",true]]){
   $(id).addEventListener("change",e=>{ const v=num?Number(String(e.target.value).replace(",", ".")):e.target.value; if(num && !(v>0)) return; settings[key]=v; save(); buildSettings(); });
 }
+$("optVoice").addEventListener("change",e=>{ settings.voice=e.target.checked; save(); });
+$("btnVoiceTest").addEventListener("click",()=>{
+  pickVoice();
+  if(!("speechSynthesis" in window)){ $("voiceNote").textContent="Bu tarayıcı konuşamıyor."; return; }
+  const was=settings.voice; settings.voice=true; const m=settings.mute; settings.mute=false;
+  speak("Sesli uyarı çalışıyor. Soğutma suyu sıcaklığı 108 derece."); settings.voice=was; settings.mute=m;
+  $("voiceNote").textContent = TR_VOICE ? `Kullanılan ses: ${TR_VOICE.name}` :
+    "Telefonda Türkçe ses bulunamadı; konuşma İngilizce aksanlı olabilir. Telefon ayarlarında \"Metin okuma\" (Google konuşma hizmetleri) bölümünden Türkçe ses verisini indir.";
+});
 $("optRecord").addEventListener("change",e=>{ settings.record=e.target.checked; save(); });
 $("optGps").addEventListener("change",e=>{ settings.gps=e.target.checked; save(); });
 $("btnReset").addEventListener("click",()=>{ const d=defaults(); settings.lim=d.lim; save(); buildSettings(); buildGauges(); GAUGES.forEach(paintGauge); });
