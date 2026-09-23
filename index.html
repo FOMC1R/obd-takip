@@ -327,6 +327,28 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
     <div class="actions"><button id="btnReset">Varsayılan sınırlara dön</button></div>
   </section>
 
+  <section class="card" aria-labelledby="fuelTitle">
+    <h2 id="fuelTitle">Yakıt</h2>
+    <p class="sub">Tüketim tahminidir (yaklaşık %5-10 sapma). Birkaç depo sonra gerçek tüketimle karşılaştırıp düzeltme oranını ayarlayabilirsin.</p>
+    <div class="field">
+      <label for="fuelType">Yakıt türü</label>
+      <select id="fuelType"><option value="benzin">Benzin</option><option value="lpg">LPG</option><option value="dizel">Dizel</option></select>
+    </div>
+    <div class="field">
+      <label for="fuelPrice">Litre fiyatı (TL)</label>
+      <input type="number" id="fuelPrice" min="0" step="0.01" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="fuelDisp">Motor hacmi (litre) — hava akış sensörü olmayan araçlar için</label>
+      <input type="number" id="fuelDisp" min="0.6" max="8" step="0.1" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="fuelCalib">Düzeltme oranı (%) — gösterilen tüketim düşükse artır</label>
+      <input type="number" id="fuelCalib" min="50" max="200" step="1" inputmode="numeric">
+    </div>
+    <p class="sub" id="fuelNote"></p>
+  </section>
+
   <section class="card" aria-labelledby="optTitle">
     <h2 id="optTitle">Uygulama</h2>
     <div class="field">
@@ -396,7 +418,14 @@ const GAUGES = [
   {pid:"0E", every:2, name:"Ateşleme avansı",       unit:"°",    f:a=>a/2-64,              lo:-20, hi:60,   dec:1, min:null, max:null},
   {pid:"2F", every:20, name:"Yakıt seviyesi",        unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:10,   max:null},
   {pid:"46", every:30, name:"Dış hava sıcaklığı",    unit:"°C",   f:a=>a-40,                lo:-40, hi:60,   dec:0, min:null, max:null},
+  {pid:"5E", every:2,  name:"Yakıt debisi (araçtan)", unit:"L/sa", f:(a,b)=>(a*256+b)/20,    lo:0,   hi:30,   dec:1, min:null, max:null, hide:true},
+  // Hesaplanan (sanal) göstergeler: araçtan okunmaz, diğer değerlerden türetilir
+  {pid:"FL", virtual:true, name:"Anlık tüketim",     unit:"L/sa",     lo:0, hi:20, dec:1, min:null, max:null},
+  {pid:"FK", virtual:true, name:"Tüketim (100 km)",  unit:"L/100 km", lo:0, hi:30, dec:1, min:null, max:null},
 ];
+const GBY = Object.fromEntries(GAUGES.map(g=>[g.pid,g]));
+// Yakıt hesabı için gösterge gizli olsa da okunması gerekenler
+const FUEL_NEED = new Set(["0C","0D","10","0B","0F","06","07","5E"]);
 
 // ---------- Arıza kodu açıklamaları (genel SAE kodları) ----------
 const DTC_TR = {
@@ -471,8 +500,8 @@ function dtcInfo(code){
 // ---------- Ayarlar (yerel saklama) ----------
 const STORE_KEY = "obdTakip.v1";
 function defaults(){
-  const lim={}; GAUGES.forEach(g=>lim[g.pid]={show:true,min:g.min,max:g.max});
-  return {lim, dtcEvery:30, trendMin:2, vibrate:true, wake:true, mute:false, record:true, gps:true};
+  const lim={}; GAUGES.forEach(g=>lim[g.pid]={show:!g.hide,min:g.min,max:g.max});
+  return {lim, fuel:"benzin", disp:1.6, ve:85, price:45, calib:100, dtcEvery:30, trendMin:2, vibrate:true, wake:true, mute:false, record:true, gps:true};
 }
 let settings = defaults();
 try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)||"null"); if(s){ settings={...settings,...s,lim:{...settings.lim,...(s.lim||{})}}; } }catch(e){}
@@ -771,7 +800,7 @@ function paintGauge(g){
   el.querySelector(".n").textContent = fmt(st.v,g.dec);
   if(st.v!=null) el.querySelector(".fill").style.width = pos(g,st.v)+"%";
   let cls="g";
-  if(S.supported && !S.supported.has(g.pid) && !(g.pid==="42"&&S.useAtrv)) cls+=" unsup";
+  if(g.virtual ? (S.active && !fuelPossible()) : (S.supported && !S.supported.has(g.pid) && !(g.pid==="42"&&S.useAtrv))) cls+=" unsup";
   else if(st.alarm) cls+=" crit";
   else if(st.v!=null){
     const span=(g.hi-g.lo)*0.05;
@@ -983,6 +1012,39 @@ async function runDiag(){
 }
 $("btnDiag").addEventListener("click",runDiag);
 
+// ---------- Yakıt tüketimi ----------
+// Hava/yakıt oranı (stokiyometrik) ve yakıt yoğunluğu (g/L)
+const FUEL = {benzin:{afr:14.7,dens:740,name:"Benzin"}, lpg:{afr:15.5,dens:540,name:"LPG"}, dizel:{afr:14.5,dens:832,name:"Dizel"}};
+// Güncel değer ya da null (okunmuyor / eskidi)
+function cur(pid){ const st=S.g[pid], g=GBY[pid]; return st && st.v!=null && Date.now()-st.ts<=(g.virtual?5000:freshMs(g)) ? st.v : null; }
+function fuelPossible(){
+  if(has("5E")) return true;
+  if(settings.fuel==="dizel") return false;               // dizel fakir yanar; hava akışından hesap yanıltır
+  return has("10") || (has("0B") && has("0C") && has("0F") && settings.disp>0);
+}
+function fuelLH(){
+  const k=settings.calib/100;
+  const r=cur("5E"); if(r!=null) return r*k;
+  if(settings.fuel==="dizel") return null;
+  const rpm=cur("0C"); if(rpm===0) return 0;
+  let maf=cur("10");
+  if(maf==null){   // MAF sensörü yok: emme basıncı + devir + hava sıcaklığından (hız-yoğunluk yöntemi)
+    const map=cur("0B"), iat=cur("0F"); if(map==null||rpm==null||iat==null||!settings.disp) return null;
+    maf = map*1000 * (settings.disp/1000) * (settings.ve/100) * (rpm/120) / (287.05*(iat+273.15)) * 1000;
+  }
+  const f=FUEL[settings.fuel]||FUEL.benzin, trim=(cur("06")||0)+(cur("07")||0);
+  return Math.max(0, maf*3600/(f.afr*f.dens)*(1+trim/100)*k);
+}
+function setVirtual(pid,v){
+  const st=S.g[pid], g=GBY[pid];
+  if(v==null){ st.v=null; paintGauge(g); return; }
+  st.v=v; st.ts=Date.now(); pushHist(g); checkLimits(g); paintGauge(g);
+}
+function computeFuel(){
+  const lh=fuelLH(); setVirtual("FL",lh);
+  const sp=cur("0D"); setVirtual("FK", lh!=null && sp!=null && sp>=5 ? Math.min(99,lh/sp*100) : null);
+}
+
 // ---------- Ana döngü ----------
 function setStatus(kind,text){ const s=$("status"); s.className="status "+kind; $("statusText").textContent=text; }
 const wait = ms=>new Promise(r=>setTimeout(r,ms));
@@ -1023,12 +1085,13 @@ async function loop(){
   let errors=0, cycle=0;
   while(S.active){
     cycle++;
-    const list=GAUGES.filter(g=>settings.lim[g.pid].show && (!S.supported || S.supported.has(g.pid) || (g.pid==="42"&&S.useAtrv)) && S.g[g.pid].miss<5
+    const list=GAUGES.filter(g=>!g.virtual && (settings.lim[g.pid].show || FUEL_NEED.has(g.pid)) && (!S.supported || S.supported.has(g.pid) || (g.pid==="42"&&S.useAtrv)) && S.g[g.pid].miss<5
       && (cycle===1 || cycle%(g.every||1)===0));
     for(const g of list){
       if(!S.active) return;
       try{ await readGauge(g); errors=0; }catch(x){ if(++errors>=6){ lost(); return; } }
     }
+    computeFuel();
     sample();
     if(Date.now()-S.lastDtc > settings.dtcEvery*1000) await scanDtc();
     if(!list.length) await wait(1000);
@@ -1149,6 +1212,10 @@ function sample(){
     row.lat=+f.lat.toFixed(6); row.lon=+f.lon.toFixed(6); row.acc=Math.round(f.acc); if(f.gs!=null) row.gs=Math.round(f.gs*10)/10;
     if(f.acc<=50){ if(REC.prevFix){ const d=haversine(REC.prevFix,f); if(d>=3 && d<500) t.distance+=d; } REC.prevFix=f; }
   }
+  if(REC.lastT){ const dt=Math.min(5,(now-REC.lastT)/1000);   // boşluklarda şişmesin
+    const lh=cur("FL"), sp=cur("0D");
+    if(lh!=null) t.fuel=(t.fuel||0)+lh*dt/3600;
+    if(sp!=null) t.odo=(t.odo||0)+sp*dt/3600; }
   REC.lastT=now; REC.buf.push(row); t.samples++; t.end=now;
   if(now-REC.lastFlush>5000) flush(t);
 }
@@ -1181,6 +1248,7 @@ async function renderTrips(){
     li.innerHTML=`<span class="when">${fmtDate(t.start)}</span>
       <span class="facts"><span><b>${fmtDur(t.end-t.start)}</b></span><span><b>${km(t.distance)}</b></span>
       ${sp?`<span>en yüksek hız <b>${fmt(sp.max,0)}</b> km/sa</span>`:""}${cl?`<span>su <b>${fmt(cl.max,0)}</b> °C</span>`:""}
+      ${t.fuel?`<span><b>${fmt(t.fuel,1)}</b> L · <b>${fmt(t.fuel*(settings.price||0),0)}</b> TL</span>`:""}
       <span><b>${crit}</b> uyarı</span>${t.dtcs.length?`<span>kod: <b>${t.dtcs.join(", ")}</b></span>`:""}</span>
       ${live?'<span class="rec">Kayıt sürüyor</span>':""}${t.demo?'<span class="chip info">Deneme</span>':""}
       <button>Aç</button>`;
@@ -1203,12 +1271,15 @@ async function openTrip(id){
   const st=t.stats, box=$("vStats"); box.innerHTML="";
   const moving=V.samples.map(s=>s.v["0D"]).filter(x=>x>2);
   const items=[
-    [fmtDur(t.end-t.start),"Süre"], [km(t.distance),"Mesafe (GPS)"],
+    [fmtDur(t.end-t.start),"Süre"], [km(t.distance||((t.odo||0)*1000)),t.distance?"Mesafe (GPS)":"Mesafe (hızdan)"],
     [moving.length?fmt(moving.reduce((a,b)=>a+b,0)/moving.length,0):"—","Ortalama hız, km/sa"],
     [st["0D"]?fmt(st["0D"].max,0):"—","En yüksek hız, km/sa"],
     [st["0C"]?fmt(st["0C"].max,0):"—","En yüksek devir"],
     [st["05"]?fmt(st["05"].max,0):"—","En yüksek su sıcaklığı, °C"],
     [st["42"]?fmt(st["42"].min,1):"—","En düşük voltaj, V"],
+    [t.fuel?fmt(t.fuel,2)+" L":"—","Yakıt (tahmini)"],
+    [t.fuel&&t.odo>0.5?fmt(t.fuel/t.odo*100,1):"—","Ortalama, L/100 km"],
+    [t.fuel?fmt(t.fuel*(settings.price||0),0)+" TL":"—","Yakıt maliyeti"],
     [String(t.events.filter(e=>e.level==="crit").length),"Kritik uyarı"],
   ];
   items.forEach(([b,s])=>{ const d=document.createElement("div"); d.className="stat"; d.innerHTML=`<b>${b}</b><span>${s}</span>`; box.appendChild(d); });
@@ -1362,6 +1433,8 @@ function buildSettings(){
   }
   $("dtcEvery").value=settings.dtcEvery; $("optVibrate").checked=settings.vibrate; $("optWake").checked=settings.wake;
   $("optRecord").checked=settings.record; $("optGps").checked=settings.gps; $("trendMin").value=String(settings.trendMin);
+  $("fuelType").value=settings.fuel; $("fuelPrice").value=settings.price; $("fuelDisp").value=settings.disp; $("fuelCalib").value=settings.calib;
+  $("fuelNote").textContent = settings.fuel==="dizel" ? "Dizelde tüketim yalnızca araç kendi yakıt debisini veriyorsa gösterilir; hava akışından yapılan hesap dizelde yanıltıcıdır." : "";
   $("btnMute").setAttribute("aria-pressed",String(settings.mute));
   $("btnMute").setAttribute("aria-label", settings.mute ? "Sesli uyarıyı aç" : "Sesli uyarıyı kapat");
 }
@@ -1369,6 +1442,9 @@ $("dtcEvery").addEventListener("change",e=>{ settings.dtcEvery=Math.max(10,Numbe
 $("optVibrate").addEventListener("change",e=>{ settings.vibrate=e.target.checked; save(); });
 $("optWake").addEventListener("change",e=>{ settings.wake=e.target.checked; save(); });
 $("trendMin").addEventListener("change",e=>{ settings.trendMin=Number(e.target.value)||2; save(); GAUGES.forEach(paintGauge); });
+for(const [id,key,num] of [["fuelType","fuel",false],["fuelPrice","price",true],["fuelDisp","disp",true],["fuelCalib","calib",true]]){
+  $(id).addEventListener("change",e=>{ const v=num?Number(String(e.target.value).replace(",", ".")):e.target.value; if(num && !(v>0)) return; settings[key]=v; save(); buildSettings(); });
+}
 $("optRecord").addEventListener("change",e=>{ settings.record=e.target.checked; save(); });
 $("optGps").addEventListener("change",e=>{ settings.gps=e.target.checked; save(); });
 $("btnReset").addEventListener("click",()=>{ const d=defaults(); settings.lim=d.lim; save(); buildSettings(); buildGauges(); GAUGES.forEach(paintGauge); });
