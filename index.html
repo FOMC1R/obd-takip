@@ -383,6 +383,7 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
     <label class="check"><input type="checkbox" id="optWake"> Ekranı açık tut</label>
     <label class="check"><input type="checkbox" id="optRecord"> Sürüşü kaydet</label>
     <label class="check"><input type="checkbox" id="optGps"> GPS konumunu kaydet</label>
+    <label class="check"><input type="checkbox" id="optRecAll"> Kayda aracın verdiği tüm değerleri ekle (gizli olanlar dahil)</label>
   </section>
 
   <section class="card" id="installCard" hidden aria-labelledby="instTitle">
@@ -443,6 +444,22 @@ const GAUGES = [
   {pid:"2F", every:20, name:"Yakıt seviyesi",        unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:10,   max:null},
   {pid:"46", every:30, name:"Dış hava sıcaklığı",    unit:"°C",   f:a=>a-40,                lo:-40, hi:60,   dec:0, min:null, max:null},
   {pid:"5E", every:2,  name:"Yakıt debisi (araçtan)", unit:"L/sa", f:(a,b)=>(a*256+b)/20,    lo:0,   hi:30,   dec:1, min:null, max:null, hide:true},
+  // Ekranda gizli, araç destekliyorsa kayda giren ek standart değerler (SAE J1979)
+  {pid:"0A", every:10, hide:true, name:"Yakıt basıncı",            unit:"kPa", f:a=>a*3,                    lo:0,   hi:765, dec:0, min:null, max:null},
+  {pid:"14", every:5, hide:true, name:"Oksijen sensörü 1 voltajı",unit:"V",   f:a=>a/200,                  lo:0,   hi:1.3, dec:2, min:null, max:null},
+  {pid:"15", every:10, hide:true, name:"Oksijen sensörü 2 voltajı",unit:"V",   f:a=>a/200,                  lo:0,   hi:1.3, dec:2, min:null, max:null},
+  {pid:"1F", every:30, hide:true, name:"Motor çalışma süresi",     unit:"sn",  f:(a,b)=>a*256+b,            lo:0,   hi:7200,dec:0, min:null, max:null},
+  {pid:"2C", every:8, hide:true, name:"İstenen EGR",              unit:"%",   f:a=>a*100/255,              lo:0,   hi:100, dec:0, min:null, max:null},
+  {pid:"33", every:60, hide:true, name:"Hava basıncı (barometre)", unit:"kPa", f:a=>a,                      lo:60,  hi:110, dec:0, min:null, max:null},
+  {pid:"3C", every:10, hide:true, name:"Katalizör sıcaklığı",      unit:"°C",  f:(a,b)=>(a*256+b)/10-40,    lo:0,   hi:1000,dec:0, min:null, max:null},
+  {pid:"43", every:5, hide:true, name:"Mutlak motor yükü",        unit:"%",   f:(a,b)=>(a*256+b)*100/255,  lo:0,   hi:200, dec:0, min:null, max:null},
+  {pid:"44", every:5, hide:true, name:"İstenen hava/yakıt oranı (lambda)", unit:"λ", f:(a,b)=>(a*256+b)*2/65536, lo:0.5, hi:1.5, dec:3, min:null, max:null},
+  {pid:"45", every:4, hide:true, name:"Bağıl gaz kelebeği",       unit:"%",   f:a=>a*100/255,              lo:0,   hi:100, dec:0, min:null, max:null},
+  {pid:"49", every:3, hide:true, name:"Gaz pedalı konumu",        unit:"%",   f:a=>a*100/255,              lo:0,   hi:100, dec:0, min:null, max:null},
+  {pid:"4C", every:6, hide:true, name:"İstenen gaz kelebeği",     unit:"%",   f:a=>a*100/255,              lo:0,   hi:100, dec:0, min:null, max:null},
+  {pid:"5A", every:4, hide:true, name:"Bağıl gaz pedalı",         unit:"%",   f:a=>a*100/255,              lo:0,   hi:100, dec:0, min:null, max:null},
+  {pid:"61", every:4, hide:true, name:"Sürücünün istediği tork",  unit:"%",   f:a=>a-125,                  lo:-125,hi:130, dec:0, min:null, max:null},
+  {pid:"62", every:4, hide:true, name:"Motorun gerçek torku",     unit:"%",   f:a=>a-125,                  lo:-125,hi:130, dec:0, min:null, max:null},
   // Hesaplanan (sanal) göstergeler: araçtan okunmaz, diğer değerlerden türetilir
   {pid:"FL", virtual:true, name:"Anlık tüketim",     unit:"L/sa",     lo:0, hi:20, dec:1, min:null, max:null},
   {pid:"FK", virtual:true, name:"Tüketim (100 km)",  unit:"L/100 km", lo:0, hi:30, dec:1, min:null, max:null},
@@ -525,7 +542,7 @@ function dtcInfo(code){
 const STORE_KEY = "obdTakip.v1";
 function defaults(){
   const lim={}; GAUGES.forEach(g=>lim[g.pid]={show:!g.hide,min:g.min,max:g.max});
-  return {lim, fuel:"benzin", disp:1.6, ve:85, price:45, calib:100, dtcEvery:30, trendMin:2, voice:true, vibrate:true, wake:true, mute:false, record:true, gps:true};
+  return {lim, fuel:"benzin", disp:1.6, ve:85, price:45, calib:100, dtcEvery:30, trendMin:2, recAll:true, voice:true, vibrate:true, wake:true, mute:false, record:true, gps:true};
 }
 let settings = defaults();
 try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)||"null"); if(s){ settings={...settings,...s,lim:{...settings.lim,...(s.lim||{})}}; } }catch(e){}
@@ -716,11 +733,18 @@ class DemoLink{
       const r=this.reply("01"+pid); return r.startsWith("41") ? "42"+pid+"00"+r.slice(4) : "NO DATA";
     }
     switch(cmd){
-      case "0100": return "4100"+mask(0,["01","04","05","06","07","0B","0C","0D","0E","0F","10","11","1F","20"]);
-      case "0120": return "4120"+mask(0x20,["21","2F","30","31","40"]);
-      case "0140": return "4140"+mask(0x40,["42","46","4D","4E","5C"]);
+      case "0100": return "4100"+mask(0,["01","04","05","06","07","0B","0C","0D","0E","0F","10","11","14","1F","20"]);
+      case "0120": return "4120"+mask(0x20,["21","2F","30","31","33","3C","40"]);
+      case "0140": return "4140"+mask(0x40,["42","43","44","45","46","49","4D","4E","5C"]);
       case "0101": return "4101"+h(t>40&&this.cleared<0?0x81:0)+"07"+"E5"+(this.cleared<0?"04":"A5");   // benzinli; EVAP tamamlanmadı
       case "011F": return "411F"+w(t);
+      case "0114": return "4114"+h((0.1+Math.random()*0.8)*200)+"FF";
+      case "0133": return "413364";
+      case "013C": return "413C"+w((350+drive*300+40)*10);
+      case "0143": return "4143"+w((20+drive*55)*2.55);
+      case "0144": return "4144"+w(32768*(1-drive*0.05));
+      case "0145": return "4145"+h((10+drive*40)*2.55);
+      case "0149": return "4149"+h((15+drive*45)*2.55);
       case "0121": return "4121"+w(t>40&&this.cleared<0?3:0);
       case "0130": return "4130"+h(this.cleared<0?14:0);
       case "0131": return "4131"+w(this.cleared<0?1840:0);
@@ -1198,7 +1222,7 @@ async function loop(){
   while(S.active){
     while(S.paused && S.active) await wait(200);
     cycle++;
-    const list=GAUGES.filter(g=>!g.virtual && (settings.lim[g.pid].show || FUEL_NEED.has(g.pid)) && (!S.supported || S.supported.has(g.pid) || (g.pid==="42"&&S.useAtrv)) && S.g[g.pid].miss<5
+    const list=GAUGES.filter(g=>!g.virtual && (settings.lim[g.pid].show || FUEL_NEED.has(g.pid) || (settings.recAll && REC.trip)) && (!S.supported || S.supported.has(g.pid) || (g.pid==="42"&&S.useAtrv)) && S.g[g.pid].miss<5
       && (cycle===1 || cycle%(g.every||1)===0));
     for(const g of list){
       if(!S.active) return;
@@ -1555,7 +1579,7 @@ function buildSettings(){
     tr.querySelector(`#s_max_${g.pid}`).addEventListener("change",e=>{ L.max=numOrNull(e.target.value); save(); paintRange(g); });
   }
   $("dtcEvery").value=settings.dtcEvery; $("optVibrate").checked=settings.vibrate; $("optWake").checked=settings.wake;
-  $("optVoice").checked=settings.voice; $("optRecord").checked=settings.record; $("optGps").checked=settings.gps; $("trendMin").value=String(settings.trendMin);
+  $("optVoice").checked=settings.voice; $("optRecAll").checked=settings.recAll; $("optRecord").checked=settings.record; $("optGps").checked=settings.gps; $("trendMin").value=String(settings.trendMin);
   $("fuelType").value=settings.fuel; $("fuelPrice").value=settings.price; $("fuelDisp").value=settings.disp; $("fuelCalib").value=settings.calib;
   $("fuelNote").textContent = settings.fuel==="dizel" ? "Dizelde tüketim yalnızca araç kendi yakıt debisini veriyorsa gösterilir; hava akışından yapılan hesap dizelde yanıltıcıdır." : "";
   $("btnMute").setAttribute("aria-pressed",String(settings.mute));
@@ -1568,6 +1592,7 @@ $("trendMin").addEventListener("change",e=>{ settings.trendMin=Number(e.target.v
 for(const [id,key,num] of [["fuelType","fuel",false],["fuelPrice","price",true],["fuelDisp","disp",true],["fuelCalib","calib",true]]){
   $(id).addEventListener("change",e=>{ const v=num?Number(String(e.target.value).replace(",", ".")):e.target.value; if(num && !(v>0)) return; settings[key]=v; save(); buildSettings(); });
 }
+$("optRecAll").addEventListener("change",e=>{ settings.recAll=e.target.checked; save(); });
 $("optVoice").addEventListener("change",e=>{ settings.voice=e.target.checked; save(); });
 $("btnVoiceTest").addEventListener("click",()=>{
   pickVoice();
