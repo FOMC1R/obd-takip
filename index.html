@@ -35,9 +35,10 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--text);font:16px/1.45 var(--f-body);
-  padding:env(safe-area-inset-top,0px) 16px calc(env(safe-area-inset-bottom,0px) + 32px)}
-.wrap{max-width:980px;margin:0 auto;display:grid;gap:16px}
+body{background:var(--bg);color:var(--text);font:16px/1.45 var(--f-body);-webkit-tap-highlight-color:transparent;
+  padding:env(safe-area-inset-top,0px) 16px calc(env(safe-area-inset-bottom,0px) + 84px)}
+.wrap{max-width:980px;margin:0 auto;display:grid;gap:14px}
+main,.tab{display:grid;gap:14px;min-width:0}
 [hidden]{display:none!important}
 button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);padding:10px 14px;min-height:44px}
 button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
@@ -50,11 +51,19 @@ h2{font-size:20px}
 .label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
 
 /* üst şerit */
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 8px;display:grid;gap:10px}
-.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.top h1{margin-right:auto}
-.status{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px 8px;display:grid;gap:8px;border-bottom:1px solid var(--line);margin-inline:-16px;padding-inline:16px}
+.top{display:flex;align-items:center;gap:10px}
+.top h1{margin-right:auto;font-size:24px}
+button.icon{width:44px;height:44px;padding:0;display:grid;place-items:center;border-radius:50%}
+button.icon svg{width:22px;height:22px}
+#btnMute .off,#btnMute[aria-pressed="true"] .on{display:none}
+#btnMute[aria-pressed="true"] .off{display:block}
+#btnMute[aria-pressed="true"]{color:var(--crit);border-color:var(--crit)}
+.connbar{display:flex;align-items:center;gap:10px}
+.connbar button{flex:none}
+.status{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);flex:1;min-width:0}
+#statusText{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none}
 .status.on .dot{background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 25%,transparent)}
 .status.busy .dot{background:var(--warn)}
 .status.err .dot{background:var(--crit)}
@@ -90,7 +99,8 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .empty{color:var(--muted);font-size:14px}
 
 /* göstergeler */
-.gauges{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.gauges{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(150px,100%),1fr));gap:10px}
+.gauges>*{min-width:0}
 .g{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:6px;transition:opacity .3s}
 .g .name{font-size:13px;color:var(--muted);font-weight:600;line-height:1.2;min-height:2.4em}
 .g .val{font-family:var(--f-num);font-size:40px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
@@ -105,7 +115,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .g.unsup{opacity:.4}
 .g{cursor:pointer}
 .g:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.g canvas.spark{display:block;width:100%;height:34px}
+.g canvas.spark{display:block;width:100%;max-width:100%;height:34px}
 .g .sparkinfo{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;min-height:1.3em;line-height:1.3}
 .g:not(.big) .sparkinfo{display:none}
 .g.big{grid-column:1/-1}
@@ -148,12 +158,38 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
 .chart-ctl select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);max-width:100%}
 .sw{display:inline-block;width:14px;height:4px;border-radius:2px;vertical-align:middle;margin-right:4px}
 .chart-box{position:relative}
-#chart{width:100%;height:260px;display:block;touch-action:pan-y}
+#chart{width:100%;max-width:100%;height:260px;display:block;touch-action:pan-y}
+.card{min-width:0}
 #readout{font-size:13px;color:var(--muted);min-height:1.4em;font-variant-numeric:tabular-nums}
 #map{height:320px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2)}
 .events{list-style:none;margin:0;padding:0;font-size:14px;display:grid;gap:4px;max-height:220px;overflow:auto}
 .events li{display:flex;gap:10px}
 .events time{color:var(--muted);flex:none;font-variant-numeric:tabular-nums}
+/* alt sekme çubuğu: tek elle, başparmak erişiminde */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:6;display:grid;grid-template-columns:repeat(4,1fr);
+  background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar button{border:0;border-radius:0;background:none;min-height:62px;display:grid;justify-items:center;align-content:center;gap:3px;
+  font-size:12px;color:var(--muted);position:relative;padding:6px 2px}
+.tabbar button svg{width:24px;height:24px}
+.tabbar button[aria-current="page"]{color:var(--accent);font-weight:600}
+.tabbar button[aria-current="page"]::before{content:"";position:absolute;top:0;left:28%;right:28%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+.badge{position:absolute;top:6px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--crit);color:#fff;
+  font-size:11px;font-style:normal;font-weight:700;line-height:18px;text-align:center}
+.idle{border-style:dashed}
+.idle p{margin:0;color:var(--muted);font-size:15px}
+.field{display:grid;gap:6px}
+.field label{font-size:14px;color:var(--muted)}
+.field input,.field select,.chart-ctl select{font:inherit;min-height:44px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);width:100%}
+label.check{display:flex;gap:12px;align-items:center;min-height:44px}
+.set-table td input[type=number]{width:64px;min-height:40px}
+/* yatay tutucuda: başlık yapışmasın, yer kazan */
+@media (orientation:landscape) and (max-height:520px){
+  header{position:static}
+  .tabbar button{min-height:46px;grid-auto-flow:column;gap:6px}
+  body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 64px)}
+  .gauges{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+}
+@media (min-width:700px){ .tabbar{padding-inline:calc(50% - 360px)} }
 .sheet{display:grid;gap:8px;padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--accent)}
 .sheet button{text-align:left;font-weight:600}
 .sheet button small{display:block;font-weight:400;font-size:13px;opacity:.8}
@@ -167,13 +203,15 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
   <div class="top">
     <h1>OBD Takip</h1>
     <span class="rec" id="recBadge" hidden>Kayıt</span>
-    <span class="status" id="status"><span class="dot"></span><span id="statusText">Bağlı değil</span></span>
+    <button class="icon" id="btnMute" aria-pressed="false" aria-label="Sesli uyarıyı kapat">
+      <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z" fill="currentColor"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>
+      <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6"/></svg>
+    </button>
   </div>
-  <div class="actions">
+  <div class="connbar">
+    <span class="status" id="status"><span class="dot"></span><span id="statusText">Bağlı değil</span></span>
     <button class="primary" id="btnConnect">Bağlan</button>
-    <button id="btnDemo">Deneme modu</button>
     <button id="btnStop" hidden>Bağlantıyı kes</button>
-    <button id="btnMute" aria-pressed="false">Ses: açık</button>
   </div>
   <div class="sheet" id="connSheet" hidden role="dialog" aria-label="Bağlantı türü">
     <b>Cihazın nasıl bağlanıyor?</b>
@@ -187,101 +225,132 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
 
 <div class="notice" id="btNotice" hidden></div>
 
-<section class="card" aria-labelledby="dtcTitle">
-  <div class="dtc-head">
-    <svg class="mil" id="mil" viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" d="M14 14h8v-3h-5V8h14v3h-5v3h7l4 4h3v-3h4v14h-4v-3h-3v7l-5 5H14l-3-3H8v4H4V21h4v4h3v-8z"/></svg>
-    <div class="txt">
-      <h2 id="dtcTitle">Arıza kodları</h2>
-      <b id="milText">Henüz taranmadı</b>
-      <span id="dtcTime">Bağlanınca otomatik taranır</span>
+<main>
+
+<section class="tab" data-tab="canli" aria-label="Canlı değerler">
+  <div class="card idle" id="idleCard">
+    <b>Araca bağlı değil</b>
+    <p>Kontağı aç ve yukarıdaki <b>Bağlan</b> düğmesine dokun. Cihaz yanında değilse uygulamayı deneme modunda görebilirsin.</p>
+    <div class="actions"><button id="btnDemo">Deneme modunu başlat</button></div>
+  </div>
+  <div class="row"><h2 id="gTitle" style="margin-right:auto">Anlık değerler</h2><span class="empty">Dokun: grafiği büyüt</span></div>
+  <div class="gauges" id="gauges"></div>
+  <details class="card">
+    <summary>Uyarı geçmişi</summary>
+    <ul class="log" id="log"><li class="empty">Henüz uyarı yok.</li></ul>
+    <div class="actions"><button id="btnLogClear">Geçmişi temizle</button></div>
+  </details>
+</section>
+
+<section class="tab" data-tab="ariza" hidden aria-label="Arıza">
+  <section class="card" aria-labelledby="dtcTitle">
+    <div class="dtc-head">
+      <svg class="mil" id="mil" viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" d="M14 14h8v-3h-5V8h14v3h-5v3h7l4 4h3v-3h4v14h-4v-3h-3v7l-5 5H14l-3-3H8v4H4V21h4v4h3v-8z"/></svg>
+      <div class="txt">
+        <h2 id="dtcTitle">Arıza kodları</h2>
+        <b id="milText">Henüz taranmadı</b>
+        <span id="dtcTime">Bağlanınca otomatik taranır</span>
+      </div>
     </div>
     <div class="actions">
       <button id="btnScan" disabled>Şimdi tara</button>
       <button id="btnClear" disabled>Kodları sil</button>
     </div>
-  </div>
-  <div class="confirm" id="clearBox" hidden>
-    <div><b>Arıza kodları ve arıza lambası silinsin mi?</b><br>
-    Silme işlemi sorunu gidermez; yalnızca kaydı temizler. Arıza sürüyorsa kod geri gelir. Silmeden önce kodları not al. Kontak açık, motor kapalı olsun.</div>
-    <div class="actions"><button id="clearNo">Vazgeç</button><button class="danger" id="clearYes">Evet, sil</button></div>
-  </div>
-  <ul class="dtc-list" id="dtcList"></ul>
+    <div class="confirm" id="clearBox" hidden>
+      <div><b>Arıza kodları ve arıza lambası silinsin mi?</b><br>
+      Silme işlemi sorunu gidermez; yalnızca kaydı temizler. Arıza sürüyorsa kod geri gelir. Donmuş kare ve muayene hazırlık bilgisi de sıfırlanır. Silmeden önce kodları not al. Kontak açık, motor kapalı olsun.</div>
+      <div class="actions"><button id="clearNo">Vazgeç</button><button class="danger" id="clearYes">Evet, sil</button></div>
+    </div>
+    <ul class="dtc-list" id="dtcList"></ul>
+  </section>
 </section>
 
-<section aria-labelledby="gTitle" style="display:grid;gap:10px">
-  <div class="row"><h2 id="gTitle" style="margin-right:auto">Anlık değerler</h2><span class="empty">Grafiği büyütmek için göstergeye dokun</span></div>
-  <div class="gauges" id="gauges"></div>
+<section class="tab" data-tab="surus" hidden aria-label="Sürüşler">
+  <section class="card" aria-labelledby="tripsTitle">
+    <div class="row"><h2 id="tripsTitle" style="margin-right:auto">Sürüş kayıtları</h2><span class="empty" id="storeInfo"></span></div>
+    <ul class="trips" id="trips"><li class="empty">Henüz kayıt yok. Bağlandığında sürüş otomatik kaydedilir.</li></ul>
+  </section>
+
+  <section class="card" id="viewer" hidden aria-labelledby="vTitle">
+    <div class="row"><h2 id="vTitle" style="margin-right:auto">Sürüş</h2><button id="vClose">Kapat</button></div>
+    <div class="actions"><button id="vCsv">CSV paylaş / indir</button><button id="vDel">Sil</button></div>
+    <div class="confirm" id="vDelBox" hidden>
+      <div><b>Bu sürüş kaydı silinsin mi?</b> Silinen kayıt geri getirilemez.</div>
+      <div class="actions"><button id="vDelNo">Vazgeç</button><button class="danger" id="vDelYes">Evet, sil</button></div>
+    </div>
+    <div class="stats" id="vStats"></div>
+    <div class="chart-ctl">
+      <label for="selA"><span class="sw" style="background:var(--accent)"></span>Sol eksen</label><select id="selA"></select>
+      <label for="selB"><span class="sw" style="background:var(--series-b)"></span>Sağ eksen</label><select id="selB"></select>
+    </div>
+    <div class="chart-box"><canvas id="chart"></canvas></div>
+    <div id="readout">Grafiğe dokun ya da üzerinde gezin; o anki değerler burada görünür.</div>
+    <div id="map"></div>
+    <h2 style="font-size:17px">Olaylar</h2>
+    <ul class="events" id="vEvents"></ul>
+  </section>
 </section>
 
-<section class="card" aria-labelledby="logTitle">
-  <div class="row"><h2 id="logTitle" style="margin-right:auto">Uyarı geçmişi</h2><button id="btnLogClear">Temizle</button></div>
-  <ul class="log" id="log"><li class="empty">Henüz uyarı yok.</li></ul>
+<section class="tab" data-tab="ayar" hidden aria-label="Ayarlar">
+  <section class="card" id="settings" aria-labelledby="setTitle">
+    <h2 id="setTitle">Uyarı sınırları</h2>
+    <p class="help" style="margin:0">Bir değer sınırın dışına <b>3 ölçüm üst üste</b> çıkarsa uyarı verilir. Boş bırakılan sınır kontrol edilmez. Ayarlar bu telefonda saklanır.</p>
+    <div class="set-table"><table>
+      <thead><tr><th>Göster</th><th>Değer</th><th>Alt</th><th>Üst</th></tr></thead>
+      <tbody id="setBody"></tbody>
+    </table></div>
+    <div class="actions"><button id="btnReset">Varsayılan sınırlara dön</button></div>
+  </section>
+
+  <section class="card" aria-labelledby="optTitle">
+    <h2 id="optTitle">Uygulama</h2>
+    <div class="field">
+      <label for="dtcEvery">Arıza tarama aralığı (saniye)</label>
+      <input type="number" id="dtcEvery" min="10" max="600" step="5" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label for="trendMin">Trend grafiği süresi</label>
+      <select id="trendMin">
+        <option value="1">Son 1 dakika</option><option value="2">Son 2 dakika</option><option value="5">Son 5 dakika</option><option value="10">Son 10 dakika</option>
+      </select>
+    </div>
+    <label class="check"><input type="checkbox" id="optVibrate"> Uyarıda titreşim</label>
+    <label class="check"><input type="checkbox" id="optWake"> Ekranı açık tut</label>
+    <label class="check"><input type="checkbox" id="optRecord"> Sürüşü kaydet</label>
+    <label class="check"><input type="checkbox" id="optGps"> GPS konumunu kaydet</label>
+  </section>
+
+  <section class="card help" aria-labelledby="hTitle">
+    <h2 id="hTitle">Nasıl kullanılır</h2>
+    <p><b>Klasik Bluetooth cihaz</b> (çoğu ucuz ELM327): Önce telefonun Bluetooth ayarlarından cihazı eşleştir (şifre genelde 1234 ya da 0000). Sonra "Bağlan" → "Klasik Bluetooth" → listeden cihazı seç. Bir kez seçtikten sonra "Son cihaza bağlan" ile tek dokunuşla bağlanırsın. Android Chrome 138 ve üstü gerekir.</p>
+    <p><b>BLE cihaz:</b> Ayarlardan eşleştirme yapma. "Bağlan" → "Bluetooth LE" → listeden seç (OBDII, V-LINK, IOS-Vlink gibi). iPhone'da yalnızca bu tür, Bluefy tarayıcısıyla çalışır.</p>
+    <p>Başka bir OBD uygulaması cihaza bağlıysa önce onu tamamen kapat; cihaz aynı anda tek uygulamaya bağlanır.</p>
+    <p>Sürerken ekrana bakma. Uyarılar ses ve titreşimle gelir.</p>
+    <p><b>Kayıt:</b> Bağlandığın andan bağlantıyı kesene kadar her saniye bir ölçüm ve (izin verirsen) GPS konumu telefona kaydedilir. <b>Sayfa açık ve ekran açık kalmalı</b>; telefon kilitlenirse ya da başka uygulamaya geçersen tarayıcı sayfayı durdurur ve kayıt da durur. Telefonu şarja tak.</p>
+    <p><b>Xiaomi / HyperOS:</b> Ayarlar → Uygulamalar → Chrome → Pil tasarrufu → <b>Kısıtlama yok</b> seç. Aksi hâlde sistem Chrome'u erken durdurabilir.</p>
+  </section>
 </section>
 
-<section class="card" aria-labelledby="tripsTitle">
-  <div class="row"><h2 id="tripsTitle" style="margin-right:auto">Sürüş kayıtları</h2><span class="empty" id="storeInfo"></span></div>
-  <ul class="trips" id="trips"><li class="empty">Henüz kayıt yok. Bağlandığında sürüş otomatik kaydedilir.</li></ul>
-</section>
+</main>
 
-<section class="card" id="viewer" hidden aria-labelledby="vTitle">
-  <div class="row"><h2 id="vTitle" style="margin-right:auto">Sürüş</h2>
-    <button id="vCsv">CSV indir</button><button id="vDel">Sil</button><button id="vClose">Kapat</button></div>
-  <div class="confirm" id="vDelBox" hidden>
-    <div><b>Bu sürüş kaydı silinsin mi?</b> Silinen kayıt geri getirilemez.</div>
-    <div class="actions"><button id="vDelNo">Vazgeç</button><button class="danger" id="vDelYes">Evet, sil</button></div>
-  </div>
-  <div class="stats" id="vStats"></div>
-  <div class="chart-ctl">
-    <label for="selA"><span class="sw" style="background:var(--accent)"></span>Sol eksen</label><select id="selA"></select>
-    <label for="selB"><span class="sw" style="background:var(--series-b)"></span>Sağ eksen</label><select id="selB"></select>
-  </div>
-  <div class="chart-box"><canvas id="chart"></canvas></div>
-  <div id="readout">Grafiğe dokun ya da üzerinde gezin; o anki değerler burada görünür.</div>
-  <div id="map"></div>
-  <h2 style="font-size:17px">Olaylar</h2>
-  <ul class="events" id="vEvents"></ul>
-</section>
-
-<details class="card" id="settings">
-  <summary>Uyarı sınırları ve ayarlar</summary>
-  <p class="help" style="margin:0">Bir değer sınırın dışına <b>3 ölçüm üst üste</b> çıkarsa uyarı verilir. Boş bırakılan sınır kontrol edilmez. Değerler bu telefonda saklanır.</p>
-  <div class="set-table"><table>
-    <thead><tr><th>Göster</th><th>Değer</th><th>Alt sınır</th><th>Üst sınır</th></tr></thead>
-    <tbody id="setBody"></tbody>
-  </table></div>
-  <div class="row">
-    <label for="dtcEvery">Arıza tarama aralığı (saniye)</label>
-    <input type="number" id="dtcEvery" min="10" max="600" step="5">
-  </div>
-  <div class="row">
-    <label for="trendMin">Trend grafiği süresi</label>
-    <select id="trendMin" style="font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--text)">
-      <option value="1">Son 1 dakika</option><option value="2">Son 2 dakika</option><option value="5">Son 5 dakika</option><option value="10">Son 10 dakika</option>
-    </select>
-  </div>
-  <div class="row">
-    <label><input type="checkbox" id="optVibrate"> Uyarıda titreşim</label>
-    <label><input type="checkbox" id="optWake"> Ekranı açık tut</label>
-  </div>
-  <div class="row">
-    <label><input type="checkbox" id="optRecord"> Sürüşü kaydet</label>
-    <label><input type="checkbox" id="optGps"> GPS konumunu kaydet</label>
-  </div>
-  <div class="row"><button id="btnReset">Varsayılan sınırlara dön</button></div>
-</details>
-
-<section class="card help" aria-labelledby="hTitle">
-  <h2 id="hTitle">Nasıl kullanılır</h2>
-  <p><b>Android:</b> Bu sayfayı <b>Chrome</b> ile aç. Telefonun Bluetooth'u ve konumu açık olsun.</p>
-  <p><b>iPhone:</b> Safari Bluetooth'a izin vermez. App Store'dan ücretsiz <b>Bluefy</b> tarayıcısını kur ve sayfayı onunla aç.</p>
-  <p><b>Klasik Bluetooth cihaz</b> (çoğu ucuz ELM327): Önce telefonun Bluetooth ayarlarından cihazı eşleştir (şifre genelde 1234 ya da 0000). Sonra "Bağlan" → "Klasik Bluetooth" → listeden cihazı seç. Bir kez seçtikten sonra "Son cihaza bağlan" ile tek dokunuşla bağlanırsın. Android Chrome 138 ve üstü gerekir.</p>
-  <p><b>BLE cihaz:</b> Ayarlardan eşleştirme yapma. "Bağlan" → "Bluetooth LE" → listeden seç (OBDII, V-LINK, IOS-Vlink gibi). iPhone'da yalnızca bu tür, Bluefy tarayıcısıyla çalışır.</p>
-  <p>Başka bir OBD uygulaması cihaza bağlıysa önce onu tamamen kapat; cihaz aynı anda tek uygulamaya bağlanır.</p>
-  <p>Sürerken ekrana bakma. Uyarılar ses ve titreşimle gelir.</p>
-  <p><b>Kayıt:</b> Bağlandığın andan bağlantıyı kesene kadar her saniye bir ölçüm ve (izin verirsen) GPS konumu telefona kaydedilir. <b>Sayfa açık ve ekran açık kalmalı</b>; telefon kilitlenirse ya da başka uygulamaya geçersen tarayıcı sayfayı durdurur ve kayıt da durur. Telefonu şarja tak.</p>
-</section>
-
-</div>
+<nav class="tabbar" id="tabbar" aria-label="Bölümler">
+  <button data-tab="canli" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 17a8.5 8.5 0 1 1 17 0"/><path d="M12 17l4.5-6"/><circle cx="12" cy="17" r="1.2" fill="currentColor"/></svg>
+    <span>Canlı</span>
+  </button>
+  <button data-tab="ariza">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" d="M14 14h8v-3h-5V8h14v3h-5v3h7l4 4h3v-3h4v14h-4v-3h-3v7l-5 5H14l-3-3H8v4H4V21h4v4h3v-8z"/></svg>
+    <span>Arıza</span><i class="badge" id="dtcBadge" hidden></i>
+  </button>
+  <button data-tab="surus">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h7"/></svg>
+    <span>Sürüşler</span>
+  </button>
+  <button data-tab="ayar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+    <span>Ayarlar</span>
+  </button>
+</nav>
 
 <script>
 "use strict";
@@ -731,6 +800,8 @@ function paintDtc(mil,count){
   const {stored,pending,perm}=S.dtc, list=$("dtcList"); list.innerHTML="";
   $("mil").classList.toggle("on",!!mil);
   const total = stored.length+pending.length+perm.length;
+  const uniq=new Set([...stored,...pending,...perm]).size;
+  $("dtcBadge").hidden=!uniq; $("dtcBadge").textContent=String(uniq);
   $("milText").textContent = mil ? `Arıza lambası YANIYOR (${count} kod)` : (total ? "Arıza lambası sönük, bekleyen kod var" : "Arıza kodu yok");
   $("dtcTime").textContent = "Son tarama: "+new Date().toLocaleTimeString("tr-TR");
   const add=(code,kind)=>{
@@ -840,7 +911,7 @@ async function start(link){
     const info=await init();
     S.active=true; drop("link");
     setStatus("on",`Bağlı · ${name} · ${info}`);
-    $("btnStop").hidden=false; $("btnScan").disabled=$("btnClear").disabled=false;
+    $("btnStop").hidden=false; $("btnConnect").hidden=true; $("idleCard").hidden=true; $("btnScan").disabled=$("btnClear").disabled=false;
     GAUGES.forEach(paintGauge);
     keepAwake();
     await startRec(name, link instanceof DemoLink);
@@ -854,7 +925,7 @@ async function start(link){
 }
 function stop(){ S.active=false; S.link&&S.link.close(); setStatus("","Bağlı değil"); drop("link"); endRec(); uiIdle(); }
 function uiIdle(){
-  $("btnConnect").disabled=$("btnDemo").disabled=false; $("btnStop").hidden=true;
+  $("btnConnect").disabled=$("btnDemo").disabled=false; $("btnStop").hidden=true; $("btnConnect").hidden=false; $("idleCard").hidden=false;
   $("btnScan").disabled=$("btnClear").disabled=true;
   if(S.wake){ S.wake.release().catch(()=>{}); S.wake=null; }
 }
@@ -1149,7 +1220,8 @@ function buildSettings(){
   }
   $("dtcEvery").value=settings.dtcEvery; $("optVibrate").checked=settings.vibrate; $("optWake").checked=settings.wake;
   $("optRecord").checked=settings.record; $("optGps").checked=settings.gps; $("trendMin").value=String(settings.trendMin);
-  $("btnMute").textContent = settings.mute ? "Ses: kapalı" : "Ses: açık"; $("btnMute").setAttribute("aria-pressed",String(settings.mute));
+  $("btnMute").setAttribute("aria-pressed",String(settings.mute));
+  $("btnMute").setAttribute("aria-label", settings.mute ? "Sesli uyarıyı aç" : "Sesli uyarıyı kapat");
 }
 $("dtcEvery").addEventListener("change",e=>{ settings.dtcEvery=Math.max(10,Number(e.target.value)||30); save(); });
 $("optVibrate").addEventListener("change",e=>{ settings.vibrate=e.target.checked; save(); });
@@ -1161,6 +1233,16 @@ $("btnReset").addEventListener("click",()=>{ const d=defaults(); settings.lim=d.
 $("btnMute").addEventListener("click",()=>{ settings.mute=!settings.mute; save(); buildSettings(); });
 
 // ---------- Düğmeler ----------
+// Sekmeler
+function showTab(name){
+  document.querySelectorAll(".tab").forEach(s=>{ s.hidden = s.dataset.tab!==name; });
+  document.querySelectorAll("#tabbar button").forEach(b=>{ if(b.dataset.tab===name) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  settings.tab=name; save(); window.scrollTo(0,0);
+  if(name==="canli") GAUGES.forEach(paintGauge);   // gizliyken çizilemeyen grafikler
+  if(name==="surus" && !$("viewer").hidden){ drawChart(); V.map && V.map.invalidateSize(); }
+}
+document.querySelectorAll("#tabbar button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+
 // Bağlan: son kullanılan klasik cihaz izinliyse seçim ekranı olmadan bağlan, değilse tür sor
 async function knownPort(){ try{ return navigator.serial ? (await navigator.serial.getPorts())[0]||null : null; }catch(e){ return null; } }
 async function openConnSheet(){
@@ -1187,7 +1269,8 @@ $("clearYes").addEventListener("click",clearDtc);
 $("btnLogClear").addEventListener("click",()=>{ S.log=[]; $("log").innerHTML='<li class="empty">Henüz uyarı yok.</li>'; });
 setInterval(()=>{ if(S.active) GAUGES.forEach(paintGauge); },2000);
 
-buildSettings(); buildGauges(); renderTrips();
+buildSettings(); buildGauges(); renderTrips(); showTab(settings.tab||"canli");
+if(location.hash==="#demo") start(new DemoLink());   // bağlantı: .../obd-takip/#demo
 setInterval(()=>{ if(REC.trip) renderTrips(); },30000);
 if(!navigator.bluetooth && !navigator.serial) showNotice("Bu tarayıcıda Bluetooth yok. Android'de Chrome ile aç. Şimdilik \"Deneme modu\" ile uygulamayı görebilirsin.");
 </script>
