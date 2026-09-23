@@ -111,7 +111,7 @@ Tarayıcı verilerini silersen kayıtlar da silinir. Önemli sürüşleri CSV ol
 
 ## Geliştiriciler için
 
-Tek sayfalık, kütüphanesiz bir web uygulaması. Derleme adımı yok.
+Tek sayfalık bir web uygulaması; derleme adımı yok. Tek dış kütüphane harita için Leaflet (cdnjs üzerinden).
 
 ```
 index.html            Uygulamanın tamamı (HTML + CSS + JS)
