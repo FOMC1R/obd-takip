@@ -288,6 +288,12 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
     <h3>Sayaçlar</h3>
     <dl class="kv" id="counters"><dt>Durum</dt><dd>Bağlanınca okunur</dd></dl>
   </section>
+
+  <section class="card" aria-labelledby="battTitle">
+    <div class="row"><h2 id="battTitle" style="margin-right:auto">Akü testi</h2><button id="btnBatt" disabled>Testi başlat</button></div>
+    <p class="sub">Motor kapalı, kontak açık olsun. "Testi başlat"a dokun; ekranda <b>"Şimdi marşa bas"</b> yazınca motoru çalıştır. Test yaklaşık 15 saniye sürer.</p>
+    <div id="battBox"></div>
+  </section>
 </section>
 
 <section class="tab" data-tab="surus" hidden aria-label="Sürüşler">
@@ -661,7 +667,12 @@ class DemoLink{
     const hasCodes = t>25 && this.cleared<0;
     if(cmd==="ATZ"||cmd==="ATI") return "ELM327 v1.5";
     if(cmd==="ATDPN") return "A6";
-    if(cmd==="ATRV") return "14.1V";
+    if(cmd==="ATRV"){   // art arda ATRV gelirse akü testi: 2 sn dinlenme, marş düşüşü, sonra şarj
+      const now=Date.now(); if(!this.lastRv || now-this.lastRv>1500) this.burst=now; this.lastRv=now;
+      const d=(now-this.burst)/1000, n=Math.random()*0.05;
+      const v = S.paused ? (d<2?12.52:d<2.7?9.9+d*0.3:d<3.3?11.6:14.15) : 14.1;
+      return (v+n).toFixed(1)+"V";
+    }
     if(cmd.startsWith("AT")) return "OK";
     const hex=str=>[...str].map(c=>c.charCodeAt(0).toString(16).toUpperCase().padStart(2,"0")).join("");
     // ISO-TP çok parçalı CAN yanıtı: uzunluk satırı + "0:", "1:" … satırları
@@ -1032,6 +1043,44 @@ async function runDiag(){
 }
 $("btnDiag").addEventListener("click",runDiag);
 
+// ---------- Akü marş testi ----------
+async function readVolt(){ try{ const m=(await S.elm.send("ATRV",1500)).match(/(\d+(\.\d+)?)/); return m?parseFloat(m[1]):null; }catch(e){ return null; } }
+async function batteryTest(){
+  const box=$("battBox"), btn=$("btnBatt");
+  const rpm=cur("0C");
+  if(!(S.link instanceof DemoLink) && rpm!=null && rpm>300){ box.innerHTML='<div class="verdict no">Motor çalışıyor. Önce motoru durdur, kontağı açık bırak, sonra tekrar dene.</div>'; return; }
+  btn.disabled=true; S.paused=true; await wait(400);   // döngü elindeki komutu bitirsin
+  const say=t=>{ box.innerHTML=`<div class="verdict no" style="font-size:18px"></div>`; box.firstChild.textContent=t; };
+  try{
+    say("Dinlenme voltajı ölçülüyor…");
+    const rest=[]; for(let i=0;i<4;i++){ const v=await readVolt(); if(v) rest.push(v); }
+    if(!rest.length) throw new Error("Cihaz voltaj okuyamıyor.");
+    const restV=rest.reduce((a,b)=>a+b,0)/rest.length;
+    say("Şimdi marşa bas"); speak("Şimdi marşa bas"); beep("warn");
+    const pts=[], t0=Date.now();
+    while(Date.now()-t0<12000){ const v=await readVolt(); if(v) pts.push({t:Date.now()-t0,v}); }
+    const minP=pts.reduce((a,b)=>b.v<a.v?b:a,{v:99});
+    const cranked = minP.v < restV-0.8;
+    const tail=pts.filter(p=>p.t>9000).map(p=>p.v), chargeV=tail.length?tail.reduce((a,b)=>a+b,0)/tail.length:null;
+    const rows=[["Dinlenme voltajı",`${fmt(restV,2)} V`],["Marşta en düşük",cranked?`${fmt(minP.v,2)} V`:"Marş algılanmadı"],
+      ["Çalışırken (şarj)",chargeV?`${fmt(chargeV,2)} V`:"—"],["Ölçüm sayısı",`${pts.length} (saniyede ~${fmt(pts.length/12,0)})`]];
+    const notes=[];
+    let bad=false;
+    if(restV>=12.5) notes.push("Akü dolu görünüyor."); else if(restV>=12.2) notes.push("Akü tam dolu değil; uzun yolda şarj olur, sık kısa yolda zayıflar.");
+    else { notes.push("Dinlenme voltajı düşük: akü boşalmış ya da zayıf."); bad=true; }
+    if(cranked){ if(minP.v>=10) notes.push("Marş düşüşü normal."); else if(minP.v>=9.6) notes.push("Marş düşüşü sınırda; soğuk havada zorlanabilir."); else { notes.push("Marşta voltaj çok düştü: akü zayıf, değişim zamanı yakın olabilir."); bad=true; } }
+    else notes.push("Marş algılanmadı; testi tekrar dene ve «Şimdi marşa bas» yazınca motoru çalıştır.");
+    if(chargeV){ if(chargeV<13.2){ notes.push("Şarj voltajı düşük: alternatör ya da kayış kontrol ettirilmeli."); bad=true; } else if(chargeV>15){ notes.push("Şarj voltajı çok yüksek: konjektör (voltaj regülatörü) kontrol ettirilmeli."); bad=true; } else if(cranked) notes.push("Alternatör normal şarj ediyor."); }
+    box.innerHTML=""; const dl=document.createElement("dl"); dl.className="kv"; kv(dl,rows);
+    const v=document.createElement("div"); v.className="verdict "+(bad?"no":"ok"); v.textContent=notes.join(" ");
+    const p=document.createElement("p"); p.className="sub"; p.textContent="Cihaz saniyede sınırlı ölçüm yaptığı için gerçek en düşük değer biraz daha düşük olabilir. Kesin sonuç için akü test cihazıyla ölçtür.";
+    box.append(v,dl,p);
+    addLog(bad?"crit":"warn",`Akü testi: dinlenme ${fmt(restV,2)} V, marş ${cranked?fmt(minP.v,2)+" V":"yok"}, şarj ${chargeV?fmt(chargeV,2)+" V":"—"}`);
+  }catch(e){ box.innerHTML='<div class="verdict no"></div>'; box.firstChild.textContent="Test yapılamadı: "+e.message; }
+  finally{ S.paused=false; btn.disabled=!S.active; }
+}
+$("btnBatt").addEventListener("click",batteryTest);
+
 // ---------- Yakıt tüketimi ----------
 // Hava/yakıt oranı (stokiyometrik) ve yakıt yoğunluğu (g/L)
 const FUEL = {benzin:{afr:14.7,dens:740,name:"Benzin"}, lpg:{afr:15.5,dens:540,name:"LPG"}, dizel:{afr:14.5,dens:832,name:"Dizel"}};
@@ -1104,11 +1153,13 @@ async function readGauge(g){
 async function loop(){
   let errors=0, cycle=0;
   while(S.active){
+    while(S.paused && S.active) await wait(200);
     cycle++;
     const list=GAUGES.filter(g=>!g.virtual && (settings.lim[g.pid].show || FUEL_NEED.has(g.pid)) && (!S.supported || S.supported.has(g.pid) || (g.pid==="42"&&S.useAtrv)) && S.g[g.pid].miss<5
       && (cycle===1 || cycle%(g.every||1)===0));
     for(const g of list){
       if(!S.active) return;
+      if(S.paused) break;
       try{ await readGauge(g); errors=0; }catch(x){ if(++errors>=6){ lost(); return; } }
     }
     computeFuel();
@@ -1136,7 +1187,7 @@ async function start(link){
     const info=await init();
     S.active=true; drop("link");
     setStatus("on",`Bağlı · ${name} · ${info}`);
-    $("btnStop").hidden=false; $("btnConnect").hidden=true; $("idleCard").hidden=true; $("btnScan").disabled=$("btnClear").disabled=false;
+    $("btnStop").hidden=false; $("btnConnect").hidden=true; $("idleCard").hidden=true; $("btnScan").disabled=$("btnClear").disabled=$("btnBatt").disabled=false;
     GAUGES.forEach(paintGauge);
     keepAwake();
     await startRec(name, link instanceof DemoLink);
@@ -1152,7 +1203,8 @@ async function start(link){
 function stop(){ S.active=false; S.link&&S.link.close(); setStatus("","Bağlı değil"); drop("link"); endRec(); uiIdle(); }
 function uiIdle(){
   $("btnConnect").disabled=$("btnDemo").disabled=false; $("btnStop").hidden=true; $("btnConnect").hidden=false; $("idleCard").hidden=false;
-  $("btnScan").disabled=$("btnClear").disabled=$("btnDiag").disabled=true;
+  $("btnScan").disabled=$("btnClear").disabled=$("btnDiag").disabled=$("btnBatt").disabled=true;
+  S.paused=false;
   if(S.wake){ S.wake.release().catch(()=>{}); S.wake=null; }
 }
 async function keepAwake(){ if(!settings.wake || !("wakeLock" in navigator)) return; try{ S.wake=await navigator.wakeLock.request("screen"); }catch(e){} }
