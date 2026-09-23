@@ -6,12 +6,14 @@
 
 const AI = {
   MAX: 5000,                      // metin adres satırına gidiyor; uzun adresler kesilebilir
-  MODEL: "claude-opus-5",
+  // Model kimlikleri claude-api rehberindeki tablodan. Varsayılan Opus 5; Sonnet 5 kullanıcının seçimiyle (daha ucuz).
+  MODELS: {"claude-opus-5":"Opus 5 — daha ayrıntılı (yorum başı ~5-15 sent)", "claude-sonnet-5":"Sonnet 5 — daha ucuz (yorum başı ~2-6 sent)"},
   URL: "https://api.anthropic.com/v1/messages",
   mil: null, trip: null, vin: false, busy: false, lastPaint: 0, el: {},
 };
 if(settings.carModel===undefined) settings.carModel="";
 if(settings.aiKey===undefined) settings.aiKey="";
+if(!(settings.aiModel in AI.MODELS)) settings.aiModel="claude-opus-5";
 
 const AI_ASK = [
   "Aşağıda aracımın OBD cihazıyla (ELM327) okunan verileri var. Araç konusunda uzman değilim.",
@@ -147,18 +149,17 @@ async function aiAsk(prompt){
   const timer = ctl && setTimeout(()=>ctl.abort(),150000);
   let res;
   try{
-    res = await fetch(AI.URL,{method:"POST", signal:ctl&&ctl.signal, headers:{
+    const model = settings.aiModel in AI.MODELS ? settings.aiModel : "claude-opus-5";
+    const headers={
       "content-type":"application/json",
       "x-api-key":key,
       "anthropic-version":"2023-06-01",
       "anthropic-dangerous-direct-browser-access":"true",   // tarayıcıdan doğrudan erişim izni
-      "anthropic-beta":"server-side-fallback-2026-07-01",   // model reddederse sunucu önerilen modelle yeniden dener
-    }, body:JSON.stringify({
-      model:AI.MODEL, max_tokens:6000, fallbacks:"default",
-      output_config:{effort:"medium"},
-      system:AI_SYSTEM,
-      messages:[{role:"user", content:prompt}],
-    })});
+    };
+    const body={model, max_tokens:6000, output_config:{effort:"medium"}, system:AI_SYSTEM, messages:[{role:"user", content:prompt}]};
+    // Rehber, Opus 5 için yedek modeli varsayılan olarak açmayı söylüyor: model reddederse sunucu önerilen modelle yeniden dener
+    if(model==="claude-opus-5"){ headers["anthropic-beta"]="server-side-fallback-2026-07-01"; body.fallbacks="default"; }
+    res = await fetch(AI.URL,{method:"POST", signal:ctl&&ctl.signal, headers, body:JSON.stringify(body)});
   }catch(e){
     return {ok:false, error: e&&e.name==="AbortError" ? "Yanıt çok gecikti. İnternet bağlantını kontrol edip tekrar dene."
       : "İnternete bağlanılamadı ya da Anthropic sunucusuna ulaşılamadı. Bağlantını kontrol et."};
@@ -272,8 +273,13 @@ function aiRender(box, text){
   E.keyDel=mk("button",{type:"button",textContent:"Sil"});
   E.keyDel.addEventListener("click",()=>{ E.key.value=""; saveKey(); });
   const keyF=mk("div",{className:"field"},[mk("label",{htmlFor:"aiKey",textContent:"Claude API anahtarı (isteğe bağlı)"}),mk("div",{className:"ai-key"},[E.key,E.keyDel])]);
-  const keyNote=mk("p",{className:"sub",textContent:"API anahtarı (Anthropic'in ücretli servisine giriş şifresi, console.anthropic.com'dan alınır) yalnızca bu telefonda saklanır. Her yorum birkaç sent tutar (genelde 5-15 sent) ve hesabından düşer. Veriler yalnızca \"Uygulamada yorumlat\"a bastığında Anthropic'e gönderilir."});
-  [mk("h2",{id:"aiSetTitle",textContent:"Yapay zekâ yorumu"}),mk("p",{className:"sub",textContent:"Aracını yazarsan yorum daha isabetli olur."}),carF,keyF,keyNote].forEach(k=>sc.appendChild(k));
+  const keyNote=mk("p",{className:"sub",textContent:"API anahtarı (Anthropic'in ücretli servisine giriş şifresi, console.anthropic.com'dan alınır) yalnızca bu telefonda saklanır. Her yorum birkaç sent tutar ve hesabından düşer. Veriler yalnızca \"Uygulamada yorumlat\"a bastığında Anthropic'e gönderilir."});
+  E.model=mk("select",{id:"aiModel"});
+  for(const [id,name] of Object.entries(AI.MODELS)){ const o=mk("option",{value:id,textContent:name}); E.model.appendChild(o); }
+  E.model.value=settings.aiModel;
+  E.model.addEventListener("change",()=>{ if(E.model.value in AI.MODELS){ settings.aiModel=E.model.value; save(); } });
+  const modelF=mk("div",{className:"field"},[mk("label",{htmlFor:"aiModel",textContent:"Uygulama içi yorumda kullanılacak model"}),E.model]);
+  [mk("h2",{id:"aiSetTitle",textContent:"Yapay zekâ yorumu"}),mk("p",{className:"sub",textContent:"Aracını yazarsan yorum daha isabetli olur."}),carF,keyF,modelF,keyNote].forEach(k=>sc.appendChild(k));
   $("ext-ayar").appendChild(sc);
 }
 

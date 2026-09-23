@@ -41,6 +41,11 @@ require("./harness")(String.raw`
   must(seen.url==="https://api.anthropic.com/v1/messages", "adres");
   must(h["x-api-key"]==="sk-ant-test" && h["anthropic-version"]==="2023-06-01" && h["anthropic-dangerous-direct-browser-access"]==="true", "başlıklar");
   must(b.model==="claude-opus-5" && b.messages[0].content==="deneme" && b.max_tokens>0, "gövde");
+  must(settings.aiModel==="claude-opus-5" && b.fallbacks==="default" && h["anthropic-beta"]==="server-side-fallback-2026-07-01", "Opus 5: varsayılan ve yedek model");
+  settings.aiModel="claude-sonnet-5"; await aiAsk("deneme");
+  const b2=JSON.parse(seen.opt.body);
+  must(b2.model==="claude-sonnet-5" && !("fallbacks" in b2) && !seen.opt.headers["anthropic-beta"], "Sonnet 5: yedek model başlığı olmamalı");
+  settings.aiModel="claude-opus-5";
   // güvenli çizim: yalnızca textContent
   const box=document.createElement("div"); const kids=[]; box.appendChild=c=>{ kids.push(c); return c; };
   aiRender(box,r.text+"\n<img src=x onerror=alert(1)>");
