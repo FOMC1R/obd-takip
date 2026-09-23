@@ -362,6 +362,7 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
       <input type="number" id="fuelCalib" min="50" max="200" step="1" inputmode="numeric">
     </div>
     <p class="sub" id="fuelNote"></p>
+    <p class="sub">Varsayılan fiyatlar 21 Eylül 2026 İstanbul pompa ortalamasıdır (benzin 80,40 · motorin 96,30 · LPG 34,99 TL). Kendi fiyatını girebilirsin.</p>
   </section>
 
   <section class="card" aria-labelledby="optTitle">
@@ -428,9 +429,9 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
 "use strict";
 // ---------- Göstergeler: OBD-II mod 01 PID tanımları (SAE J1979) ----------
 const GAUGES = [
-  {pid:"0C", every:1, name:"Motor devri",           unit:"d/dk", f:(a,b)=>(a*256+b)/4,     lo:0,   hi:8000, dec:0, min:null, max:6000},
-  {pid:"0D", every:1, name:"Hız",                   unit:"km/sa",f:a=>a,                   lo:0,   hi:220,  dec:0, min:null, max:140},
-  {pid:"05", every:5, name:"Soğutma suyu sıcaklığı",unit:"°C",   f:a=>a-40,                lo:-40, hi:130,  dec:0, min:null, max:105},
+  {pid:"0C", every:1, name:"Motor devri",           unit:"d/dk", f:(a,b)=>(a*256+b)/4,     lo:0,   hi:8000, dec:0, min:null, max:6200},
+  {pid:"0D", every:1, name:"Hız",                   unit:"km/sa",f:a=>a,                   lo:0,   hi:220,  dec:0, min:null, max:130},
+  {pid:"05", every:5, name:"Soğutma suyu sıcaklığı",unit:"°C",   f:a=>a-40,                lo:-40, hi:130,  dec:0, min:null, max:110},
   {pid:"5C", every:5, name:"Motor yağı sıcaklığı",  unit:"°C",   f:a=>a-40,                lo:-40, hi:160,  dec:0, min:null, max:130},
   {pid:"42", every:3, name:"Akü / şarj voltajı",    unit:"V",    f:(a,b)=>(a*256+b)/1000,  lo:10,  hi:16,   dec:1, min:12.0, max:15.0},
   {pid:"04", every:1, name:"Motor yükü",            unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:null, max:null},
@@ -540,12 +541,21 @@ function dtcInfo(code){
 
 // ---------- Ayarlar (yerel saklama) ----------
 const STORE_KEY = "obdTakip.v1";
+// Varsayılan litre fiyatları (TL) — 21 Eylül 2026, İstanbul Avrupa yakası pompa ortalaması
+const FUEL_PRICE = {benzin:80.40, dizel:96.30, lpg:34.99}, FUEL_PRICE_DATE = "21 Eylül 2026";
 function defaults(){
   const lim={}; GAUGES.forEach(g=>lim[g.pid]={show:!g.hide,min:g.min,max:g.max});
-  return {lim, fuel:"benzin", disp:1.6, ve:85, price:45, calib:100, dtcEvery:30, trendMin:2, recAll:true, voice:true, vibrate:true, wake:true, mute:false, record:true, gps:true};
+  return {lim, fuel:"benzin", disp:1.6, ve:85, price:FUEL_PRICE.benzin, calib:100, dtcEvery:30, trendMin:2, recAll:true, voice:true, vibrate:true, wake:true, mute:false, record:true, gps:true};
 }
 let settings = defaults();
 try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)||"null"); if(s){ settings={...settings,...s,lim:{...settings.lim,...(s.lim||{})}}; } }catch(e){}
+// Eski sürümün varsayılanında duran değerleri yenile; kullanıcının değiştirdiklerine dokunma
+if((settings.v||1)<2){
+  const L=settings.lim, up=(pid,k,from,to)=>{ if(L[pid] && L[pid][k]===from) L[pid][k]=to; };
+  up("0C","max",6000,6200); up("0D","max",140,130); up("05","max",105,110);
+  if(settings.price===45) settings.price=FUEL_PRICE[settings.fuel]||FUEL_PRICE.benzin;
+  settings.v=2; save();
+}
 function save(){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(settings)); }catch(e){} }
 
 // ---------- Bağlantı katmanı ----------
@@ -1589,6 +1599,8 @@ $("dtcEvery").addEventListener("change",e=>{ settings.dtcEvery=Math.max(10,Numbe
 $("optVibrate").addEventListener("change",e=>{ settings.vibrate=e.target.checked; save(); });
 $("optWake").addEventListener("change",e=>{ settings.wake=e.target.checked; save(); });
 $("trendMin").addEventListener("change",e=>{ settings.trendMin=Number(e.target.value)||2; save(); GAUGES.forEach(paintGauge); });
+// Yakıt türü değişince fiyat da o türün varsayılanına geçsin (fiyatı elle değiştirmediysen)
+$("fuelType").addEventListener("change",e=>{ if(settings.price===FUEL_PRICE[settings.fuel]) settings.price=FUEL_PRICE[e.target.value]; });
 for(const [id,key,num] of [["fuelType","fuel",false],["fuelPrice","price",true],["fuelDisp","disp",true],["fuelCalib","calib",true]]){
   $(id).addEventListener("change",e=>{ const v=num?Number(String(e.target.value).replace(",", ".")):e.target.value; if(num && !(v>0)) return; settings[key]=v; save(); buildSettings(); });
 }
