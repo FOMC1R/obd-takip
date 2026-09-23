@@ -77,7 +77,9 @@
     V.cool.textContent=fmt(cool,0);
     if(fk!=null){ V.fuel.textContent=fmt(fk,1); V.fuelL.textContent="Tüketim (L/100 km)"; }
     else { V.fuel.textContent=fmt(fl,1); V.fuelL.textContent="Tüketim (L/sa)"; }
-    const crit=[...S.alarms.values()].some(a=>a.level==="crit");
+    // Yalnızca şu an süren tehlike: sınırı aşan değer (anahtar "g…") ya da kopan bağlantı.
+    // Kayıtlı eski arıza kodu (dtc…, mil) sürüş boyunca ekranı yanıp söndürmesin.
+    const crit=[...S.alarms.entries()].some(([k,a])=>a.level==="crit" && (k.startsWith("g") || k==="link"));
     const cls="hud"+(crit?" alarm":"");
     if(H.el.className!==cls) H.el.className=cls;
   }

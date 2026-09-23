@@ -15,9 +15,14 @@ require("./harness")(String.raw`
   // alarm: kritik uyarı varken kırmızı (deneme aracının kendi arıza uyarılarını önce kaldır)
   [...S.alarms.keys()].forEach(k=>S.alarms.delete(k)); HUD.update();
   if(HUD.el.className.includes("alarm")) throw new Error("uyarı yokken kırmızı");
-  raise("t1","crit","deneme",false); HUD.update();
+  // kayıtlı arıza kodu uyarısı ekranı yanıp söndürmemeli
+  raise("dtcP0301","crit","deneme kod",false); HUD.update();
+  if(HUD.el.className.includes("alarm")) throw new Error("arıza kodu uyarısında kırmızı yandı");
+  drop("dtcP0301");
+  // sınırı aşan değer uyarısı yanıp söndürmeli
+  raise("g05","crit","deneme",false); HUD.update();
   if(!HUD.el.className.includes("alarm")) throw new Error("alarm görünmedi");
-  drop("t1"); HUD.update();
+  drop("g05"); HUD.update();
   if(HUD.el.className.includes("alarm")) throw new Error("alarm kalktı ama görünüm kırmızı");
   // aynalama kalıcı
   HUD.setMirror(true);
