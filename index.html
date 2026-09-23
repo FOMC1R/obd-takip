@@ -356,21 +356,21 @@ label.check{display:flex;gap:12px;align-items:center;min-height:44px}
 "use strict";
 // ---------- Göstergeler: OBD-II mod 01 PID tanımları (SAE J1979) ----------
 const GAUGES = [
-  {pid:"0C", name:"Motor devri",           unit:"d/dk", f:(a,b)=>(a*256+b)/4,     lo:0,   hi:8000, dec:0, min:null, max:6000},
-  {pid:"0D", name:"Hız",                   unit:"km/sa",f:a=>a,                   lo:0,   hi:220,  dec:0, min:null, max:140},
-  {pid:"05", name:"Soğutma suyu sıcaklığı",unit:"°C",   f:a=>a-40,                lo:-40, hi:130,  dec:0, min:null, max:105},
-  {pid:"5C", name:"Motor yağı sıcaklığı",  unit:"°C",   f:a=>a-40,                lo:-40, hi:160,  dec:0, min:null, max:130},
-  {pid:"42", name:"Akü / şarj voltajı",    unit:"V",    f:(a,b)=>(a*256+b)/1000,  lo:10,  hi:16,   dec:1, min:12.0, max:15.0},
-  {pid:"04", name:"Motor yükü",            unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:null, max:null},
-  {pid:"11", name:"Gaz kelebeği",          unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:null, max:null},
-  {pid:"0F", name:"Emme havası sıcaklığı", unit:"°C",   f:a=>a-40,                lo:-40, hi:100,  dec:0, min:null, max:60},
-  {pid:"0B", name:"Emme manifold basıncı", unit:"kPa",  f:a=>a,                   lo:0,   hi:255,  dec:0, min:null, max:null},
-  {pid:"10", name:"Hava akışı (MAF)",      unit:"g/sn", f:(a,b)=>(a*256+b)/100,   lo:0,   hi:200,  dec:1, min:null, max:null},
-  {pid:"06", name:"Kısa süreli yakıt ayarı",unit:"%",   f:a=>(a-128)*100/128,     lo:-25, hi:25,   dec:1, min:-20,  max:20},
-  {pid:"07", name:"Uzun süreli yakıt ayarı",unit:"%",   f:a=>(a-128)*100/128,     lo:-25, hi:25,   dec:1, min:-10,  max:10},
-  {pid:"0E", name:"Ateşleme avansı",       unit:"°",    f:a=>a/2-64,              lo:-20, hi:60,   dec:1, min:null, max:null},
-  {pid:"2F", name:"Yakıt seviyesi",        unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:10,   max:null},
-  {pid:"46", name:"Dış hava sıcaklığı",    unit:"°C",   f:a=>a-40,                lo:-40, hi:60,   dec:0, min:null, max:null},
+  {pid:"0C", every:1, name:"Motor devri",           unit:"d/dk", f:(a,b)=>(a*256+b)/4,     lo:0,   hi:8000, dec:0, min:null, max:6000},
+  {pid:"0D", every:1, name:"Hız",                   unit:"km/sa",f:a=>a,                   lo:0,   hi:220,  dec:0, min:null, max:140},
+  {pid:"05", every:5, name:"Soğutma suyu sıcaklığı",unit:"°C",   f:a=>a-40,                lo:-40, hi:130,  dec:0, min:null, max:105},
+  {pid:"5C", every:5, name:"Motor yağı sıcaklığı",  unit:"°C",   f:a=>a-40,                lo:-40, hi:160,  dec:0, min:null, max:130},
+  {pid:"42", every:3, name:"Akü / şarj voltajı",    unit:"V",    f:(a,b)=>(a*256+b)/1000,  lo:10,  hi:16,   dec:1, min:12.0, max:15.0},
+  {pid:"04", every:1, name:"Motor yükü",            unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:null, max:null},
+  {pid:"11", every:1, name:"Gaz kelebeği",          unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:null, max:null},
+  {pid:"0F", every:8, name:"Emme havası sıcaklığı", unit:"°C",   f:a=>a-40,                lo:-40, hi:100,  dec:0, min:null, max:60},
+  {pid:"0B", every:2, name:"Emme manifold basıncı", unit:"kPa",  f:a=>a,                   lo:0,   hi:255,  dec:0, min:null, max:null},
+  {pid:"10", every:2, name:"Hava akışı (MAF)",      unit:"g/sn", f:(a,b)=>(a*256+b)/100,   lo:0,   hi:200,  dec:1, min:null, max:null},
+  {pid:"06", every:2, name:"Kısa süreli yakıt ayarı",unit:"%",   f:a=>(a-128)*100/128,     lo:-25, hi:25,   dec:1, min:-20,  max:20},
+  {pid:"07", every:10, name:"Uzun süreli yakıt ayarı",unit:"%",   f:a=>(a-128)*100/128,     lo:-25, hi:25,   dec:1, min:-10,  max:10},
+  {pid:"0E", every:2, name:"Ateşleme avansı",       unit:"°",    f:a=>a/2-64,              lo:-20, hi:60,   dec:1, min:null, max:null},
+  {pid:"2F", every:20, name:"Yakıt seviyesi",        unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:10,   max:null},
+  {pid:"46", every:30, name:"Dış hava sıcaklığı",    unit:"°C",   f:a=>a-40,                lo:-40, hi:60,   dec:0, min:null, max:null},
 ];
 
 // ---------- Arıza kodu açıklamaları (genel SAE kodları) ----------
@@ -735,7 +735,7 @@ function paintGauge(g){
     const span=(g.hi-g.lo)*0.05;
     if((L.max!=null && st.v>L.max-span) || (L.min!=null && st.v<L.min+span)) cls+=" warn";
   }
-  if(S.active && st.ts && Date.now()-st.ts>6000) cls+=" stale";
+  if(S.active && st.ts && Date.now()-st.ts>freshMs(g)*2) cls+=" stale";
   const state = cls.includes("crit")?"crit":cls.includes("warn")?"warn":"ok";
   if(S.big.has(g.pid)) cls+=" big";
   if(el.className!==cls) el.className=cls;
@@ -870,6 +870,8 @@ async function init(){
   S.useAtrv = !!S.supported && !S.supported.has("42");
   return `${ver||"ELM327"}${S.isCan?" · CAN":""}`;
 }
+// Yavaş okunan değer kaç ms boyunca güncel sayılır (tur ≈ 0,3-0,6 sn)
+const freshMs = g=>Math.max(3000,(g.every||1)*900);
 async function readGauge(g){
   const st=S.g[g.pid]; let fresh=false;
   if(g.pid==="42" && S.useAtrv){
@@ -882,9 +884,11 @@ async function readGauge(g){
   paintGauge(g);
 }
 async function loop(){
-  let errors=0;
+  let errors=0, cycle=0;
   while(S.active){
-    const list=GAUGES.filter(g=>settings.lim[g.pid].show && (!S.supported || S.supported.has(g.pid) || (g.pid==="42"&&S.useAtrv)) && S.g[g.pid].miss<5);
+    cycle++;
+    const list=GAUGES.filter(g=>settings.lim[g.pid].show && (!S.supported || S.supported.has(g.pid) || (g.pid==="42"&&S.useAtrv)) && S.g[g.pid].miss<5
+      && (cycle===1 || cycle%(g.every||1)===0));
     for(const g of list){
       if(!S.active) return;
       try{ await readGauge(g); errors=0; }catch(x){ if(++errors>=6){ lost(); return; } }
@@ -994,8 +998,9 @@ async function startRec(device, demo){
 function sample(){
   const t=REC.trip; if(!t) return;
   const now=Date.now(), v={};
+  if(REC.lastT && now-REC.lastT<900) return;   // kayıt saniyede en fazla bir satır
   for(const g of GAUGES){
-    const st=S.g[g.pid]; if(st.v==null || now-st.ts>3000) continue;
+    const st=S.g[g.pid]; if(st.v==null || now-st.ts>freshMs(g)) continue;
     const x=Math.round(st.v*100)/100; v[g.pid]=x;
     const s=t.stats[g.pid]||(t.stats[g.pid]={min:x,max:x,sum:0,n:0});
     s.min=Math.min(s.min,x); s.max=Math.max(s.max,x); s.sum+=x; s.n++;
