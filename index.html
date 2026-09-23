@@ -154,6 +154,9 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
 .events{list-style:none;margin:0;padding:0;font-size:14px;display:grid;gap:4px;max-height:220px;overflow:auto}
 .events li{display:flex;gap:10px}
 .events time{color:var(--muted);flex:none;font-variant-numeric:tabular-nums}
+.sheet{display:grid;gap:8px;padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--accent)}
+.sheet button{text-align:left;font-weight:600}
+.sheet button small{display:block;font-weight:400;font-size:13px;opacity:.8}
 .notice{padding:12px 14px;border-radius:10px;background:var(--warn-bg);border:1px solid var(--warn);font-size:14px}
 </style>
 </head>
@@ -167,10 +170,17 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
     <span class="status" id="status"><span class="dot"></span><span id="statusText">Bağlı değil</span></span>
   </div>
   <div class="actions">
-    <button class="primary" id="btnConnect">Bluetooth ile bağlan</button>
+    <button class="primary" id="btnConnect">Bağlan</button>
     <button id="btnDemo">Deneme modu</button>
     <button id="btnStop" hidden>Bağlantıyı kes</button>
     <button id="btnMute" aria-pressed="false">Ses: açık</button>
+  </div>
+  <div class="sheet" id="connSheet" hidden role="dialog" aria-label="Bağlantı türü">
+    <b>Cihazın nasıl bağlanıyor?</b>
+    <button class="primary" id="cLast">Son cihaza bağlan</button>
+    <button id="cSerial">Klasik Bluetooth<small>Telefonun Bluetooth ayarlarından şifreyle (1234 / 0000) eşleştirdiğin cihaz</small></button>
+    <button id="cBle">Bluetooth LE (BLE)<small>Ayarlardan eşleştirmeden, uygulama içinden bağlanan cihaz</small></button>
+    <button id="cCancel">Vazgeç</button>
   </div>
   <div class="alarms" id="alarms" aria-live="assertive"></div>
 </header>
@@ -264,8 +274,9 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
   <h2 id="hTitle">Nasıl kullanılır</h2>
   <p><b>Android:</b> Bu sayfayı <b>Chrome</b> ile aç. Telefonun Bluetooth'u ve konumu açık olsun.</p>
   <p><b>iPhone:</b> Safari Bluetooth'a izin vermez. App Store'dan ücretsiz <b>Bluefy</b> tarayıcısını kur ve sayfayı onunla aç.</p>
-  <p><b>Önemli:</b> Bu sayfa yalnızca <b>BLE (Bluetooth 4.0, düşük enerjili)</b> ELM327 cihazlarla çalışır. Cihazını telefonun Bluetooth ayarlarından şifreyle (1234 gibi) eşleştiriyorsan cihazın klasik Bluetooth'tur. Tarayıcılar klasik Bluetooth'a erişemez.</p>
-  <p>Kontağı aç, "Bluetooth ile bağlan"a bas, listeden cihazını seç (OBDII, V-LINK, IOS-Vlink gibi). Başka bir OBD uygulaması cihaza bağlıysa önce onu kapat; cihaz aynı anda tek uygulamaya bağlanır.</p>
+  <p><b>Klasik Bluetooth cihaz</b> (çoğu ucuz ELM327): Önce telefonun Bluetooth ayarlarından cihazı eşleştir (şifre genelde 1234 ya da 0000). Sonra "Bağlan" → "Klasik Bluetooth" → listeden cihazı seç. Bir kez seçtikten sonra "Son cihaza bağlan" ile tek dokunuşla bağlanırsın. Android Chrome 138 ve üstü gerekir.</p>
+  <p><b>BLE cihaz:</b> Ayarlardan eşleştirme yapma. "Bağlan" → "Bluetooth LE" → listeden seç (OBDII, V-LINK, IOS-Vlink gibi). iPhone'da yalnızca bu tür, Bluefy tarayıcısıyla çalışır.</p>
+  <p>Başka bir OBD uygulaması cihaza bağlıysa önce onu tamamen kapat; cihaz aynı anda tek uygulamaya bağlanır.</p>
   <p>Sürerken ekrana bakma. Uyarılar ses ve titreşimle gelir.</p>
   <p><b>Kayıt:</b> Bağlandığın andan bağlantıyı kesene kadar her saniye bir ölçüm ve (izin verirsen) GPS konumu telefona kaydedilir. <b>Sayfa açık ve ekran açık kalmalı</b>; telefon kilitlenirse ya da başka uygulamaya geçersen tarayıcı sayfayı durdurur ve kayıt da durur. Telefonu şarja tak.</p>
 </section>
@@ -412,6 +423,37 @@ class BleLink{
     }
   }
   close(){ try{ this.device && this.device.gatt.connected && this.device.gatt.disconnect(); }catch(e){} }
+}
+
+// Klasik Bluetooth (SPP) ELM327: Android Chrome 138+ Web Serial ile RFCOMM üzerinden
+const SPP_UUID = "00001101-0000-1000-8000-00805f9b34fb";
+class SerialLink{
+  constructor(port=null){ this.port=port; this.onData=()=>{}; this.onLost=()=>{}; this.reading=false; }
+  async open(){
+    if(!this.port) this.port = await navigator.serial.requestPort({allowedBluetoothServiceClassIds:[SPP_UUID], filters:[{bluetoothServiceClassId:SPP_UUID}]});
+    await this.port.open({baudRate:38400});   // kablosuzda hız değeri yok sayılır
+    this.writer=this.port.writable.getWriter();
+    this.reading=true; this.readLoop();
+    return "Klasik Bluetooth";
+  }
+  async readLoop(){
+    const dec=new TextDecoder();
+    while(this.reading && this.port.readable){
+      this.reader=this.port.readable.getReader();
+      try{ for(;;){ const {value,done}=await this.reader.read(); if(done) break; this.onData(dec.decode(value,{stream:true})); } }
+      catch(e){ /* bağlantı düştü */ }
+      finally{ try{ this.reader.releaseLock(); }catch(e){} }
+      // Android'de bağlantı kopma olayı gelmiyor; okuma bitince kopmuş say
+      if(this.reading){ this.reading=false; this.onLost(); }
+    }
+  }
+  write(text){ return this.writer.write(new TextEncoder().encode(text)); }
+  async close(){
+    this.reading=false;
+    try{ await this.reader?.cancel(); }catch(e){}
+    try{ this.writer?.releaseLock(); }catch(e){}
+    try{ await this.port.close(); }catch(e){}
+  }
 }
 
 // ELM327 komut sırası: her komut ">" istemi gelene kadar bekler
@@ -783,7 +825,7 @@ async function loop(){
 }
 function lost(){
   if(!S.active) return;
-  S.active=false; setStatus("err","Bağlantı koptu");
+  S.active=false; setStatus("err","Bağlantı koptu"); try{ S.link && S.link.close(); }catch(e){}
   raise("link","crit","OBD cihazıyla bağlantı koptu");
   endRec(); uiIdle();
 }
@@ -1119,13 +1161,23 @@ $("btnReset").addEventListener("click",()=>{ const d=defaults(); settings.lim=d.
 $("btnMute").addEventListener("click",()=>{ settings.mute=!settings.mute; save(); buildSettings(); });
 
 // ---------- Düğmeler ----------
-$("btnConnect").addEventListener("click",()=>{
-  if(!navigator.bluetooth){
-    showNotice("Bu tarayıcı Bluetooth'a erişemiyor. Android'de Chrome ile, iPhone'da Bluefy uygulamasıyla aç. Sayfanın https:// ile açılması da gerekir.");
+// Bağlan: son kullanılan klasik cihaz izinliyse seçim ekranı olmadan bağlan, değilse tür sor
+async function knownPort(){ try{ return navigator.serial ? (await navigator.serial.getPorts())[0]||null : null; }catch(e){ return null; } }
+async function openConnSheet(){
+  if(!navigator.serial && !navigator.bluetooth){
+    showNotice("Bu tarayıcı Bluetooth'a erişemiyor. Android'de Chrome ile aç; sayfa https:// ile açılmalı. iPhone'da yalnızca BLE cihazlar Bluefy tarayıcısıyla çalışır.");
     return;
   }
-  start(new BleLink());
-});
+  const port=await knownPort();
+  $("cLast").hidden=!port; $("cSerial").hidden=!navigator.serial; $("cBle").hidden=!navigator.bluetooth;
+  $("connSheet").hidden=false; (port?$("cLast"):navigator.serial?$("cSerial"):$("cBle")).focus();
+}
+function closeConnSheet(){ $("connSheet").hidden=true; }
+$("btnConnect").addEventListener("click",openConnSheet);
+$("cLast").addEventListener("click",async()=>{ closeConnSheet(); const p=await knownPort(); if(p) start(new SerialLink(p)); });
+$("cSerial").addEventListener("click",()=>{ closeConnSheet(); settings.lastLink="serial"; save(); start(new SerialLink()); });
+$("cBle").addEventListener("click",()=>{ closeConnSheet(); settings.lastLink="ble"; save(); start(new BleLink()); });
+$("cCancel").addEventListener("click",closeConnSheet);
 $("btnDemo").addEventListener("click",()=>start(new DemoLink()));
 $("btnStop").addEventListener("click",stop);
 $("btnScan").addEventListener("click",()=>scanDtc());
@@ -1137,7 +1189,7 @@ setInterval(()=>{ if(S.active) GAUGES.forEach(paintGauge); },2000);
 
 buildSettings(); buildGauges(); renderTrips();
 setInterval(()=>{ if(REC.trip) renderTrips(); },30000);
-if(!navigator.bluetooth) showNotice("Bu tarayıcıda Bluetooth yok. Android'de Chrome, iPhone'da Bluefy ile aç. Şimdilik \"Deneme modu\" ile uygulamayı görebilirsin.");
+if(!navigator.bluetooth && !navigator.serial) showNotice("Bu tarayıcıda Bluetooth yok. Android'de Chrome ile aç. Şimdilik \"Deneme modu\" ile uygulamayı görebilirsin.");
 </script>
 </body>
 </html>
