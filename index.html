@@ -190,6 +190,17 @@ label.check{display:flex;gap:12px;align-items:center;min-height:44px}
   .gauges{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
 }
 @media (min-width:700px){ .tabbar{padding-inline:calc(50% - 360px)} }
+h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;letter-spacing:.02em}
+.sub{margin:0;font-size:13px;color:var(--muted)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:15px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.ready{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.ready li{display:flex;align-items:center;gap:10px;font-size:15px}
+.ready .st{margin-left:auto;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.ready .ok{color:var(--ok)} .ready .no{color:var(--warn)}
+.verdict{padding:10px 12px;border-radius:10px;font-weight:600;border:1px solid}
+.verdict.ok{border-color:var(--ok);color:var(--ok)} .verdict.no{border-color:var(--warn);background:var(--warn-bg);color:var(--text)}
 .sheet{display:grid;gap:8px;padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--accent)}
 .sheet button{text-align:left;font-weight:600}
 .sheet button small{display:block;font-weight:400;font-size:13px;opacity:.8}
@@ -262,6 +273,20 @@ label.check{display:flex;gap:12px;align-items:center;min-height:44px}
       <div class="actions"><button id="clearNo">Vazgeç</button><button class="danger" id="clearYes">Evet, sil</button></div>
     </div>
     <ul class="dtc-list" id="dtcList"></ul>
+  </section>
+
+  <section class="card" aria-labelledby="diagTitle">
+    <div class="row"><h2 id="diagTitle" style="margin-right:auto">Araç durumu</h2><button id="btnDiag" disabled>Yenile</button></div>
+    <h3>Araç</h3>
+    <dl class="kv" id="vehInfo"><dt>Durum</dt><dd>Bağlanınca okunur</dd></dl>
+    <h3>Muayene hazırlığı</h3>
+    <p class="sub">Araç, emisyon parçalarını sürüş sırasında kendi kendine test eder. Testlerin tamamlanmış olması muayenede egzoz ölçümü için önemlidir.</p>
+    <div id="ready"><p class="empty">Bağlanınca okunur.</p></div>
+    <h3>Donmuş kare</h3>
+    <p class="sub">Arıza kodu oluştuğu anda motorun durumu. Arızanın hangi koşulda çıktığını gösterir.</p>
+    <div id="ffBox"><p class="empty">Bağlanınca okunur.</p></div>
+    <h3>Sayaçlar</h3>
+    <dl class="kv" id="counters"><dt>Durum</dt><dd>Bağlanınca okunur</dd></dl>
   </section>
 </section>
 
@@ -606,11 +631,28 @@ class DemoLink{
     if(cmd==="ATDPN") return "A6";
     if(cmd==="ATRV") return "14.1V";
     if(cmd.startsWith("AT")) return "OK";
+    const hex=str=>[...str].map(c=>c.charCodeAt(0).toString(16).toUpperCase().padStart(2,"0")).join("");
+    // ISO-TP çok parçalı CAN yanıtı: uzunluk satırı + "0:", "1:" … satırları
+    const isoTp=d=>{ const n=d.length/2, out=[n.toString(16).toUpperCase().padStart(3,"0")]; let i=0,k=0;
+      while(i<d.length){ const take=(k===0?6:7)*2; out.push(k.toString(16).toUpperCase()+":"+d.slice(i,i+take).padEnd(take,"0")); i+=take; k++; } return out.join("\r"); };
+    if(cmd==="0902") return isoTp("490201"+hex("NMTK33BE5R0045678"));
+    if(cmd==="0904") return isoTp("490401"+hex("89663F4B20000000"));
+    if(/^02[0-9A-F]{2}00$/.test(cmd)){
+      const pid=cmd.slice(2,4);
+      if(pid==="02") return "420200"+(t>40&&this.cleared<0?"0301":"0000");
+      const r=this.reply("01"+pid); return r.startsWith("41") ? "42"+pid+"00"+r.slice(4) : "NO DATA";
+    }
     switch(cmd){
-      case "0100": return "4100"+mask(0,["04","05","06","07","0B","0C","0D","0E","0F","10","11","20"]);
-      case "0120": return "4120"+mask(0x20,["2F","40"]);
-      case "0140": return "4140"+mask(0x40,["42","46","5C"]);
-      case "0101": return "4101"+h(t>40&&this.cleared<0?0x81:0)+"076500";
+      case "0100": return "4100"+mask(0,["01","04","05","06","07","0B","0C","0D","0E","0F","10","11","1F","20"]);
+      case "0120": return "4120"+mask(0x20,["21","2F","30","31","40"]);
+      case "0140": return "4140"+mask(0x40,["42","46","4D","4E","5C"]);
+      case "0101": return "4101"+h(t>40&&this.cleared<0?0x81:0)+"07"+"E5"+(this.cleared<0?"04":"A5");   // benzinli; EVAP tamamlanmadı
+      case "011F": return "411F"+w(t);
+      case "0121": return "4121"+w(t>40&&this.cleared<0?3:0);
+      case "0130": return "4130"+h(this.cleared<0?14:0);
+      case "0131": return "4131"+w(this.cleared<0?1840:0);
+      case "014D": return "414D"+w(t>40&&this.cleared<0?1:0);
+      case "014E": return "414E"+w(this.cleared<0?2600:0);
       case "03": return t>40&&this.cleared<0 ? "43010301" : "4300";
       case "07": return hasCodes ? "47020301"+"0171" : "4700";
       case "0A": return "4A00";
@@ -844,8 +886,102 @@ async function clearDtc(){
     if(r.replace(/\s/g,"").toUpperCase().includes("44")){ addLog("warn","Arıza kodları silindi"); S.known.clear(); }
     else addLog("crit","Kodlar silinemedi. Kontak açık, motor kapalı olmalı.");
   }catch(x){ addLog("crit","Kodlar silinemedi: "+x.message); }
-  await scanDtc();
+  await scanDtc(); runDiag();
 }
+
+// ---------- Araç durumu: VIN, muayene hazırlığı, donmuş kare, sayaçlar ----------
+const PROTO = {"1":"SAE J1850 PWM","2":"SAE J1850 VPW","3":"ISO 9141-2","4":"ISO 14230-4 KWP (yavaş)","5":"ISO 14230-4 KWP (hızlı)",
+  "6":"CAN 11 bit, 500 kbps","7":"CAN 29 bit, 500 kbps","8":"CAN 11 bit, 250 kbps","9":"CAN 29 bit, 250 kbps","A":"SAE J1939 (ağır vasıta)"};
+// Şase numarasının ilk 3 harfi (üretici kodu) — yaygın olanlar
+const WMI = {NMT:"Toyota (Türkiye)",NM0:"Ford Otosan (Türkiye)",NM4:"Tofaş / Fiat (Türkiye)",NLA:"Honda (Türkiye)",NLH:"Hyundai (Türkiye)",
+  VF1:"Renault (Fransa)",VF3:"Peugeot (Fransa)",VF7:"Citroën (Fransa)",VR3:"Peugeot",VR7:"Citroën",UU1:"Dacia (Romanya)",
+  WVW:"Volkswagen",WV1:"Volkswagen Ticari",WV2:"Volkswagen Ticari",WAU:"Audi",WBA:"BMW",WDD:"Mercedes-Benz",WDB:"Mercedes-Benz",W1K:"Mercedes-Benz",
+  W0L:"Opel",WF0:"Ford (Almanya)",TMB:"Škoda",VSS:"SEAT",ZFA:"Fiat (İtalya)",SB1:"Toyota (İngiltere)",VNK:"Toyota (Fransa)",JTD:"Toyota (Japonya)",
+  KMH:"Hyundai (Kore)",TMA:"Hyundai (Çekya)",KNA:"Kia (Kore)",U5Y:"Kia (Slovakya)",SJN:"Nissan (İngiltere)",VSK:"Nissan (İspanya)",JHM:"Honda (Japonya)",
+  TSM:"Suzuki (Macaristan)",YV1:"Volvo",SAL:"Land Rover",ZAR:"Alfa Romeo",VF6:"Renault Trucks",LSG:"SAIC / MG (Çin)",LRW:"Tesla (Çin)",XP7:"Tesla (Almanya)"};
+function vinYear(v){
+  const code="ABCDEFGHJKLMNPRSTVWXY123456789".indexOf(v[9]); if(code<0) return null;
+  const now=new Date().getFullYear(); let y=1980+code; while(y+30<=now+1) y+=30; return y;
+}
+function multiFrameBytes(resp, head){
+  const ls=lines(resp).filter(l=>!/SEARCHING/.test(l));
+  let hex;
+  if(ls.some(l=>/^[0-9A-F]:/.test(l))){ const j=ls.filter(l=>/^[0-9A-F]:/.test(l)).map(l=>l.slice(2)).join(""); const i=j.indexOf(head); hex = i<0?"":j.slice(i+6); }
+  else hex = ls.filter(l=>l.startsWith(head)).map(l=>l.slice(6)).join("");   // eski protokol: her satır 4902 + sıra no
+  return (hex.match(/.{2}/g)||[]).map(h=>parseInt(h,16));
+}
+const ascii = b=>b.map(x=>String.fromCharCode(x)).join("");
+const READY_COMMON = [["Tekleme",0],["Yakıt sistemi",1],["Diğer parçalar",2]];
+const READY_SPARK  = ["Katalizör","Isıtmalı katalizör","Yakıt buharı (EVAP)","İkincil hava","Klima gazı","Oksijen sensörü","Oksijen sensörü ısıtıcısı","EGR / değişken supap"];
+const READY_DIESEL = ["NMHC katalizörü","NOx / SCR (AdBlue)",null,"Turbo basıncı",null,"Egzoz gaz sensörü","Partikül filtresi (DPF)","EGR / değişken supap"];
+function kv(el, rows){
+  el.innerHTML=""; rows.forEach(([k,v])=>{ const dt=document.createElement("dt"), dd=document.createElement("dd"); dt.textContent=k; dd.textContent=v; el.append(dt,dd); });
+}
+async function q(cmd, t){ try{ const r=await S.elm.send(cmd,t); return failed(r)?null:r; }catch(e){ return null; } }
+const has = pid=>!S.supported || S.supported.has(pid);
+
+async function runDiag(){
+  if(!S.elm) return;
+  $("btnDiag").disabled=true;
+  // Araç bilgisi
+  const rows=[];
+  const rv=await q("0902",6000); const vin = rv ? ascii(multiFrameBytes(rv,"4902")).replace(/[^A-HJ-NPR-Z0-9]/g,"").slice(-17) : "";
+  if(vin.length===17){
+    rows.push(["Şase no (VIN)",vin], ["Üretici", WMI[vin.slice(0,3)] || `Kod: ${vin.slice(0,3)}`]);
+    const y=vinYear(vin); if(y) rows.push(["Model yılı (tahmini)",String(y)]);
+    S.vin=vin; if(REC.trip && !REC.trip.vin){ REC.trip.vin=vin; }
+  } else rows.push(["Şase no (VIN)","Araç vermiyor"]);
+  const rc=await q("0904",6000); if(rc){ const cal=ascii(multiFrameBytes(rc,"4904")).replace(/[^\x20-\x7E]/g,"").trim(); if(cal) rows.push(["Motor yazılımı",cal.slice(0,16)]); }
+  if(S.proto) rows.push(["İletişim",PROTO[S.proto]||S.proto]);
+  kv($("vehInfo"),rows);
+
+  // Muayene hazırlığı (PID 01, B-C-D baytları)
+  const rb=await q("0101"); const b=rb && pidBytes(rb,"01");
+  const box=$("ready"); box.innerHTML="";
+  if(b && b.length>=4){
+    const diesel=!!(b[1]&0x08), items=[];
+    READY_COMMON.forEach(([n,i])=>{ if(b[1]&(1<<i)) items.push([n, !(b[1]&(1<<(i+4)))]); });
+    (diesel?READY_DIESEL:READY_SPARK).forEach((n,i)=>{ if(n && (b[2]&(1<<i))) items.push([n, !(b[3]&(1<<i))]); });
+    const open=items.filter(x=>!x[1]).length;
+    const v=document.createElement("div"); v.className="verdict "+(open?"no":"ok");
+    v.textContent = open ? `${open} test henüz tamamlanmadı. Muayeneden önce birkaç gün karışık (şehir içi + yol) sürüş yap; kodları silme.` : "Tüm testler tamamlanmış. Egzoz ölçümü için hazır görünüyor.";
+    const ul=document.createElement("ul"); ul.className="ready";
+    items.forEach(([n,ok])=>{ const li=document.createElement("li"); li.innerHTML=`<span></span><span class="st ${ok?"ok":"no"}">${ok?"Tamam":"Bekliyor"}</span>`; li.firstChild.textContent=n; ul.appendChild(li); });
+    box.append(v,ul);
+    if(diesel){ const p=document.createElement("p"); p.className="sub"; p.textContent="Dizel motor."; box.appendChild(p); }
+  } else box.innerHTML='<p class="empty">Araç bu bilgiyi vermiyor.</p>';
+
+  // Donmuş kare (mod 02, kare 00)
+  const ff=$("ffBox"); ff.innerHTML="";
+  const r2=await q("020200"); const hb=r2 && lines(r2).map(l=>l.slice(l.indexOf("4202"))).find(l=>l.startsWith("4202"));
+  const code = hb && hb.length>=10 ? hb.slice(6,10) : "0000";
+  if(code!=="0000"){
+    const dtc=decodeDtc(code), rowsF=[["Tetikleyen kod",`${dtc} — ${dtcInfo(dtc).desc}`]];
+    for(const g of GAUGES){
+      if(g.pid==="42" && !has("42")) continue; if(!has(g.pid)) continue;
+      const r=await q("02"+g.pid+"00"); if(!r) continue;
+      const l=lines(r).map(x=>x.slice(x.indexOf("42"+g.pid))).find(x=>x.startsWith("42"+g.pid)); if(!l) continue;
+      const by=(l.slice(6).match(/.{2}/g)||[]).map(h=>parseInt(h,16)); if(!by.length) continue;
+      rowsF.push([g.name, `${fmt(g.f(by[0],by[1]||0),g.dec)} ${g.unit}`]);
+    }
+    const dl=document.createElement("dl"); dl.className="kv"; kv(dl,rowsF); ff.appendChild(dl);
+  } else ff.innerHTML='<p class="empty">Kayıtlı donmuş kare yok.</p>';
+
+  // Sayaçlar
+  const C=[["1F","Motorun bu çalışma süresi",v=>fmtDur(v*1000)],["21","Arıza lambası yanarken gidilen yol",v=>`${fmt(v,0)} km`],
+    ["4D","Arıza lambası yanık kaldığı süre",v=>`${fmt(v,0)} dk`],["31","Kodlar silineli gidilen yol",v=>`${fmt(v,0)} km`],
+    ["30","Kodlar silineli ısınma sayısı",v=>fmt(v,0)],["4E","Kodlar silineli geçen süre",v=>`${fmt(v/60,0)} saat`]];
+  const cr=[];
+  for(const [pid,name,f] of C){
+    if(!has(pid)) continue; const r=await q("01"+pid); const by=r&&pidBytes(r,pid); if(!by||!by.length) continue;
+    cr.push([name, f(pid==="30"?by[0]:by[0]*256+(by[1]||0))]);
+  }
+  const d31=cr.find(x=>x[0].startsWith("Kodlar silineli gidilen"));
+  if(d31 && parseInt(d31[1].replace(/\D/g,""))<200) cr.push(["Not","Kodlar yakın zamanda silinmiş. İkinci el alıyorsan satıcıya sor."]);
+  kv($("counters"), cr.length?cr:[["Durum","Araç bu bilgileri vermiyor"]]);
+  $("btnDiag").disabled=!S.active;
+}
+$("btnDiag").addEventListener("click",runDiag);
 
 // ---------- Ana döngü ----------
 function setStatus(kind,text){ const s=$("status"); s.className="status "+kind; $("statusText").textContent=text; }
@@ -866,7 +1002,7 @@ async function init(){
     if(s2.has("40")){ supportMask(await e.send("0140"),"40").forEach(p=>sup.add(p)); } }
   S.supported = sup.size ? sup : null;
   const proto=(await e.send("ATDPN")).replace(/[^0-9A-F]/gi,"").slice(-1).toUpperCase();
-  S.isCan = "6789AB".includes(proto);
+  S.isCan = "6789AB".includes(proto); S.proto = proto;
   S.useAtrv = !!S.supported && !S.supported.has("42");
   return `${ver||"ELM327"}${S.isCan?" · CAN":""}`;
 }
@@ -921,6 +1057,7 @@ async function start(link){
     await startRec(name, link instanceof DemoLink);
     await scanDtc();
     loop();
+    runDiag();
   }catch(e){
     link.close(); uiIdle();
     if(e && e.name==="NotFoundError") setStatus("","Bağlı değil");
@@ -930,7 +1067,7 @@ async function start(link){
 function stop(){ S.active=false; S.link&&S.link.close(); setStatus("","Bağlı değil"); drop("link"); endRec(); uiIdle(); }
 function uiIdle(){
   $("btnConnect").disabled=$("btnDemo").disabled=false; $("btnStop").hidden=true; $("btnConnect").hidden=false; $("idleCard").hidden=false;
-  $("btnScan").disabled=$("btnClear").disabled=true;
+  $("btnScan").disabled=$("btnClear").disabled=$("btnDiag").disabled=true;
   if(S.wake){ S.wake.release().catch(()=>{}); S.wake=null; }
 }
 async function keepAwake(){ if(!settings.wake || !("wakeLock" in navigator)) return; try{ S.wake=await navigator.wakeLock.request("screen"); }catch(e){} }
