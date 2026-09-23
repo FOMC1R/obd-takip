@@ -1,0 +1,7 @@
+{
+  "name": "obd-takip",
+  "private": true,
+  "description": "ELM327 ile canlı araç verisi, arıza uyarısı ve sürüş kaydı",
+  "scripts": { "test": "node test/run.js" },
+  "devDependencies": { "fake-indexeddb": "^6.0.0" }
+}
