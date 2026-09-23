@@ -642,11 +642,15 @@ function pidBytes(resp, pid){
   }
   return null;
 }
+// Desteklenen PID listesi; birden çok beyin cevap verirse hepsinin birleşimi
 function supportMask(resp, base){
-  const b = pidBytes(resp, base); const set=new Set();
-  if(!b || b.length<4) return set;
-  const baseN = parseInt(base,16);
-  for(let i=0;i<32;i++) if(b[i>>3] & (0x80>>(i&7))) set.add((baseN+i+1).toString(16).toUpperCase().padStart(2,"0"));
+  const set=new Set(), baseN=parseInt(base,16);
+  for(const l of lines(resp||"")){
+    const i=l.indexOf("41"+base); if(i<0) continue;
+    const b=(l.slice(i+4).match(/.{2}/g)||[]).map(h=>parseInt(h,16));
+    if(b.length<4) continue;
+    for(let k=0;k<32;k++) if(b[k>>3] & (0x80>>(k&7))) set.add((baseN+k+1).toString(16).toUpperCase().padStart(2,"0"));
+  }
   return set;
 }
 function decodeDtc(hex4){
@@ -673,7 +677,18 @@ class DemoLink{
   constructor(){ this.onData=()=>{}; this.onLost=()=>{}; this.t0=Date.now(); this.cleared=-1; }
   async open(){ return "Deneme cihazı"; }
   close(){}
-  async write(text){ const cmd=text.trim().toUpperCase(); setTimeout(()=>this.onData(this.reply(cmd)+"\r\r>"), 35); }
+  async write(text){
+    const cmd=text.trim().toUpperCase();
+    if(cmd.startsWith("ATCRA")) this.filter=cmd.slice(5); else if(cmd==="ATAR"||cmd==="ATZ") this.filter=null;
+    let out=this.reply(cmd);
+    // Gerçek araç gibi: filtre yokken şanzıman beyni de cevap verir ve önce gelebilir
+    if(!this.filter && /^01/.test(cmd) && out.startsWith("41")){
+      const TCM=["04","05","0C","0D"];
+      if(cmd==="0100"){ let m=0; TCM.forEach(p=>{ m|=1<<(31-(parseInt(p,16)-1)); }); out="4100"+(m>>>0).toString(16).toUpperCase().padStart(8,"0")+"\r"+out; }
+      else if(TCM.includes(cmd.slice(2,4))) out=out+"\r"+out;
+    }
+    setTimeout(()=>this.onData(out+"\r\r>"), 35);
+  }
   reply(cmd){
     const t=(Date.now()-this.t0)/1000, h=n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).toUpperCase().padStart(2,"0");
     const w=n=>{ n=Math.max(0,Math.min(65535,Math.round(n))); return h(n>>8)+h(n&255); };
@@ -938,7 +953,9 @@ async function scanDtc(){
   let mil=false,count=0;
   try{ const b=pidBytes(await e.send("0101"),"01"); if(b){ mil=!!(b[0]&0x80); count=b[0]&0x7f; } }catch(x){}
   const get=async(cmd,head)=>{ try{ const r=await e.send(cmd,6000); return failed(r)?[]:parseDtcs(r,head,S.isCan); }catch(x){ return []; } };
+  if(S.cra) await e.send("ATAR").catch(()=>{});   // arıza kodları: şanzıman, ABS… dahil tüm beyinler
   S.dtc.stored=await get("03","43"); S.dtc.pending=await get("07","47"); S.dtc.perm=await get("0A","4A");
+  if(S.cra) await e.send("ATCRA"+S.cra).catch(()=>{});
   S.lastDtc=Date.now();
   const all=[...S.dtc.stored.map(c=>[c,"stored"]),...S.dtc.pending.map(c=>[c,"pending"]),...S.dtc.perm.map(c=>[c,"perm"])];
   for(const [c,kind] of all){
@@ -1143,12 +1160,23 @@ async function init(){
   setStatus("busy","Araçla iletişim kuruluyor…");
   const r0=await e.send("0100",15000);
   if(/UNABLETOCONNECT|NODATA/.test(r0.replace(/\s/g,"").toUpperCase())) throw new Error("Araç cevap vermiyor. Kontağın açık olduğundan emin ol.");
-  let sup=supportMask(r0,"00");
+  const proto=(await e.send("ATDPN")).replace(/[^0-9A-F]/gi,"").slice(-1).toUpperCase();
+  S.isCan = "6789AB".includes(proto); S.proto = proto;
+  // Birden çok beyin (motor + şanzıman…) cevap verince ilk satır şanzımanınki olabiliyor.
+  // CAN'de motor beyninin adresi standart: 11 bit 7E8, 29 bit 18DAF110. Yalnızca onu dinle.
+  S.cra=null;
+  const cra = {"6":"7E8","8":"7E8","7":"18DAF110","9":"18DAF110"}[proto];
+  if(cra){
+    const ok=await e.send("ATCRA"+cra).catch(()=>"?");
+    if(/OK/.test(ok)){
+      const r1=await e.send("0100",4000).catch(()=>"");
+      if(supportMask(r1,"00").size) S.cra=cra; else await e.send("ATAR").catch(()=>{});   // motor bu adreste değil: filtreyi kaldır
+    }
+  }
+  const sup=supportMask(S.cra ? await e.send("0100") : r0,"00");
   if(sup.has("20")){ const s2=supportMask(await e.send("0120"),"20"); s2.forEach(p=>sup.add(p));
     if(s2.has("40")){ supportMask(await e.send("0140"),"40").forEach(p=>sup.add(p)); } }
   S.supported = sup.size ? sup : null;
-  const proto=(await e.send("ATDPN")).replace(/[^0-9A-F]/gi,"").slice(-1).toUpperCase();
-  S.isCan = "6789AB".includes(proto); S.proto = proto;
   S.useAtrv = !!S.supported && !S.supported.has("42");
   return `${ver||"ELM327"}${S.isCan?" · CAN":""}`;
 }
