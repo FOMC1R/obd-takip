@@ -7,12 +7,14 @@
 <title>OBD Takip</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root{
   --bg:#eef2f1; --panel:#ffffff; --panel-2:#f5f8f7; --line:#d5dfdc;
   --text:#13201d; --muted:#58706a; --accent:#a86200; --accent-ink:#ffffff;
   --ok:#1f8a57; --warn:#b07d00; --crit:#c62828; --crit-bg:#fdecec; --warn-bg:#fff6dc;
-  --track:#dfe7e4;
+  --track:#dfe7e4; --series-b:#1f6fb2; --grid:#e3eae8;
   --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --f-num:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
   color-scheme:light;
@@ -22,14 +24,14 @@
     --bg:#0e1413; --panel:#172120; --panel-2:#1c2826; --line:#2a3836;
     --text:#e4eeeb; --muted:#8ea39e; --accent:#f2a93b; --accent-ink:#1a1204;
     --ok:#46c486; --warn:#f2c14e; --crit:#ff5f57; --crit-bg:#3a1716; --warn-bg:#352b10;
-    --track:#26332f; color-scheme:dark;
+    --track:#26332f; --series-b:#6cb4f5; --grid:#22302d; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0e1413; --panel:#172120; --panel-2:#1c2826; --line:#2a3836;
   --text:#e4eeeb; --muted:#8ea39e; --accent:#f2a93b; --accent-ink:#1a1204;
   --ok:#46c486; --warn:#f2c14e; --crit:#ff5f57; --crit-bg:#3a1716; --warn-bg:#352b10;
-  --track:#26332f; color-scheme:dark;
+  --track:#26332f; --series-b:#6cb4f5; --grid:#22302d; color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -120,6 +122,30 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
 .help{font-size:14px;color:var(--muted);display:grid;gap:6px}
 .help p{margin:0;max-width:65ch}
 .help b{color:var(--text)}
+/* sürüş kayıtları */
+.rec{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--crit)}
+.rec::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--crit);animation:blink 1.4s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){.rec::before{animation:none}}
+.trips{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.trip{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line)}
+.trip .when{font-weight:600;min-width:9.5em}
+.trip .facts{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:14px;color:var(--muted);margin-right:auto;font-variant-numeric:tabular-nums}
+.trip .facts b{color:var(--text);font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.stat{padding:8px 10px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line)}
+.stat b{display:block;font-family:var(--f-num);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat span{font-size:12px;color:var(--muted)}
+.chart-ctl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:14px}
+.chart-ctl select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);max-width:100%}
+.sw{display:inline-block;width:14px;height:4px;border-radius:2px;vertical-align:middle;margin-right:4px}
+.chart-box{position:relative}
+#chart{width:100%;height:260px;display:block;touch-action:pan-y}
+#readout{font-size:13px;color:var(--muted);min-height:1.4em;font-variant-numeric:tabular-nums}
+#map{height:320px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2)}
+.events{list-style:none;margin:0;padding:0;font-size:14px;display:grid;gap:4px;max-height:220px;overflow:auto}
+.events li{display:flex;gap:10px}
+.events time{color:var(--muted);flex:none;font-variant-numeric:tabular-nums}
 .notice{padding:12px 14px;border-radius:10px;background:var(--warn-bg);border:1px solid var(--warn);font-size:14px}
 </style>
 </head>
@@ -129,6 +155,7 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
 <header>
   <div class="top">
     <h1>OBD Takip</h1>
+    <span class="rec" id="recBadge" hidden>Kayıt</span>
     <span class="status" id="status"><span class="dot"></span><span id="statusText">Bağlı değil</span></span>
   </div>
   <div class="actions">
@@ -173,6 +200,30 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
   <ul class="log" id="log"><li class="empty">Henüz uyarı yok.</li></ul>
 </section>
 
+<section class="card" aria-labelledby="tripsTitle">
+  <div class="row"><h2 id="tripsTitle" style="margin-right:auto">Sürüş kayıtları</h2><span class="empty" id="storeInfo"></span></div>
+  <ul class="trips" id="trips"><li class="empty">Henüz kayıt yok. Bağlandığında sürüş otomatik kaydedilir.</li></ul>
+</section>
+
+<section class="card" id="viewer" hidden aria-labelledby="vTitle">
+  <div class="row"><h2 id="vTitle" style="margin-right:auto">Sürüş</h2>
+    <button id="vCsv">CSV indir</button><button id="vDel">Sil</button><button id="vClose">Kapat</button></div>
+  <div class="confirm" id="vDelBox" hidden>
+    <div><b>Bu sürüş kaydı silinsin mi?</b> Silinen kayıt geri getirilemez.</div>
+    <div class="actions"><button id="vDelNo">Vazgeç</button><button class="danger" id="vDelYes">Evet, sil</button></div>
+  </div>
+  <div class="stats" id="vStats"></div>
+  <div class="chart-ctl">
+    <label for="selA"><span class="sw" style="background:var(--accent)"></span>Sol eksen</label><select id="selA"></select>
+    <label for="selB"><span class="sw" style="background:var(--series-b)"></span>Sağ eksen</label><select id="selB"></select>
+  </div>
+  <div class="chart-box"><canvas id="chart"></canvas></div>
+  <div id="readout">Grafiğe dokun ya da üzerinde gezin; o anki değerler burada görünür.</div>
+  <div id="map"></div>
+  <h2 style="font-size:17px">Olaylar</h2>
+  <ul class="events" id="vEvents"></ul>
+</section>
+
 <details class="card" id="settings">
   <summary>Uyarı sınırları ve ayarlar</summary>
   <p class="help" style="margin:0">Bir değer sınırın dışına <b>3 ölçüm üst üste</b> çıkarsa uyarı verilir. Boş bırakılan sınır kontrol edilmez. Değerler bu telefonda saklanır.</p>
@@ -188,6 +239,10 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
     <label><input type="checkbox" id="optVibrate"> Uyarıda titreşim</label>
     <label><input type="checkbox" id="optWake"> Ekranı açık tut</label>
   </div>
+  <div class="row">
+    <label><input type="checkbox" id="optRecord"> Sürüşü kaydet</label>
+    <label><input type="checkbox" id="optGps"> GPS konumunu kaydet</label>
+  </div>
   <div class="row"><button id="btnReset">Varsayılan sınırlara dön</button></div>
 </details>
 
@@ -198,6 +253,7 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
   <p><b>Önemli:</b> Bu sayfa yalnızca <b>BLE (Bluetooth 4.0, düşük enerjili)</b> ELM327 cihazlarla çalışır. Cihazını telefonun Bluetooth ayarlarından şifreyle (1234 gibi) eşleştiriyorsan cihazın klasik Bluetooth'tur. Tarayıcılar klasik Bluetooth'a erişemez.</p>
   <p>Kontağı aç, "Bluetooth ile bağlan"a bas, listeden cihazını seç (OBDII, V-LINK, IOS-Vlink gibi). Başka bir OBD uygulaması cihaza bağlıysa önce onu kapat; cihaz aynı anda tek uygulamaya bağlanır.</p>
   <p>Sürerken ekrana bakma. Uyarılar ses ve titreşimle gelir.</p>
+  <p><b>Kayıt:</b> Bağlandığın andan bağlantıyı kesene kadar her saniye bir ölçüm ve (izin verirsen) GPS konumu telefona kaydedilir. <b>Sayfa açık ve ekran açık kalmalı</b>; telefon kilitlenirse ya da başka uygulamaya geçersen tarayıcı sayfayı durdurur ve kayıt da durur. Telefonu şarja tak.</p>
 </section>
 
 </div>
@@ -297,7 +353,7 @@ function dtcInfo(code){
 const STORE_KEY = "obdTakip.v1";
 function defaults(){
   const lim={}; GAUGES.forEach(g=>lim[g.pid]={show:true,min:g.min,max:g.max});
-  return {lim, dtcEvery:30, vibrate:true, wake:true, mute:false};
+  return {lim, dtcEvery:30, vibrate:true, wake:true, mute:false, record:true, gps:true};
 }
 let settings = defaults();
 try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)||"null"); if(s){ settings={...settings,...s,lim:{...settings.lim,...(s.lim||{})}}; } }catch(e){}
@@ -535,6 +591,7 @@ function addLog(level,text){
   S.log.forEach(e=>{ const li=document.createElement("li");
     li.innerHTML=`<time>${e.t.toLocaleTimeString("tr-TR")}</time><span class="${e.level==="crit"?"c":"w"}"></span>`;
     li.lastChild.textContent=e.text; ul.appendChild(li); });
+  recEvent(level,text);
 }
 function checkLimits(g){
   const st=S.g[g.pid], L=settings.lim[g.pid]; if(st.v==null) return;
@@ -582,6 +639,7 @@ async function scanDtc(){
     const prefix = kind==="pending" ? "Yeni bekleyen arıza" : "Yeni arıza";
     raise("dtc"+c, level, `${prefix}: ${c} — ${i.desc}`);
   }
+  if(REC.trip) all.forEach(([c])=>{ if(!REC.trip.dtcs.includes(c)) REC.trip.dtcs.push(c); });
   const now=new Set(all.map(([c])=>c));
   [...S.alarms.keys()].filter(k=>k.startsWith("dtc")&&!now.has(k.slice(3))).forEach(drop);
   if(mil) raise("mil","crit","Motor arıza lambası yandı"); else drop("mil");
@@ -638,6 +696,7 @@ async function loop(){
       if(!S.active) return;
       try{ await readGauge(g); errors=0; }catch(x){ if(++errors>=6){ lost(); return; } }
     }
+    sample();
     if(Date.now()-S.lastDtc > settings.dtcEvery*1000) await scanDtc();
     if(!list.length) await wait(1000);
   }
@@ -646,7 +705,7 @@ function lost(){
   if(!S.active) return;
   S.active=false; setStatus("err","Bağlantı koptu");
   raise("link","crit","OBD cihazıyla bağlantı koptu");
-  uiIdle();
+  endRec(); uiIdle();
 }
 async function start(link){
   $("btNotice").hidden=true;
@@ -662,6 +721,7 @@ async function start(link){
     $("btnStop").hidden=false; $("btnScan").disabled=$("btnClear").disabled=false;
     GAUGES.forEach(paintGauge);
     keepAwake();
+    await startRec(name, link instanceof DemoLink);
     await scanDtc();
     loop();
   }catch(e){
@@ -670,7 +730,7 @@ async function start(link){
     else { setStatus("err","Bağlanamadı"); showNotice(e && e.message ? e.message : String(e)); }
   }
 }
-function stop(){ S.active=false; S.link&&S.link.close(); setStatus("","Bağlı değil"); drop("link"); uiIdle(); }
+function stop(){ S.active=false; S.link&&S.link.close(); setStatus("","Bağlı değil"); drop("link"); endRec(); uiIdle(); }
 function uiIdle(){
   $("btnConnect").disabled=$("btnDemo").disabled=false; $("btnStop").hidden=true;
   $("btnScan").disabled=$("btnClear").disabled=true;
@@ -679,6 +739,278 @@ function uiIdle(){
 async function keepAwake(){ if(!settings.wake || !("wakeLock" in navigator)) return; try{ S.wake=await navigator.wakeLock.request("screen"); }catch(e){} }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && S.active) keepAwake(); });
 function showNotice(t){ const n=$("btNotice"); n.textContent=t; n.hidden=false; }
+
+// ---------- Sürüş kaydı (telefon içi veritabanı: IndexedDB) ----------
+const REC = {trip:null, buf:[], lastFlush:0, gpsWatch:null, fix:null, prevFix:null, gpsWarned:false, demo:null, lastT:0};
+let DBH = null;
+const idb = r=>new Promise((res,rej)=>{ r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+function dbOpen(){
+  if(DBH) return Promise.resolve(DBH);
+  const r=indexedDB.open("obdTakip",1);
+  r.onupgradeneeded=()=>{ const d=r.result;
+    d.createObjectStore("trips",{keyPath:"id",autoIncrement:true});
+    d.createObjectStore("samples",{autoIncrement:true}).createIndex("trip","trip"); };
+  return idb(r).then(d=>DBH=d);
+}
+async function os(name,mode="readonly"){ return (await dbOpen()).transaction(name,mode).objectStore(name); }
+const done = t=>new Promise((res,rej)=>{ t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); t.onabort=()=>rej(t.error); });
+async function putTrip(t){ return idb((await os("trips","readwrite")).put(t)); }
+async function getTrips(){ return (await idb((await os("trips")).getAll())).sort((a,b)=>b.start-a.start); }
+async function getSamples(id){ return idb((await os("samples")).index("trip").getAll(id)); }
+async function addSamples(arr){ if(!arr.length) return; const st=await os("samples","readwrite"); arr.forEach(s=>st.add(s)); await done(st.transaction); }
+async function deleteTrip(id){
+  const t=(await dbOpen()).transaction(["trips","samples"],"readwrite");
+  t.objectStore("trips").delete(id);
+  const cur=t.objectStore("samples").index("trip").openCursor(IDBKeyRange.only(id));
+  cur.onsuccess=()=>{ const c=cur.result; if(c){ c.delete(); c.continue(); } };
+  await done(t);
+}
+
+function haversine(a,b){
+  const R=6371000, rad=x=>x*Math.PI/180, dLat=rad(b.lat-a.lat), dLon=rad(b.lon-a.lon);
+  const h=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function startGps(){
+  if(!settings.gps) return;
+  if(S.link instanceof DemoLink){ REC.demo={lat:41.0369,lon:28.9850,hdg:0.6}; return; }
+  if(!navigator.geolocation){ addLog("warn","Bu tarayıcı konum veremiyor; GPS kaydı yapılmayacak."); return; }
+  REC.gpsWatch=navigator.geolocation.watchPosition(
+    p=>{ REC.fix={lat:p.coords.latitude, lon:p.coords.longitude, acc:p.coords.accuracy, gs:p.coords.speed!=null?p.coords.speed*3.6:null, t:Date.now()}; },
+    e=>{ if(!REC.gpsWarned){ REC.gpsWarned=true; addLog("warn", e.code===1 ? "Konum izni verilmedi; GPS kaydı yapılmıyor." : "GPS sinyali alınamıyor."); } },
+    {enableHighAccuracy:true, maximumAge:1000, timeout:20000});
+}
+function stopGps(){ if(REC.gpsWatch!=null) navigator.geolocation.clearWatch(REC.gpsWatch); REC.gpsWatch=null; REC.fix=null; REC.prevFix=null; REC.demo=null; }
+function demoFix(now){
+  const d=REC.demo, dt=REC.lastT ? (now-REC.lastT)/1000 : 0, v=S.g["0D"].v||0, m=v/3.6*dt;
+  d.hdg += 0.015*dt*(1+Math.sin(now/20000));
+  d.lat += m*Math.cos(d.hdg)/111320; d.lon += m*Math.sin(d.hdg)/(111320*Math.cos(d.lat*Math.PI/180));
+  REC.fix={lat:d.lat, lon:d.lon, acc:5, gs:v, t:now};
+}
+
+async function startRec(device, demo){
+  if(!settings.record) return;
+  try{
+    if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+    const t={start:Date.now(), end:Date.now(), device, demo, samples:0, distance:0, stats:{}, events:[], dtcs:[]};
+    t.id=await putTrip(t);
+    REC.trip=t; REC.buf=[]; REC.lastFlush=Date.now(); REC.lastT=0; REC.gpsWarned=false;
+    startGps(); $("recBadge").hidden=false; renderTrips();
+  }catch(e){ addLog("warn","Kayıt başlatılamadı: "+e.message); }
+}
+function sample(){
+  const t=REC.trip; if(!t) return;
+  const now=Date.now(), v={};
+  for(const g of GAUGES){
+    const st=S.g[g.pid]; if(st.v==null || now-st.ts>3000) continue;
+    const x=Math.round(st.v*100)/100; v[g.pid]=x;
+    const s=t.stats[g.pid]||(t.stats[g.pid]={min:x,max:x,sum:0,n:0});
+    s.min=Math.min(s.min,x); s.max=Math.max(s.max,x); s.sum+=x; s.n++;
+  }
+  if(REC.demo) demoFix(now);
+  const row={trip:t.id, t:now, v};
+  const f=REC.fix;
+  if(f && now-f.t<5000){
+    row.lat=+f.lat.toFixed(6); row.lon=+f.lon.toFixed(6); row.acc=Math.round(f.acc); if(f.gs!=null) row.gs=Math.round(f.gs*10)/10;
+    if(f.acc<=50){ if(REC.prevFix){ const d=haversine(REC.prevFix,f); if(d>=3 && d<500) t.distance+=d; } REC.prevFix=f; }
+  }
+  REC.lastT=now; REC.buf.push(row); t.samples++; t.end=now;
+  if(now-REC.lastFlush>5000) flush(t);
+}
+async function flush(t){
+  const arr=REC.buf; REC.buf=[]; REC.lastFlush=Date.now();
+  try{ await addSamples(arr); await putTrip(t); }catch(e){ addLog("warn","Kayıt yazılamadı: "+e.message); }
+}
+function recEvent(level,text){ if(REC.trip) REC.trip.events.push({t:Date.now(),level,text}); }
+async function endRec(){
+  const t=REC.trip; if(!t) return;
+  REC.trip=null; stopGps(); $("recBadge").hidden=true;
+  await flush(t);
+  if(!t.samples) await deleteTrip(t.id);
+  renderTrips();
+}
+
+// ---------- Sürüş listesi ----------
+const fmtDate = ms=>new Date(ms).toLocaleString("tr-TR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+function fmtDur(ms){ const s=Math.round(ms/1000), h=Math.floor(s/3600), m=Math.floor(s%3600/60);
+  return h ? `${h} sa ${String(m).padStart(2,"0")} dk` : `${m} dk ${String(s%60).padStart(2,"0")} sn`; }
+const km = m=>fmt(m/1000,1)+" km";
+async function renderTrips(){
+  let trips=[]; try{ trips=await getTrips(); }catch(e){ $("trips").innerHTML='<li class="empty">Bu tarayıcı kayıt tutamıyor (gizli sekme olabilir).</li>'; return; }
+  const ul=$("trips"); ul.innerHTML="";
+  if(!trips.length) ul.innerHTML='<li class="empty">Henüz kayıt yok. Bağlandığında sürüş otomatik kaydedilir.</li>';
+  for(const t of trips){
+    const live = REC.trip && REC.trip.id===t.id;
+    const sp=t.stats["0D"], cl=t.stats["05"], crit=t.events.filter(e=>e.level==="crit").length;
+    const li=document.createElement("li"); li.className="trip";
+    li.innerHTML=`<span class="when">${fmtDate(t.start)}</span>
+      <span class="facts"><span><b>${fmtDur(t.end-t.start)}</b></span><span><b>${km(t.distance)}</b></span>
+      ${sp?`<span>en yüksek hız <b>${fmt(sp.max,0)}</b> km/sa</span>`:""}${cl?`<span>su <b>${fmt(cl.max,0)}</b> °C</span>`:""}
+      <span><b>${crit}</b> uyarı</span>${t.dtcs.length?`<span>kod: <b>${t.dtcs.join(", ")}</b></span>`:""}</span>
+      ${live?'<span class="rec">Kayıt sürüyor</span>':""}${t.demo?'<span class="chip info">Deneme</span>':""}
+      <button>Aç</button>`;
+    li.querySelector("button").addEventListener("click",()=>openTrip(t.id));
+    ul.appendChild(li);
+  }
+  try{ const e=await navigator.storage.estimate(); $("storeInfo").textContent=`Kullanılan alan: ${fmt(e.usage/1048576,1)} MB`; }catch(e){}
+}
+
+// ---------- Sürüş ayrıntısı: özet, grafik, harita ----------
+const V = {trip:null, samples:[], hover:null, map:null, hoverMarker:null};
+const SERIES = ()=>[...GAUGES.map(g=>({key:g.pid,name:g.name,unit:g.unit,dec:g.dec})),{key:"gs",name:"GPS hızı",unit:"km/sa",dec:0}];
+const val = (s,key)=> key==="gs" ? s.gs : s.v[key];
+async function openTrip(id){
+  if(REC.trip && REC.trip.id===id) await flush(REC.trip);
+  const t=(await getTrips()).find(x=>x.id===id); if(!t) return;
+  V.trip=t; V.samples=(await getSamples(id)).sort((a,b)=>a.t-b.t); V.hover=null;
+  $("viewer").hidden=false; $("vDelBox").hidden=true;
+  $("vTitle").textContent="Sürüş · "+fmtDate(t.start)+(t.demo?" (deneme)":"");
+  const st=t.stats, box=$("vStats"); box.innerHTML="";
+  const moving=V.samples.map(s=>s.v["0D"]).filter(x=>x>2);
+  const items=[
+    [fmtDur(t.end-t.start),"Süre"], [km(t.distance),"Mesafe (GPS)"],
+    [moving.length?fmt(moving.reduce((a,b)=>a+b,0)/moving.length,0):"—","Ortalama hız, km/sa"],
+    [st["0D"]?fmt(st["0D"].max,0):"—","En yüksek hız, km/sa"],
+    [st["0C"]?fmt(st["0C"].max,0):"—","En yüksek devir"],
+    [st["05"]?fmt(st["05"].max,0):"—","En yüksek su sıcaklığı, °C"],
+    [st["42"]?fmt(st["42"].min,1):"—","En düşük voltaj, V"],
+    [String(t.events.filter(e=>e.level==="crit").length),"Kritik uyarı"],
+  ];
+  items.forEach(([b,s])=>{ const d=document.createElement("div"); d.className="stat"; d.innerHTML=`<b>${b}</b><span>${s}</span>`; box.appendChild(d); });
+  const have=SERIES().filter(s=>V.samples.some(x=>val(x,s.key)!=null));
+  for(const [id,def] of [["selA","0D"],["selB","05"]]){
+    const sel=$(id); sel.innerHTML="";
+    have.forEach(s=>{ const o=document.createElement("option"); o.value=s.key; o.textContent=`${s.name} (${s.unit})`; sel.appendChild(o); });
+    if(have.some(s=>s.key===def)) sel.value=def; else if(have[id==="selA"?0:1]) sel.value=have[id==="selA"?0:1].key;
+  }
+  const ev=$("vEvents"); ev.innerHTML="";
+  if(!t.events.length) ev.innerHTML='<li class="empty">Bu sürüşte uyarı olmadı.</li>';
+  t.events.forEach(e=>{ const li=document.createElement("li");
+    li.innerHTML=`<time>${new Date(e.t).toLocaleTimeString("tr-TR")}</time><span class="${e.level==="crit"?"c":"w"}"></span>`;
+    li.lastChild.textContent=e.text; li.lastChild.style.color=e.level==="crit"?"var(--crit)":"var(--warn)"; ev.appendChild(li); });
+  drawChart(); drawMap();
+  $("viewer").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function niceRange(vals){
+  let mn=Math.min(...vals), mx=Math.max(...vals);
+  if(mn===mx){ mn-=1; mx+=1; }
+  const p=(mx-mn)*0.08; return [mn-p, mx+p];
+}
+function drawChart(){
+  const c=$("chart"), dpr=window.devicePixelRatio||1, W=c.clientWidth, H=c.clientHeight;
+  c.width=W*dpr; c.height=H*dpr; const x=c.getContext("2d"); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
+  const cs=getComputedStyle(document.documentElement), col=n=>cs.getPropertyValue(n).trim();
+  x.font="12px "+col("--f-body"); x.fillStyle=col("--muted");
+  const smp=V.samples;
+  if(smp.length<2){ x.fillText("Grafik için yeterli veri yok.",12,24); return; }
+  const P={l:46,r:46,t:10,b:24}, t0=smp[0].t, t1=smp[smp.length-1].t;
+  const X=t=>P.l+(t-t0)/((t1-t0)||1)*(W-P.l-P.r);
+  const keys=[$("selA").value,$("selB").value], colors=[col("--accent"),col("--series-b")];
+  const defs=SERIES();
+  const ranges=keys.map(k=>{ const vs=smp.map(s=>val(s,k)).filter(v=>v!=null); return vs.length?niceRange(vs):null; });
+  const Y=(v,r)=>P.t+(1-(v-r[0])/(r[1]-r[0]))*(H-P.t-P.b);
+  // ızgara ve eksen yazıları
+  x.strokeStyle=col("--grid"); x.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const yy=P.t+i/4*(H-P.t-P.b); x.beginPath(); x.moveTo(P.l,yy); x.lineTo(W-P.r,yy); x.stroke();
+    ranges.forEach((r,j)=>{ if(!r) return; const d=defs.find(s=>s.key===keys[j]); const v=r[1]-i/4*(r[1]-r[0]);
+      x.fillStyle=colors[j]; x.textAlign=j?"left":"right"; x.fillText(fmt(v,d.dec),j?W-P.r+6:P.l-6,yy+4); });
+  }
+  x.fillStyle=col("--muted"); x.textAlign="center";
+  for(let i=0;i<=4;i++){ const tt=t0+i/4*(t1-t0);
+    x.fillText(new Date(tt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:(t1-t0)<600000?"2-digit":undefined}), X(tt), H-6); }
+  // uyarı anları
+  x.strokeStyle=col("--crit"); x.globalAlpha=.45; x.setLineDash([3,3]);
+  V.trip.events.filter(e=>e.level==="crit").forEach(e=>{ x.beginPath(); x.moveTo(X(e.t),P.t); x.lineTo(X(e.t),H-P.b); x.stroke(); });
+  x.setLineDash([]); x.globalAlpha=1;
+  // çizgiler (5 sn'den uzun boşlukta çizgi kopar)
+  keys.forEach((k,j)=>{ const r=ranges[j]; if(!r) return;
+    x.strokeStyle=colors[j]; x.lineWidth=2; x.lineJoin="round"; x.beginPath(); let prev=null;
+    for(const s of smp){ const v=val(s,k); if(v==null){ prev=null; continue; }
+      const px=X(s.t), py=Y(v,r); if(prev && s.t-prev<=5000) x.lineTo(px,py); else x.moveTo(px,py); prev=s.t; }
+    x.stroke(); });
+  // dokunulan an
+  if(V.hover!=null){
+    let best=smp[0]; for(const s of smp) if(Math.abs(s.t-V.hover)<Math.abs(best.t-V.hover)) best=s;
+    const px=X(best.t); x.strokeStyle=col("--text"); x.globalAlpha=.5; x.beginPath(); x.moveTo(px,P.t); x.lineTo(px,H-P.b); x.stroke(); x.globalAlpha=1;
+    keys.forEach((k,j)=>{ const v=val(best,k), r=ranges[j]; if(v==null||!r) return;
+      x.fillStyle=colors[j]; x.beginPath(); x.arc(px,Y(v,r),4,0,Math.PI*2); x.fill(); });
+    const parts=[new Date(best.t).toLocaleTimeString("tr-TR")];
+    ["0D","0C","05","04","42"].concat(keys).filter((k,i,a)=>a.indexOf(k)===i).forEach(k=>{ const v=val(best,k); if(v==null) return;
+      const d=defs.find(s=>s.key===k); parts.push(`${d.name}: ${fmt(v,d.dec)} ${d.unit}`); });
+    $("readout").textContent=parts.join(" · ");
+    if(V.map && best.lat!=null){
+      if(!V.hoverMarker) V.hoverMarker=L.circleMarker([best.lat,best.lon],{radius:7,color:"#fff",weight:2,fillColor:colors[0],fillOpacity:1}).addTo(V.map);
+      else V.hoverMarker.setLatLng([best.lat,best.lon]);
+    }
+  }
+}
+function chartPointer(e){
+  const c=$("chart"), r=c.getBoundingClientRect(), smp=V.samples; if(smp.length<2) return;
+  const P={l:46,r:46}, f=Math.max(0,Math.min(1,(e.clientX-r.left-P.l)/(r.width-P.l-P.r)));
+  V.hover=smp[0].t+f*(smp[smp.length-1].t-smp[0].t); drawChart();
+}
+$("chart").addEventListener("pointermove",chartPointer);
+$("chart").addEventListener("pointerdown",chartPointer);
+$("selA").addEventListener("change",drawChart);
+$("selB").addEventListener("change",drawChart);
+window.addEventListener("resize",()=>{ if(!$("viewer").hidden) drawChart(); });
+
+function drawMap(){
+  const el=$("map");
+  if(V.map){ V.map.remove(); V.map=null; V.hoverMarker=null; }
+  const pts=V.samples.filter(s=>s.lat!=null);
+  if(!pts.length){ el.innerHTML='<p class="empty" style="padding:16px;margin:0">Bu sürüşte GPS kaydı yok.</p>'; return; }
+  if(!window.L){ el.innerHTML='<p class="empty" style="padding:16px;margin:0">Harita için internet bağlantısı gerekiyor. Sayfayı yenileyip tekrar dene.</p>'; return; }
+  el.innerHTML="";
+  const m=V.map=L.map(el);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(m);
+  // hıza göre renkli iz: yeşil < 50, sarı < 90, kırmızı ≥ 90 km/sa
+  const cs=getComputedStyle(document.documentElement), col=n=>cs.getPropertyValue(n).trim();
+  const band=s=>{ const v=s.v["0D"]??s.gs??0; return v<50?col("--ok"):v<90?col("--warn"):col("--crit"); };
+  let seg=[pts[0]], c0=band(pts[0]);
+  const flushSeg=()=>{ if(seg.length>1) L.polyline(seg.map(s=>[s.lat,s.lon]),{color:c0,weight:5,opacity:.9}).addTo(m); };
+  for(let i=1;i<pts.length;i++){
+    const s=pts[i], c=band(s);
+    if(s.t-pts[i-1].t>10000){ flushSeg(); seg=[s]; c0=c; continue; }
+    seg.push(s); if(c!==c0){ flushSeg(); seg=[s]; c0=c; }
+  }
+  flushSeg();
+  L.circleMarker([pts[0].lat,pts[0].lon],{radius:7,color:col("--ok"),fillOpacity:1}).addTo(m).bindPopup("Başlangıç");
+  const last=pts[pts.length-1];
+  L.circleMarker([last.lat,last.lon],{radius:7,color:col("--text"),fillOpacity:1}).addTo(m).bindPopup("Bitiş");
+  V.trip.events.filter(e=>e.level==="crit").forEach(e=>{
+    let b=pts[0]; for(const s of pts) if(Math.abs(s.t-e.t)<Math.abs(b.t-e.t)) b=s;
+    const mk=L.circleMarker([b.lat,b.lon],{radius:8,color:col("--crit"),weight:3,fillOpacity:.3}).addTo(m);
+    mk.bindPopup(new Date(e.t).toLocaleTimeString("tr-TR")+" — "+e.text.replace(/[<>&]/g,""));
+  });
+  m.fitBounds(L.latLngBounds(pts.map(s=>[s.lat,s.lon])),{padding:[20,20]});
+}
+
+// ---------- CSV dışa aktarma (Türkçe Excel: ; ayraç, virgüllü ondalık) ----------
+function exportCsv(){
+  const t=V.trip, smp=V.samples; if(!t) return;
+  const cols=GAUGES.filter(g=>smp.some(s=>s.v[g.pid]!=null));
+  const num=v=>v==null?"":String(v).replace(".",",");
+  const p2=n=>String(n).padStart(2,"0");
+  const ts=ms=>{ const d=new Date(ms); return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`; };
+  const head=["Zaman","Enlem","Boylam","GPS hızı (km/sa)","GPS doğruluğu (m)",...cols.map(g=>`${g.name} (${g.unit})`),"Olay"];
+  const evAt=new Map(); t.events.forEach(e=>{ let b=smp[0]; for(const s of smp) if(Math.abs(s.t-e.t)<Math.abs(b.t-e.t)) b=s; if(b) evAt.set(b.t,[...(evAt.get(b.t)||[]),e.text]); });
+  const rows=smp.map(s=>[ts(s.t),num(s.lat),num(s.lon),num(s.gs),num(s.acc),...cols.map(g=>num(s.v[g.pid])),`"${(evAt.get(s.t)||[]).join(" | ").replace(/"/g,"'")}"`].join(";"));
+  const blob=new Blob(["﻿"+head.join(";")+"\r\n"+rows.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const d=new Date(t.start), a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=`surus_${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+$("vCsv").addEventListener("click",exportCsv);
+$("vClose").addEventListener("click",()=>{ $("viewer").hidden=true; if(V.map){ V.map.remove(); V.map=null; V.hoverMarker=null; } });
+$("vDel").addEventListener("click",()=>{ $("vDelBox").hidden=false; });
+$("vDelNo").addEventListener("click",()=>{ $("vDelBox").hidden=true; });
+$("vDelYes").addEventListener("click",async()=>{
+  const id=V.trip.id;
+  if(REC.trip && REC.trip.id===id){ $("vDelBox").hidden=true; addLog("warn","Süren kayıt silinemez; önce bağlantıyı kes."); return; }
+  await deleteTrip(id); $("viewer").hidden=true; renderTrips();
+});
 
 // ---------- Ayarlar paneli ----------
 function numOrNull(v){ return v===""||v==null ? null : Number(v); }
@@ -694,11 +1026,14 @@ function buildSettings(){
     tr.querySelector(`#s_max_${g.pid}`).addEventListener("change",e=>{ L.max=numOrNull(e.target.value); save(); paintRange(g); });
   }
   $("dtcEvery").value=settings.dtcEvery; $("optVibrate").checked=settings.vibrate; $("optWake").checked=settings.wake;
+  $("optRecord").checked=settings.record; $("optGps").checked=settings.gps;
   $("btnMute").textContent = settings.mute ? "Ses: kapalı" : "Ses: açık"; $("btnMute").setAttribute("aria-pressed",String(settings.mute));
 }
 $("dtcEvery").addEventListener("change",e=>{ settings.dtcEvery=Math.max(10,Number(e.target.value)||30); save(); });
 $("optVibrate").addEventListener("change",e=>{ settings.vibrate=e.target.checked; save(); });
 $("optWake").addEventListener("change",e=>{ settings.wake=e.target.checked; save(); });
+$("optRecord").addEventListener("change",e=>{ settings.record=e.target.checked; save(); });
+$("optGps").addEventListener("change",e=>{ settings.gps=e.target.checked; save(); });
 $("btnReset").addEventListener("click",()=>{ const d=defaults(); settings.lim=d.lim; save(); buildSettings(); buildGauges(); GAUGES.forEach(paintGauge); });
 $("btnMute").addEventListener("click",()=>{ settings.mute=!settings.mute; save(); buildSettings(); });
 
@@ -719,7 +1054,8 @@ $("clearYes").addEventListener("click",clearDtc);
 $("btnLogClear").addEventListener("click",()=>{ S.log=[]; $("log").innerHTML='<li class="empty">Henüz uyarı yok.</li>'; });
 setInterval(()=>{ if(S.active) GAUGES.forEach(paintGauge); },2000);
 
-buildSettings(); buildGauges();
+buildSettings(); buildGauges(); renderTrips();
+setInterval(()=>{ if(REC.trip) renderTrips(); },30000);
 if(!navigator.bluetooth) showNotice("Bu tarayıcıda Bluetooth yok. Android'de Chrome, iPhone'da Bluefy ile aç. Şimdilik \"Deneme modu\" ile uygulamayı görebilirsin.");
 </script>
 </body>
