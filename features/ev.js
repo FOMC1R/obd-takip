@@ -268,7 +268,7 @@ const KEYS = {
   SOH:  {name:"Batarya sağlığı (SOH)",          unit:"%",  lo:50,  hi:100, dec:1, min:null, max:null, every:60, show:true},
   AUX:  {name:"12 V akü (BMS)",                 unit:"V",  lo:10,  hi:16,  dec:2, min:null, max:null, every:10},
   E:    {name:"Kalan enerji",                   unit:"kWh",lo:0,   hi:80,  dec:1, min:null, max:null, every:10, show:true},
-  CHG:  {name:"Şarj cihazı durumu (ham kod)",   unit:"",   lo:0,   hi:255, dec:0, min:null, max:null, every:10},
+  CHG:  {name:"Şarj cihazı durumu (ham kod)",   unit:"kod",   lo:0,   hi:255, dec:0, min:null, max:null, every:10},
 };
 const kpid = k=>"EV_"+k;
 // Etkin kaynak: seçili profil; yoksa ve araç 9A veriyorsa genel voltaj/akım
@@ -399,13 +399,15 @@ function applyView(){
   save();
 }
 const viewKey = ()=>isEv() ? ["ev",profileKey(),sup("9A"),sup("A6")].join("|") : "yakıt";
-function refreshView(){ if(st.viewKey!==viewKey()){ applyView(); coreBuildSettings(); buildGauges(); GAUGES.forEach(paintGauge); } }
+function refreshView(){ if(st.viewKey!==viewKey()){ applyView(); coreBuildSettings(); markTable(); buildGauges(); GAUGES.forEach(paintGauge); } }
 st.viewKey = settings.evPrev ? null : "yakıt";   // kayıtlı durumdan başla (EV'de ilk çizimde görünüm yeniden kurulur)
 
 // ================= 11) Arayüz =================
 const css=document.createElement("style");
 css.textContent=`
-#evCard details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center}
+#evCard details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center;list-style:none}
+#evCard details summary::after{content:" ▾";color:var(--muted);margin-left:6px}
+#evCard details[open] summary::after{content:" ▴"}
 #evCard details p{margin:0 0 8px}
 .ev-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .ev-list li{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);min-width:0}
@@ -496,12 +498,14 @@ buildSettings = function(){
   const lab=document.querySelector('label[for="fuelPrice"]'); if(lab && lab.textContent!==undefined) lab.textContent = ev ? "kWh fiyatı (TL) — şarj ettiğin yerin fiyatı" : "Litre fiyatı (TL)";
   for(const id of ["fuelDisp","fuelCalib"]){ const el=$(id), f=el && el.closest && el.closest(".field"); if(f) f.hidden=ev; }
   if(ev) $("fuelNote").textContent="Elektrikli araçta tüketim, bataryanın voltajı ve akımından hesaplanır (kWh/100 km). Bunun için aşağıdan araç profili seçilmeli. Varsayılan kWh fiyatı örnek değerdir; kendi tarifeni gir.";
-  // sınır tablosunda denenmemiş işareti
-  GAUGES.filter(g=>g.unverified).forEach(g=>{ const cb=$("s_show_"+g.pid), td=cb && cb.parentElement && cb.parentElement.nextElementSibling;
-    if(td && td.appendChild && !td.querySelector(".chip")){ const c=document.createElement("em"); c.className="chip warn"; c.textContent="denenmemiş"; td.append(" ",c); } });
   if(st.viewKey!==viewKey()){ applyView(); coreBuildSettings(); buildGauges(); }
-  renderSettingsCard();
+  markTable(); renderSettingsCard();
 };
+// sınır tablosunda denenmemiş işareti
+function markTable(){
+  GAUGES.filter(g=>g.unverified).forEach(g=>{ const cb=$("s_show_"+g.pid), td=cb && cb.parentElement && cb.parentElement.nextElementSibling;
+    if(td && td.append && td.querySelector && !td.querySelector(".chip")){ const c=document.createElement("em"); c.className="chip warn"; c.textContent="denenmemiş"; td.append(" ",c); } });
+}
 
 // Canlı sekmesi: batarya özeti
 const live=document.createElement("section");
@@ -682,7 +686,7 @@ DemoLink.prototype.reply = function(cmd){
     case "01A6": return "41A6"+hx((12345.6+s.t*0.01)*10,4);
     case "0902": { const vin="VXKUKZKXZNW123456"; return "014\r0:490201"+[...vin].slice(0,3).map(c=>hx(c.charCodeAt(0),1)).join("")+"\r1:"+[...vin].slice(3,10).map(c=>hx(c.charCodeAt(0),1)).join("")+"\r2:"+[...vin].slice(10).map(c=>hx(c.charCodeAt(0),1)).join(""); }
   }
-  if(/^01(0[4-9A-F]|1[0-9A-F]|2F|4[3-9A-F]|5C|5E|6[12])$/.test(cmd)) return "NO DATA";   // motor değerleri yok
+  if(/^01(0[4-9A-F]|1[0-9A-F]|2F|4[3-59A-F]|5C|5E|6[12])$/.test(cmd)) return "NO DATA";   // motor değerleri yok
   return coreReply.call(this,cmd);
 };
 // #demo-ev: ana betik deneme modunu çoktan başlattı; bu bağlantıyı elektrikli yap
