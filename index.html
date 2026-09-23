@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1413">
+<title>OBD Takip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+:root{
+  --bg:#eef2f1; --panel:#ffffff; --panel-2:#f5f8f7; --line:#d5dfdc;
+  --text:#13201d; --muted:#58706a; --accent:#a86200; --accent-ink:#ffffff;
+  --ok:#1f8a57; --warn:#b07d00; --crit:#c62828; --crit-bg:#fdecec; --warn-bg:#fff6dc;
+  --track:#dfe7e4;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-num:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1413; --panel:#172120; --panel-2:#1c2826; --line:#2a3836;
+    --text:#e4eeeb; --muted:#8ea39e; --accent:#f2a93b; --accent-ink:#1a1204;
+    --ok:#46c486; --warn:#f2c14e; --crit:#ff5f57; --crit-bg:#3a1716; --warn-bg:#352b10;
+    --track:#26332f; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1413; --panel:#172120; --panel-2:#1c2826; --line:#2a3836;
+  --text:#e4eeeb; --muted:#8ea39e; --accent:#f2a93b; --accent-ink:#1a1204;
+  --ok:#46c486; --warn:#f2c14e; --crit:#ff5f57; --crit-bg:#3a1716; --warn-bg:#352b10;
+  --track:#26332f; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.45 var(--f-body);
+  padding:env(safe-area-inset-top,0px) 16px calc(env(safe-area-inset-bottom,0px) + 32px)}
+.wrap{max-width:980px;margin:0 auto;display:grid;gap:16px}
+[hidden]{display:none!important}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);padding:10px 14px;min-height:44px}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.danger{background:var(--crit);color:#fff;border-color:var(--crit)}
+button:disabled{opacity:.5;cursor:default}
+h1,h2{font-family:var(--f-num);font-weight:600;letter-spacing:.02em;margin:0;text-wrap:balance}
+h1{font-size:28px}
+h2{font-size:20px}
+.label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+
+/* üst şerit */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 8px;display:grid;gap:10px}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.top h1{margin-right:auto}
+.status{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.status.on .dot{background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 25%,transparent)}
+.status.busy .dot{background:var(--warn)}
+.status.err .dot{background:var(--crit)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* alarm şeridi */
+.alarms{display:grid;gap:8px}
+.alarm{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:10px;font-weight:600;border:1px solid}
+.alarm.crit{background:var(--crit-bg);border-color:var(--crit);color:var(--crit);animation:pulse 1.2s ease-in-out infinite}
+.alarm.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--text)}
+.alarm small{font-weight:400;color:var(--muted);margin-left:auto;white-space:nowrap}
+@keyframes pulse{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--crit) 30%,transparent)}}
+@media (prefers-reduced-motion:reduce){.alarm.crit{animation:none}}
+
+/* arıza kartı */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px}
+.dtc-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.mil{width:48px;height:48px;flex:none;color:var(--muted)}
+.mil.on{color:var(--warn);filter:drop-shadow(0 0 6px color-mix(in srgb,var(--warn) 70%,transparent))}
+.dtc-head .txt{margin-right:auto}
+.dtc-head .txt b{display:block;font-size:18px}
+.dtc-head .txt span{color:var(--muted);font-size:14px}
+.dtc-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.dtc{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:10px 12px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line)}
+.dtc .code{font-family:var(--f-num);font-size:24px;font-weight:700;letter-spacing:.03em;grid-row:span 2;align-self:center}
+.dtc .desc{font-weight:600}
+.dtc .meta{font-size:13px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid currentColor}
+.chip.crit{color:var(--crit)} .chip.warn{color:var(--warn)} .chip.info{color:var(--muted)}
+.dtc a{color:var(--accent)}
+.confirm{padding:12px;border-radius:10px;border:1px solid var(--crit);background:var(--crit-bg);display:grid;gap:10px}
+.confirm .actions{justify-content:flex-end}
+.empty{color:var(--muted);font-size:14px}
+
+/* göstergeler */
+.gauges{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.g{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:6px;transition:opacity .3s}
+.g .name{font-size:13px;color:var(--muted);font-weight:600;line-height:1.2;min-height:2.4em}
+.g .val{font-family:var(--f-num);font-size:40px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.g .val small{font-size:15px;font-weight:500;color:var(--muted);margin-left:4px}
+.g .bar{position:relative;height:6px;border-radius:3px;background:var(--track)}
+.g .fill{position:absolute;inset:0 auto 0 0;border-radius:3px;background:var(--ok);width:0;transition:width .3s}
+.g .mark{position:absolute;top:-3px;width:2px;height:12px;background:var(--crit);opacity:.8}
+.g .range{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.g.warn{border-color:var(--warn)} .g.warn .fill{background:var(--warn)}
+.g.crit{border-color:var(--crit);background:var(--crit-bg)} .g.crit .fill{background:var(--crit)} .g.crit .val{color:var(--crit)}
+.g.stale{opacity:.5}
+.g.unsup{opacity:.4}
+
+/* geçmiş ve ayarlar */
+.log{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:260px;overflow:auto;font-size:14px}
+.log li{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+.log time{color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+.log .c{color:var(--crit);font-weight:600} .log .w{color:var(--warn);font-weight:600}
+details.card summary{cursor:pointer;font-family:var(--f-num);font-size:20px;font-weight:600;list-style:none}
+details.card summary::after{content:" ▾";color:var(--muted)}
+.set-table{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+input[type=number]{width:80px;font:inherit;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--text)}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.row label{display:flex;gap:8px;align-items:center}
+.help{font-size:14px;color:var(--muted);display:grid;gap:6px}
+.help p{margin:0;max-width:65ch}
+.help b{color:var(--text)}
+.notice{padding:12px 14px;border-radius:10px;background:var(--warn-bg);border:1px solid var(--warn);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="top">
+    <h1>OBD Takip</h1>
+    <span class="status" id="status"><span class="dot"></span><span id="statusText">Bağlı değil</span></span>
+  </div>
+  <div class="actions">
+    <button class="primary" id="btnConnect">Bluetooth ile bağlan</button>
+    <button id="btnDemo">Deneme modu</button>
+    <button id="btnStop" hidden>Bağlantıyı kes</button>
+    <button id="btnMute" aria-pressed="false">Ses: açık</button>
+  </div>
+  <div class="alarms" id="alarms" aria-live="assertive"></div>
+</header>
+
+<div class="notice" id="btNotice" hidden></div>
+
+<section class="card" aria-labelledby="dtcTitle">
+  <div class="dtc-head">
+    <svg class="mil" id="mil" viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" d="M14 14h8v-3h-5V8h14v3h-5v3h7l4 4h3v-3h4v14h-4v-3h-3v7l-5 5H14l-3-3H8v4H4V21h4v4h3v-8z"/></svg>
+    <div class="txt">
+      <h2 id="dtcTitle">Arıza kodları</h2>
+      <b id="milText">Henüz taranmadı</b>
+      <span id="dtcTime">Bağlanınca otomatik taranır</span>
+    </div>
+    <div class="actions">
+      <button id="btnScan" disabled>Şimdi tara</button>
+      <button id="btnClear" disabled>Kodları sil</button>
+    </div>
+  </div>
+  <div class="confirm" id="clearBox" hidden>
+    <div><b>Arıza kodları ve arıza lambası silinsin mi?</b><br>
+    Silme işlemi sorunu gidermez; yalnızca kaydı temizler. Arıza sürüyorsa kod geri gelir. Silmeden önce kodları not al. Kontak açık, motor kapalı olsun.</div>
+    <div class="actions"><button id="clearNo">Vazgeç</button><button class="danger" id="clearYes">Evet, sil</button></div>
+  </div>
+  <ul class="dtc-list" id="dtcList"></ul>
+</section>
+
+<section aria-labelledby="gTitle" style="display:grid;gap:10px">
+  <h2 id="gTitle">Anlık değerler</h2>
+  <div class="gauges" id="gauges"></div>
+</section>
+
+<section class="card" aria-labelledby="logTitle">
+  <div class="row"><h2 id="logTitle" style="margin-right:auto">Uyarı geçmişi</h2><button id="btnLogClear">Temizle</button></div>
+  <ul class="log" id="log"><li class="empty">Henüz uyarı yok.</li></ul>
+</section>
+
+<details class="card" id="settings">
+  <summary>Uyarı sınırları ve ayarlar</summary>
+  <p class="help" style="margin:0">Bir değer sınırın dışına <b>3 ölçüm üst üste</b> çıkarsa uyarı verilir. Boş bırakılan sınır kontrol edilmez. Değerler bu telefonda saklanır.</p>
+  <div class="set-table"><table>
+    <thead><tr><th>Göster</th><th>Değer</th><th>Alt sınır</th><th>Üst sınır</th></tr></thead>
+    <tbody id="setBody"></tbody>
+  </table></div>
+  <div class="row">
+    <label for="dtcEvery">Arıza tarama aralığı (saniye)</label>
+    <input type="number" id="dtcEvery" min="10" max="600" step="5">
+  </div>
+  <div class="row">
+    <label><input type="checkbox" id="optVibrate"> Uyarıda titreşim</label>
+    <label><input type="checkbox" id="optWake"> Ekranı açık tut</label>
+  </div>
+  <div class="row"><button id="btnReset">Varsayılan sınırlara dön</button></div>
+</details>
+
+<section class="card help" aria-labelledby="hTitle">
+  <h2 id="hTitle">Nasıl kullanılır</h2>
+  <p><b>Android:</b> Bu sayfayı <b>Chrome</b> ile aç. Telefonun Bluetooth'u ve konumu açık olsun.</p>
+  <p><b>iPhone:</b> Safari Bluetooth'a izin vermez. App Store'dan ücretsiz <b>Bluefy</b> tarayıcısını kur ve sayfayı onunla aç.</p>
+  <p><b>Önemli:</b> Bu sayfa yalnızca <b>BLE (Bluetooth 4.0, düşük enerjili)</b> ELM327 cihazlarla çalışır. Cihazını telefonun Bluetooth ayarlarından şifreyle (1234 gibi) eşleştiriyorsan cihazın klasik Bluetooth'tur. Tarayıcılar klasik Bluetooth'a erişemez.</p>
+  <p>Kontağı aç, "Bluetooth ile bağlan"a bas, listeden cihazını seç (OBDII, V-LINK, IOS-Vlink gibi). Başka bir OBD uygulaması cihaza bağlıysa önce onu kapat; cihaz aynı anda tek uygulamaya bağlanır.</p>
+  <p>Sürerken ekrana bakma. Uyarılar ses ve titreşimle gelir.</p>
+</section>
+
+</div>
+
+<script>
+"use strict";
+// ---------- Göstergeler: OBD-II mod 01 PID tanımları (SAE J1979) ----------
+const GAUGES = [
+  {pid:"0C", name:"Motor devri",           unit:"d/dk", f:(a,b)=>(a*256+b)/4,     lo:0,   hi:8000, dec:0, min:null, max:6000},
+  {pid:"0D", name:"Hız",                   unit:"km/sa",f:a=>a,                   lo:0,   hi:220,  dec:0, min:null, max:140},
+  {pid:"05", name:"Soğutma suyu sıcaklığı",unit:"°C",   f:a=>a-40,                lo:-40, hi:130,  dec:0, min:null, max:105},
+  {pid:"5C", name:"Motor yağı sıcaklığı",  unit:"°C",   f:a=>a-40,                lo:-40, hi:160,  dec:0, min:null, max:130},
+  {pid:"42", name:"Akü / şarj voltajı",    unit:"V",    f:(a,b)=>(a*256+b)/1000,  lo:10,  hi:16,   dec:1, min:12.0, max:15.0},
+  {pid:"04", name:"Motor yükü",            unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:null, max:null},
+  {pid:"11", name:"Gaz kelebeği",          unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:null, max:null},
+  {pid:"0F", name:"Emme havası sıcaklığı", unit:"°C",   f:a=>a-40,                lo:-40, hi:100,  dec:0, min:null, max:60},
+  {pid:"0B", name:"Emme manifold basıncı", unit:"kPa",  f:a=>a,                   lo:0,   hi:255,  dec:0, min:null, max:null},
+  {pid:"10", name:"Hava akışı (MAF)",      unit:"g/sn", f:(a,b)=>(a*256+b)/100,   lo:0,   hi:200,  dec:1, min:null, max:null},
+  {pid:"06", name:"Kısa süreli yakıt ayarı",unit:"%",   f:a=>(a-128)*100/128,     lo:-25, hi:25,   dec:1, min:-20,  max:20},
+  {pid:"07", name:"Uzun süreli yakıt ayarı",unit:"%",   f:a=>(a-128)*100/128,     lo:-25, hi:25,   dec:1, min:-10,  max:10},
+  {pid:"0E", name:"Ateşleme avansı",       unit:"°",    f:a=>a/2-64,              lo:-20, hi:60,   dec:1, min:null, max:null},
+  {pid:"2F", name:"Yakıt seviyesi",        unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:10,   max:null},
+  {pid:"46", name:"Dış hava sıcaklığı",    unit:"°C",   f:a=>a-40,                lo:-40, hi:60,   dec:0, min:null, max:null},
+];
+
+// ---------- Arıza kodu açıklamaları (genel SAE kodları) ----------
+const DTC_TR = {
+  P0010:"Eksantrik mili ayar valfi devresi (sıra 1)", P0011:"Eksantrik mili zamanlaması fazla ileri (sıra 1)",
+  P0016:"Krank ve eksantrik mili konumları uyuşmuyor (sıra 1)", P0030:"Oksijen sensörü ısıtıcı devresi (sıra 1, sensör 1)",
+  P0087:"Yakıt rayı basıncı çok düşük", P0088:"Yakıt rayı basıncı çok yüksek", P0093:"Yakıt sisteminde büyük kaçak",
+  P0100:"Hava akış (MAF) sensörü devresi", P0101:"Hava akış (MAF) sensörü ölçümü hatalı", P0102:"Hava akış (MAF) sensörü sinyali düşük",
+  P0103:"Hava akış (MAF) sensörü sinyali yüksek", P0105:"Emme basıncı (MAP) sensörü devresi", P0106:"Emme basıncı (MAP) sensörü ölçümü hatalı",
+  P0107:"Emme basıncı (MAP) sensörü sinyali düşük", P0108:"Emme basıncı (MAP) sensörü sinyali yüksek",
+  P0110:"Emme havası sıcaklık sensörü devresi", P0112:"Emme havası sıcaklık sensörü sinyali düşük", P0113:"Emme havası sıcaklık sensörü sinyali yüksek",
+  P0115:"Soğutma suyu sıcaklık sensörü devresi", P0116:"Soğutma suyu sıcaklık sensörü ölçümü hatalı",
+  P0117:"Soğutma suyu sıcaklık sensörü sinyali düşük", P0118:"Soğutma suyu sıcaklık sensörü sinyali yüksek",
+  P0120:"Gaz kelebeği konum sensörü devresi", P0121:"Gaz kelebeği konum sensörü ölçümü hatalı",
+  P0122:"Gaz kelebeği konum sensörü sinyali düşük", P0123:"Gaz kelebeği konum sensörü sinyali yüksek",
+  P0125:"Motor, yakıt kontrolü için yeterince ısınmıyor", P0128:"Motor normal sıcaklığa ulaşmıyor (termostat açık kalmış olabilir)",
+  P0130:"Oksijen sensörü devresi (sıra 1, sensör 1)", P0131:"Oksijen sensörü voltajı düşük (sıra 1, sensör 1)",
+  P0132:"Oksijen sensörü voltajı yüksek (sıra 1, sensör 1)", P0133:"Oksijen sensörü yavaş tepki veriyor (sıra 1, sensör 1)",
+  P0134:"Oksijen sensöründen sinyal yok (sıra 1, sensör 1)", P0135:"Oksijen sensörü ısıtıcı devresi (sıra 1, sensör 1)",
+  P0136:"Oksijen sensörü devresi (sıra 1, sensör 2)", P0137:"Oksijen sensörü voltajı düşük (sıra 1, sensör 2)",
+  P0138:"Oksijen sensörü voltajı yüksek (sıra 1, sensör 2)", P0141:"Oksijen sensörü ısıtıcı devresi (sıra 1, sensör 2)",
+  P0171:"Yakıt karışımı çok fakir (sıra 1) — hava kaçağı olabilir", P0172:"Yakıt karışımı çok zengin (sıra 1)",
+  P0174:"Yakıt karışımı çok fakir (sıra 2)", P0175:"Yakıt karışımı çok zengin (sıra 2)",
+  P0190:"Yakıt rayı basınç sensörü devresi", P0191:"Yakıt rayı basınç sensörü ölçümü hatalı",
+  P0200:"Enjektör devresi", P0201:"Enjektör devresi — 1. silindir", P0202:"Enjektör devresi — 2. silindir",
+  P0203:"Enjektör devresi — 3. silindir", P0204:"Enjektör devresi — 4. silindir", P0205:"Enjektör devresi — 5. silindir",
+  P0206:"Enjektör devresi — 6. silindir", P0217:"Motor aşırı ısındı", P0219:"Motor izin verilenden yüksek devire çıktı",
+  P0230:"Yakıt pompası devresi", P0234:"Turbo basıncı aşırı yüksek", P0299:"Turbo basıncı düşük",
+  P0300:"Birden fazla silindirde tekleme", P0301:"1. silindirde tekleme", P0302:"2. silindirde tekleme",
+  P0303:"3. silindirde tekleme", P0304:"4. silindirde tekleme", P0305:"5. silindirde tekleme", P0306:"6. silindirde tekleme",
+  P0307:"7. silindirde tekleme", P0308:"8. silindirde tekleme",
+  P0325:"Vuruntu sensörü devresi", P0335:"Krank mili konum sensörü devresi", P0340:"Eksantrik mili konum sensörü devresi",
+  P0341:"Eksantrik mili konum sensörü ölçümü hatalı", P0380:"Kızdırma bujisi devresi",
+  P0400:"EGR (egzoz geri dönüş) akışı hatalı", P0401:"EGR (egzoz geri dönüş) akışı yetersiz", P0402:"EGR (egzoz geri dönüş) akışı aşırı",
+  P0403:"EGR (egzoz geri dönüş) valfi devresi", P0410:"İkincil hava sistemi arızası",
+  P0420:"Katalitik konvertör verimi düşük (sıra 1)", P0430:"Katalitik konvertör verimi düşük (sıra 2)",
+  P0440:"Yakıt buharı (EVAP) sistemi arızası", P0441:"Yakıt buharı (EVAP) temizleme akışı hatalı",
+  P0442:"Yakıt buharı (EVAP) sisteminde küçük kaçak", P0446:"Yakıt buharı (EVAP) havalandırma kontrolü",
+  P0455:"Yakıt buharı (EVAP) sisteminde büyük kaçak — depo kapağını kontrol et", P0456:"Yakıt buharı (EVAP) sisteminde çok küçük kaçak",
+  P0460:"Yakıt seviye sensörü devresi", P0480:"Soğutma fanı röle devresi", P0500:"Araç hız sensörü",
+  P0505:"Rölanti kontrol sistemi", P0506:"Rölanti devri beklenenden düşük", P0507:"Rölanti devri beklenenden yüksek",
+  P0520:"Motor yağ basıncı sensörü devresi", P0524:"Motor yağ basıncı çok düşük",
+  P0562:"Sistem voltajı düşük", P0563:"Sistem voltajı yüksek", P0600:"Motor beyni (ECU) iletişim hatası",
+  P0601:"Motor beyni (ECU) iç hafıza hatası", P0670:"Kızdırma bujisi kontrol modülü devresi",
+  P0700:"Şanzıman kontrol sisteminde arıza (şanzıman beyninde kod var)", P0715:"Şanzıman giriş devri sensörü",
+  P0720:"Şanzıman çıkış devri sensörü", P0740:"Tork konvertörü kilitleme devresi", P0741:"Tork konvertörü kilitleme performansı",
+  P0750:"Vites değiştirme solenoidi A",
+  P2002:"Dizel partikül filtresi (DPF) verimi düşük", P2135:"Gaz pedalı / kelebek sensörleri birbirini tutmuyor",
+  P2187:"Rölantide karışım çok fakir (sıra 1)", P242F:"Dizel partikül filtresinde (DPF) kül birikmesi",
+  P2463:"Dizel partikül filtresinde (DPF) kurum birikmesi",
+  U0073:"Araç iletişim hattı (CAN) kapalı", U0100:"Motor beyni ile iletişim kesildi", U0101:"Şanzıman beyni ile iletişim kesildi",
+  U0121:"ABS modülü ile iletişim kesildi", U0140:"Gövde kontrol modülü ile iletişim kesildi",
+  C0035:"Sol ön tekerlek hız sensörü", C0040:"Sağ ön tekerlek hız sensörü", C0045:"Sol arka tekerlek hız sensörü", C0050:"Sağ arka tekerlek hız sensörü",
+};
+// Motoru hemen durdurmayı gerektirebilecek kodlar
+const DTC_SEVERE = /^(P030\d|P0217|P0219|P0524|P0087|P0093|P0234|U0100)$/;
+
+function dtcGroup(code){
+  const L=code[0], d1=code[1], d2=code[2];
+  const maker = (L==="P" && (d1==="1"||d1==="3")) || (L!=="P" && (d1==="1"||d1==="2"));
+  let area = "";
+  if(L==="P") area = {"0":"yakıt ve hava ölçümü","1":"yakıt ve hava ölçümü","2":"yakıt ve hava ölçümü","3":"ateşleme / tekleme","4":"emisyon kontrolü","5":"hız ve rölanti kontrolü","6":"motor beyni ve çıkış devreleri","7":"şanzıman","8":"şanzıman","9":"şanzıman","A":"hibrit sistem","B":"hibrit sistem","C":"hibrit sistem"}[d2] || "motor ve şanzıman";
+  else area = {C:"şasi (fren, ABS, direksiyon, süspansiyon)",B:"gövde (hava yastığı, klima, kapılar)",U:"modüller arası iletişim"}[L];
+  return {area, maker};
+}
+function dtcInfo(code){
+  const g = dtcGroup(code);
+  let desc = DTC_TR[code];
+  if(!desc) desc = g.maker ? `Üreticiye özel kod — ${g.area}` : `Genel kod — ${g.area}`;
+  return {desc, area:g.area, maker:g.maker, severe:DTC_SEVERE.test(code)};
+}
+
+// ---------- Ayarlar (yerel saklama) ----------
+const STORE_KEY = "obdTakip.v1";
+function defaults(){
+  const lim={}; GAUGES.forEach(g=>lim[g.pid]={show:true,min:g.min,max:g.max});
+  return {lim, dtcEvery:30, vibrate:true, wake:true, mute:false};
+}
+let settings = defaults();
+try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)||"null"); if(s){ settings={...settings,...s,lim:{...settings.lim,...(s.lim||{})}}; } }catch(e){}
+function save(){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(settings)); }catch(e){} }
+
+// ---------- Bağlantı katmanı ----------
+const BLE_SERVICES = [0xfff0,0xffe0,0x18f0,0xae00,0xff00,
+  "e7810a71-73ae-499d-8c15-faa9aef0c3f2",   // Vgate iCar Pro BLE
+  "6e400001-b5a3-f393-e0a9-e50e24dcca9e",   // Nordic UART
+  "49535343-fe7d-4ae5-8fa9-9fafd205e455"];  // Microchip UART
+
+class BleLink{
+  constructor(){ this.onData=()=>{}; this.onLost=()=>{}; this.dec=new TextDecoder(); }
+  async open(){
+    this.device = await navigator.bluetooth.requestDevice({acceptAllDevices:true, optionalServices:BLE_SERVICES});
+    this.device.addEventListener("gattserverdisconnected",()=>this.onLost());
+    await this.attach();
+    return this.device.name || "ELM327";
+  }
+  async attach(){
+    const server = await this.device.gatt.connect();
+    const services = await server.getPrimaryServices();
+    let rx=null, tx=null;
+    for(const s of services){
+      let chars=[]; try{ chars=await s.getCharacteristics(); }catch(e){ continue; }
+      const n = chars.find(c=>c.properties.notify||c.properties.indicate);
+      const w = chars.find(c=>c.properties.write||c.properties.writeWithoutResponse);
+      if(n && w){ rx=n; tx=w; break; }
+      rx = rx||n; tx = tx||w;
+    }
+    if(!rx||!tx) throw new Error("Bu cihazda OBD veri kanalı bulunamadı. Doğru cihazı seçtiğinden emin ol.");
+    this.tx=tx; this.rx=rx;
+    await rx.startNotifications();
+    rx.addEventListener("characteristicvaluechanged",e=>this.onData(this.dec.decode(e.target.value)));
+  }
+  async write(text){
+    const bytes = new TextEncoder().encode(text);
+    for(let i=0;i<bytes.length;i+=20){
+      const part = bytes.slice(i,i+20);
+      if(this.tx.properties.writeWithoutResponse && this.tx.writeValueWithoutResponse) await this.tx.writeValueWithoutResponse(part);
+      else await this.tx.writeValue(part);
+    }
+  }
+  close(){ try{ this.device && this.device.gatt.connected && this.device.gatt.disconnect(); }catch(e){} }
+}
+
+// ELM327 komut sırası: her komut ">" istemi gelene kadar bekler
+class Elm{
+  constructor(link){
+    this.link=link; this.buf=""; this.pending=null; this.chain=Promise.resolve();
+    link.onData = s=>{
+      this.buf += s;
+      const i = this.buf.indexOf(">");
+      if(i>=0 && this.pending){
+        const out=this.buf.slice(0,i); this.buf=this.buf.slice(i+1);
+        const p=this.pending; this.pending=null; clearTimeout(p.timer); p.resolve(out);
+      }
+    };
+  }
+  send(cmd, timeout=4000){
+    const job = this.chain.then(()=>new Promise((resolve,reject)=>{
+      this.buf="";
+      this.pending={resolve, timer:setTimeout(()=>{ this.pending=null; reject(new Error("zaman aşımı: "+cmd)); }, timeout)};
+      this.link.write(cmd+"\r").catch(e=>{ if(this.pending){ clearTimeout(this.pending.timer); this.pending=null; } reject(e); });
+    }));
+    this.chain = job.catch(()=>{});
+    return job;
+  }
+}
+
+// ---------- Yanıt çözümleme ----------
+const lines = r => r.split(/[\r\n]+/).map(l=>l.replace(/\s/g,"").toUpperCase()).filter(Boolean);
+const failed = r => /NODATA|UNABLETOCONNECT|CANERROR|BUSERROR|STOPPED|ERROR|^\?$/.test(r.replace(/\s/g,"").toUpperCase());
+
+function pidBytes(resp, pid){
+  const head = "41"+pid;
+  for(const l of lines(resp)){
+    const i = l.indexOf(head);
+    if(i>=0){
+      const hex = l.slice(i+4).match(/.{2}/g)||[];
+      return hex.map(h=>parseInt(h,16)).filter(n=>!isNaN(n));
+    }
+  }
+  return null;
+}
+function supportMask(resp, base){
+  const b = pidBytes(resp, base); const set=new Set();
+  if(!b || b.length<4) return set;
+  const baseN = parseInt(base,16);
+  for(let i=0;i<32;i++) if(b[i>>3] & (0x80>>(i&7))) set.add((baseN+i+1).toString(16).toUpperCase().padStart(2,"0"));
+  return set;
+}
+function decodeDtc(hex4){
+  const first = parseInt(hex4[0],16);
+  return "PCBU"[first>>2] + (first&3) + hex4.slice(1);
+}
+function parseDtcs(resp, head, isCan){
+  const ls = lines(resp).filter(l=>!/SEARCHING/.test(l));
+  const chunks = [];
+  if(ls.some(l=>/^[0-9A-F]:/.test(l))) chunks.push(ls.filter(l=>/^[0-9A-F]:/.test(l)).map(l=>l.slice(2)).join(""));
+  else chunks.push(...ls);
+  const out = new Set();
+  for(const c of chunks){
+    const i = c.indexOf(head); if(i<0) continue;
+    let hex = c.slice(i+2);
+    if(isCan) hex = hex.slice(2);   // CAN yanıtında ilk bayt kod sayısıdır
+    for(let j=0;j+4<=hex.length;j+=4){ const h=hex.slice(j,j+4); if(h!=="0000") out.add(decodeDtc(h)); }
+  }
+  return [...out];
+}
+
+// ---------- Deneme modu: gerçek ELM327 yanıtlarını taklit eder ----------
+class DemoLink{
+  constructor(){ this.onData=()=>{}; this.onLost=()=>{}; this.t0=Date.now(); this.cleared=-1; }
+  async open(){ return "Deneme cihazı"; }
+  close(){}
+  async write(text){ const cmd=text.trim().toUpperCase(); setTimeout(()=>this.onData(this.reply(cmd)+"\r\r>"), 35); }
+  reply(cmd){
+    const t=(Date.now()-this.t0)/1000, h=n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).toUpperCase().padStart(2,"0");
+    const w=n=>{ n=Math.max(0,Math.min(65535,Math.round(n))); return h(n>>8)+h(n&255); };
+    const mask=(base,list)=>{ let m=0; list.forEach(p=>{ m|=1<<(31-(parseInt(p,16)-base-1)); }); return (m>>>0).toString(16).toUpperCase().padStart(8,"0"); };
+    const drive = Math.max(0,Math.sin(t/6));
+    const hasCodes = t>25 && this.cleared<0;
+    if(cmd==="ATZ"||cmd==="ATI") return "ELM327 v1.5";
+    if(cmd==="ATDPN") return "A6";
+    if(cmd==="ATRV") return "14.1V";
+    if(cmd.startsWith("AT")) return "OK";
+    switch(cmd){
+      case "0100": return "4100"+mask(0,["04","05","06","07","0B","0C","0D","0E","0F","10","11","20"]);
+      case "0120": return "4120"+mask(0x20,["2F","40"]);
+      case "0140": return "4140"+mask(0x40,["42","46","5C"]);
+      case "0101": return "4101"+h(t>40&&this.cleared<0?0x81:0)+"076500";
+      case "03": return t>40&&this.cleared<0 ? "43010301" : "4300";
+      case "07": return hasCodes ? "47020301"+"0171" : "4700";
+      case "0A": return "4A00";
+      case "04": this.cleared=t; return "44";
+      case "010C": return "410C"+w((800+drive*2600+Math.random()*60)*4);
+      case "010D": return "410D"+h(drive*95);
+      case "0105": { const c = t<20 ? 30+t*3 : (t>45&&t<75 ? 90+(t-45)*0.8 : 90); return "4105"+h(c+40); }
+      case "015C": return "415C"+h(Math.min(95,25+t*2.5)+40);
+      case "0142": return "4142"+w(14100+Math.random()*120);
+      case "0104": return "4104"+h((20+drive*55)*2.55);
+      case "0111": return "4111"+h((12+drive*40)*2.55);
+      case "010F": return "410F"+h(32+40);
+      case "010B": return "410B"+h(35+drive*60);
+      case "0110": return "4110"+w((3+drive*28)*100);
+      case "0106": return "4106"+h(128+(Math.random()*10-5)*1.28);
+      case "0107": return "4107"+h(128+(t>30?13:4)*1.28);
+      case "010E": return "410E"+h((8+drive*14+64)*2);
+      case "012F": return "412F"+h(42*2.55);
+      case "0146": return "4146"+h(18+40);
+    }
+    return "NO DATA";
+  }
+}
+
+// ---------- Durum ----------
+const $ = id=>document.getElementById(id);
+const S = {elm:null, link:null, active:false, supported:null, isCan:true, useAtrv:false,
+  g:{}, dtc:{stored:[],pending:[],perm:[]}, known:new Set(), lastDtc:0, alarms:new Map(), log:[], wake:null, audio:null};
+GAUGES.forEach(g=>S.g[g.pid]={v:null,out:0,inn:0,alarm:false,ts:0,miss:0});
+
+// ---------- Arayüz: göstergeler ----------
+function fmt(v,dec){ return v==null ? "—" : v.toLocaleString("tr-TR",{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+function buildGauges(){
+  const box=$("gauges"); box.innerHTML="";
+  for(const g of GAUGES){
+    if(!settings.lim[g.pid].show) continue;
+    const el=document.createElement("div"); el.className="g"; el.id="g"+g.pid;
+    el.innerHTML=`<div class="name">${g.name}</div><div class="val"><span class="n">—</span><small>${g.unit}</small></div>
+      <div class="bar"><div class="fill"></div></div><div class="range"></div>`;
+    box.appendChild(el); paintRange(g);
+  }
+}
+function pos(g,v){ return Math.max(0,Math.min(100,(v-g.lo)/(g.hi-g.lo)*100)); }
+function paintRange(g){
+  const el=$("g"+g.pid); if(!el) return;
+  const L=settings.lim[g.pid], bar=el.querySelector(".bar");
+  bar.querySelectorAll(".mark").forEach(m=>m.remove());
+  [L.min,L.max].forEach(x=>{ if(x==null) return; const m=document.createElement("div"); m.className="mark"; m.style.left=`calc(${pos(g,x)}% - 1px)`; bar.appendChild(m); });
+  const parts=[]; if(L.min!=null) parts.push(`alt ${fmt(L.min,g.dec)}`); if(L.max!=null) parts.push(`üst ${fmt(L.max,g.dec)}`);
+  el.querySelector(".range").textContent = parts.length ? "Sınır: "+parts.join(" · ") : "Sınır yok";
+}
+function paintGauge(g){
+  const el=$("g"+g.pid); if(!el) return;
+  const st=S.g[g.pid], L=settings.lim[g.pid];
+  el.querySelector(".n").textContent = fmt(st.v,g.dec);
+  if(st.v!=null) el.querySelector(".fill").style.width = pos(g,st.v)+"%";
+  let cls="g";
+  if(S.supported && !S.supported.has(g.pid) && !(g.pid==="42"&&S.useAtrv)) cls+=" unsup";
+  else if(st.alarm) cls+=" crit";
+  else if(st.v!=null){
+    const span=(g.hi-g.lo)*0.05;
+    if((L.max!=null && st.v>L.max-span) || (L.min!=null && st.v<L.min+span)) cls+=" warn";
+  }
+  if(S.active && st.ts && Date.now()-st.ts>6000) cls+=" stale";
+  el.className=cls;
+  if(cls.includes("unsup")) el.querySelector(".range").textContent="Araç bu değeri vermiyor";
+}
+
+// ---------- Uyarılar ----------
+function beep(level){
+  if(settings.mute) return;
+  try{
+    const ctx = S.audio || (S.audio=new (window.AudioContext||window.webkitAudioContext)());
+    const pattern = level==="crit" ? [0,0.25,0.5] : [0];
+    pattern.forEach(off=>{
+      const o=ctx.createOscillator(), gn=ctx.createGain();
+      o.frequency.value = level==="crit" ? 1040 : 720; o.type="square";
+      gn.gain.setValueAtTime(0.0001,ctx.currentTime+off);
+      gn.gain.exponentialRampToValueAtTime(0.25,ctx.currentTime+off+0.02);
+      gn.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+off+0.18);
+      o.connect(gn).connect(ctx.destination); o.start(ctx.currentTime+off); o.stop(ctx.currentTime+off+0.2);
+    });
+  }catch(e){}
+  if(settings.vibrate && navigator.vibrate) navigator.vibrate(level==="crit"?[300,120,300,120,300]:[200]);
+}
+function raise(key, level, text){
+  if(S.alarms.has(key)) return;
+  S.alarms.set(key,{level,text,since:new Date()});
+  addLog(level,text); beep(level); paintAlarms();
+}
+function drop(key){ if(S.alarms.delete(key)) paintAlarms(); }
+function paintAlarms(){
+  const box=$("alarms"); box.innerHTML="";
+  [...S.alarms.values()].sort((a,b)=>(a.level==="crit"?0:1)-(b.level==="crit"?0:1)).forEach(a=>{
+    const d=document.createElement("div"); d.className="alarm "+a.level;
+    d.innerHTML=`<span></span><small>${a.since.toLocaleTimeString("tr-TR")}</small>`;
+    d.firstChild.textContent=a.text; box.appendChild(d);
+  });
+}
+function addLog(level,text){
+  S.log.unshift({level,text,t:new Date()}); S.log=S.log.slice(0,200);
+  const ul=$("log"); ul.innerHTML="";
+  S.log.forEach(e=>{ const li=document.createElement("li");
+    li.innerHTML=`<time>${e.t.toLocaleTimeString("tr-TR")}</time><span class="${e.level==="crit"?"c":"w"}"></span>`;
+    li.lastChild.textContent=e.text; ul.appendChild(li); });
+}
+function checkLimits(g){
+  const st=S.g[g.pid], L=settings.lim[g.pid]; if(st.v==null) return;
+  const out = (L.max!=null && st.v>L.max) || (L.min!=null && st.v<L.min);
+  if(out){ st.out++; st.inn=0; } else { st.inn++; st.out=0; }
+  if(out && st.out>=3 && !st.alarm){
+    st.alarm=true;
+    const side = (L.max!=null && st.v>L.max) ? `üst sınır ${fmt(L.max,g.dec)}` : `alt sınır ${fmt(L.min,g.dec)}`;
+    raise("g"+g.pid,"crit",`${g.name}: ${fmt(st.v,g.dec)} ${g.unit} (${side})`);
+  }
+  if(!out && st.alarm && st.inn>=3){ st.alarm=false; drop("g"+g.pid); addLog("warn",`${g.name} normale döndü: ${fmt(st.v,g.dec)} ${g.unit}`); }
+}
+
+// ---------- Arıza kodları ----------
+function paintDtc(mil,count){
+  const {stored,pending,perm}=S.dtc, list=$("dtcList"); list.innerHTML="";
+  $("mil").classList.toggle("on",!!mil);
+  const total = stored.length+pending.length+perm.length;
+  $("milText").textContent = mil ? `Arıza lambası YANIYOR (${count} kod)` : (total ? "Arıza lambası sönük, bekleyen kod var" : "Arıza kodu yok");
+  $("dtcTime").textContent = "Son tarama: "+new Date().toLocaleTimeString("tr-TR");
+  const add=(code,kind)=>{
+    const i=dtcInfo(code), li=document.createElement("li"); li.className="dtc";
+    const sev = i.severe ? `<span class="chip crit">Ciddi</span>` : (kind==="stored"||kind==="perm" ? `<span class="chip warn">Kayıtlı</span>` : `<span class="chip info">Bekleyen</span>`);
+    const kindTxt = {stored:"Kayıtlı kod",pending:"Bekleyen kod — henüz kesinleşmedi",perm:"Kalıcı kod — sorun giderilince kendiliğinden silinir"}[kind];
+    li.innerHTML=`<span class="code">${code}</span><span class="desc"></span>
+      <span class="meta">${sev}<span>${kindTxt}</span><a href="https://www.google.com/search?q=${encodeURIComponent(code+" arıza kodu")}" target="_blank" rel="noopener">İnternette ara</a></span>`;
+    li.querySelector(".desc").textContent=i.desc; list.appendChild(li);
+  };
+  stored.forEach(c=>add(c,"stored")); pending.filter(c=>!stored.includes(c)).forEach(c=>add(c,"pending"));
+  perm.filter(c=>!stored.includes(c)).forEach(c=>add(c,"perm"));
+  if(!total){ const li=document.createElement("li"); li.className="empty"; li.textContent="Motor beyninde kayıtlı arıza yok."; list.appendChild(li); }
+}
+async function scanDtc(){
+  const e=S.elm; if(!e) return;
+  let mil=false,count=0;
+  try{ const b=pidBytes(await e.send("0101"),"01"); if(b){ mil=!!(b[0]&0x80); count=b[0]&0x7f; } }catch(x){}
+  const get=async(cmd,head)=>{ try{ const r=await e.send(cmd,6000); return failed(r)?[]:parseDtcs(r,head,S.isCan); }catch(x){ return []; } };
+  S.dtc.stored=await get("03","43"); S.dtc.pending=await get("07","47"); S.dtc.perm=await get("0A","4A");
+  S.lastDtc=Date.now();
+  const all=[...S.dtc.stored.map(c=>[c,"stored"]),...S.dtc.pending.map(c=>[c,"pending"]),...S.dtc.perm.map(c=>[c,"perm"])];
+  for(const [c,kind] of all){
+    const key=kind+c; if(S.known.has(key)) continue; S.known.add(key);
+    const i=dtcInfo(c);
+    const level = i.severe||kind==="stored" ? "crit" : "warn";
+    const prefix = kind==="pending" ? "Yeni bekleyen arıza" : "Yeni arıza";
+    raise("dtc"+c, level, `${prefix}: ${c} — ${i.desc}`);
+  }
+  const now=new Set(all.map(([c])=>c));
+  [...S.alarms.keys()].filter(k=>k.startsWith("dtc")&&!now.has(k.slice(3))).forEach(drop);
+  if(mil) raise("mil","crit","Motor arıza lambası yandı"); else drop("mil");
+  paintDtc(mil,count);
+}
+async function clearDtc(){
+  $("clearBox").hidden=true;
+  try{
+    const r=await S.elm.send("04",8000);
+    if(r.replace(/\s/g,"").toUpperCase().includes("44")){ addLog("warn","Arıza kodları silindi"); S.known.clear(); }
+    else addLog("crit","Kodlar silinemedi. Kontak açık, motor kapalı olmalı.");
+  }catch(x){ addLog("crit","Kodlar silinemedi: "+x.message); }
+  await scanDtc();
+}
+
+// ---------- Ana döngü ----------
+function setStatus(kind,text){ const s=$("status"); s.className="status "+kind; $("statusText").textContent=text; }
+const wait = ms=>new Promise(r=>setTimeout(r,ms));
+
+async function init(){
+  const e=S.elm;
+  setStatus("busy","Cihaz hazırlanıyor…");
+  try{ await e.send("ATZ",5000); }catch(x){ await e.send("ATZ",5000); }
+  await wait(400);
+  for(const c of ["ATE0","ATL0","ATS0","ATH0","ATAT1","ATSP0"]) await e.send(c);
+  const ver=(await e.send("ATI")).replace(/[\r\n>]/g," ").trim();
+  setStatus("busy","Araçla iletişim kuruluyor…");
+  const r0=await e.send("0100",15000);
+  if(/UNABLETOCONNECT|NODATA/.test(r0.replace(/\s/g,"").toUpperCase())) throw new Error("Araç cevap vermiyor. Kontağın açık olduğundan emin ol.");
+  let sup=supportMask(r0,"00");
+  if(sup.has("20")){ const s2=supportMask(await e.send("0120"),"20"); s2.forEach(p=>sup.add(p));
+    if(s2.has("40")){ supportMask(await e.send("0140"),"40").forEach(p=>sup.add(p)); } }
+  S.supported = sup.size ? sup : null;
+  const proto=(await e.send("ATDPN")).replace(/[^0-9A-F]/gi,"").slice(-1).toUpperCase();
+  S.isCan = "6789AB".includes(proto);
+  S.useAtrv = !!S.supported && !S.supported.has("42");
+  return `${ver||"ELM327"}${S.isCan?" · CAN":""}`;
+}
+async function readGauge(g){
+  const st=S.g[g.pid];
+  if(g.pid==="42" && S.useAtrv){
+    const m=(await S.elm.send("ATRV")).match(/(\d+(\.\d+)?)/); if(m){ st.v=parseFloat(m[1]); st.ts=Date.now(); }
+  }else{
+    const b=pidBytes(await S.elm.send("01"+g.pid),g.pid);
+    if(b && b.length){ st.v=g.f(b[0],b[1]||0); st.ts=Date.now(); st.miss=0; } else st.miss++;
+  }
+  checkLimits(g); paintGauge(g);
+}
+async function loop(){
+  let errors=0;
+  while(S.active){
+    const list=GAUGES.filter(g=>settings.lim[g.pid].show && (!S.supported || S.supported.has(g.pid) || (g.pid==="42"&&S.useAtrv)) && S.g[g.pid].miss<5);
+    for(const g of list){
+      if(!S.active) return;
+      try{ await readGauge(g); errors=0; }catch(x){ if(++errors>=6){ lost(); return; } }
+    }
+    if(Date.now()-S.lastDtc > settings.dtcEvery*1000) await scanDtc();
+    if(!list.length) await wait(1000);
+  }
+}
+function lost(){
+  if(!S.active) return;
+  S.active=false; setStatus("err","Bağlantı koptu");
+  raise("link","crit","OBD cihazıyla bağlantı koptu");
+  uiIdle();
+}
+async function start(link){
+  $("btNotice").hidden=true;
+  try{ if(!S.audio) S.audio=new (window.AudioContext||window.webkitAudioContext)(); S.audio.resume(); }catch(e){}
+  S.link=link; S.elm=new Elm(link); link.onLost=lost;
+  $("btnConnect").disabled=$("btnDemo").disabled=true;
+  setStatus("busy","Bağlanıyor…");
+  try{
+    const name=await link.open();
+    const info=await init();
+    S.active=true; drop("link");
+    setStatus("on",`Bağlı · ${name} · ${info}`);
+    $("btnStop").hidden=false; $("btnScan").disabled=$("btnClear").disabled=false;
+    GAUGES.forEach(paintGauge);
+    keepAwake();
+    await scanDtc();
+    loop();
+  }catch(e){
+    link.close(); uiIdle();
+    if(e && e.name==="NotFoundError") setStatus("","Bağlı değil");
+    else { setStatus("err","Bağlanamadı"); showNotice(e && e.message ? e.message : String(e)); }
+  }
+}
+function stop(){ S.active=false; S.link&&S.link.close(); setStatus("","Bağlı değil"); drop("link"); uiIdle(); }
+function uiIdle(){
+  $("btnConnect").disabled=$("btnDemo").disabled=false; $("btnStop").hidden=true;
+  $("btnScan").disabled=$("btnClear").disabled=true;
+  if(S.wake){ S.wake.release().catch(()=>{}); S.wake=null; }
+}
+async function keepAwake(){ if(!settings.wake || !("wakeLock" in navigator)) return; try{ S.wake=await navigator.wakeLock.request("screen"); }catch(e){} }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && S.active) keepAwake(); });
+function showNotice(t){ const n=$("btNotice"); n.textContent=t; n.hidden=false; }
+
+// ---------- Ayarlar paneli ----------
+function numOrNull(v){ return v===""||v==null ? null : Number(v); }
+function buildSettings(){
+  const tb=$("setBody"); tb.innerHTML="";
+  for(const g of GAUGES){
+    const L=settings.lim[g.pid], tr=document.createElement("tr");
+    tr.innerHTML=`<td><input type="checkbox" id="s_show_${g.pid}" ${L.show?"checked":""}></td><td>${g.name} <span style="color:var(--muted)">(${g.unit})</span></td>
+      <td><input type="number" step="any" id="s_min_${g.pid}" value="${L.min??""}"></td><td><input type="number" step="any" id="s_max_${g.pid}" value="${L.max??""}"></td>`;
+    tb.appendChild(tr);
+    tr.querySelector(`#s_show_${g.pid}`).addEventListener("change",e=>{ L.show=e.target.checked; save(); buildGauges(); GAUGES.forEach(paintGauge); });
+    tr.querySelector(`#s_min_${g.pid}`).addEventListener("change",e=>{ L.min=numOrNull(e.target.value); save(); paintRange(g); });
+    tr.querySelector(`#s_max_${g.pid}`).addEventListener("change",e=>{ L.max=numOrNull(e.target.value); save(); paintRange(g); });
+  }
+  $("dtcEvery").value=settings.dtcEvery; $("optVibrate").checked=settings.vibrate; $("optWake").checked=settings.wake;
+  $("btnMute").textContent = settings.mute ? "Ses: kapalı" : "Ses: açık"; $("btnMute").setAttribute("aria-pressed",String(settings.mute));
+}
+$("dtcEvery").addEventListener("change",e=>{ settings.dtcEvery=Math.max(10,Number(e.target.value)||30); save(); });
+$("optVibrate").addEventListener("change",e=>{ settings.vibrate=e.target.checked; save(); });
+$("optWake").addEventListener("change",e=>{ settings.wake=e.target.checked; save(); });
+$("btnReset").addEventListener("click",()=>{ const d=defaults(); settings.lim=d.lim; save(); buildSettings(); buildGauges(); GAUGES.forEach(paintGauge); });
+$("btnMute").addEventListener("click",()=>{ settings.mute=!settings.mute; save(); buildSettings(); });
+
+// ---------- Düğmeler ----------
+$("btnConnect").addEventListener("click",()=>{
+  if(!navigator.bluetooth){
+    showNotice("Bu tarayıcı Bluetooth'a erişemiyor. Android'de Chrome ile, iPhone'da Bluefy uygulamasıyla aç. Sayfanın https:// ile açılması da gerekir.");
+    return;
+  }
+  start(new BleLink());
+});
+$("btnDemo").addEventListener("click",()=>start(new DemoLink()));
+$("btnStop").addEventListener("click",stop);
+$("btnScan").addEventListener("click",()=>scanDtc());
+$("btnClear").addEventListener("click",()=>{ $("clearBox").hidden=false; });
+$("clearNo").addEventListener("click",()=>{ $("clearBox").hidden=true; });
+$("clearYes").addEventListener("click",clearDtc);
+$("btnLogClear").addEventListener("click",()=>{ S.log=[]; $("log").innerHTML='<li class="empty">Henüz uyarı yok.</li>'; });
+setInterval(()=>{ if(S.active) GAUGES.forEach(paintGauge); },2000);
+
+buildSettings(); buildGauges();
+if(!navigator.bluetooth) showNotice("Bu tarayıcıda Bluetooth yok. Android'de Chrome, iPhone'da Bluefy ile aç. Şimdilik \"Deneme modu\" ile uygulamayı görebilirsin.");
+</script>
+</body>
+</html>
