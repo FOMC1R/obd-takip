@@ -51,6 +51,9 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
 - Bir kutuya **dokununca** tam genişliğe açılır ve grafik büyür.
 - Renkler: yeşil normal, sarı sınıra yakın, kırmızı sınır aşıldı.
 - **Anlık tüketim** ve **L/100 km** hesaplanan değerlerdir. Ayrıntısı için aşağıdaki "Yakıt hesabı" bölümüne bak.
+- **Düzenle:** Göstergelerin sırasını değiştir, önemli olanları geniş yap, istemediklerini gizle. Hazır düzenler de var: Sürüş, Teşhis ve Tümü.
+- **Ön cam (HUD):** Siyah zemin üzerinde büyük hız, devir, sıcaklık ve tüketim gösterir. "Aynala" ile telefonu torpidoya koyup yazıyı ön camdan okuyabilirsin. Kırmızı yanıp sönme yalnızca o an süren tehlikede olur.
+- **Performans ölçümü:** 0-100 km/sa ve 80-120 km/sa (sollama) süresini ölçer. **Yalnızca kapalı ve güvenli bir alanda dene.**
 
 ### Arıza
 - **Arıza kodları:** kayıtlı, bekleyen ve kalıcı kodlar Türkçe açıklamalarıyla gösterilir. Motoru durdurmayı gerektirebilecek kodlar "Ciddi" diye işaretlenir. Kodlar 30 saniyede bir otomatik taranır.
@@ -59,6 +62,12 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
 - **Donmuş kare:** Arıza kodu oluştuğu andaki devir, hız, sıcaklık gibi değerler.
 - **Sayaçlar:** "Kodlar silineli gidilen yol" gibi bilgiler. İkinci el alırken kodların yakın zamanda silinip silinmediğini gösterir.
 - **Akü testi:** Motor kapalıyken başlat, ekranda "Şimdi marşa bas" yazınca motoru çalıştır. Test dinlenme voltajını, marş anındaki düşüşü ve alternatörün şarjını değerlendirir.
+- **Tekleme sayacı:** Her silindirde bu sürüşte ve son 10 sürüşte kaç tekleme olduğunu gösterir. Bir silindir öne çıkıyorsa buji, bobin ya da enjektör için erken uyarıdır. Bu bilgiyi her araç vermez.
+- **Yapay zekâ yorumu:** Aracın durumunu (kodlar, donmuş kare, muayene durumu, canlı değerler, son sürüş) Türkçe bir metne çevirir.
+  - **Claude'da aç** ve **ChatGPT'de aç** metni sohbete hazır yazılmış olarak açar. Açılan kutu boş gelirse metin panoya da kopyalanmıştır; basılı tutup yapıştır.
+  - Ayarlar'a Claude API anahtarı girersen yorum doğrudan uygulamada görünür. API anahtarı, Anthropic'in hizmetini programdan kullanmak için verdiği kişisel şifredir. Anahtar yalnızca bu telefonda saklanır; her yorum birkaç sent tutar.
+  - Şase numarası yalnızca kutucuğunu işaretlersen metne eklenir. Konum hiçbir zaman eklenmez.
+- **Rapor oluştur (PDF):** Ustaya gösterilecek tek sayfalık rapor hazırlar. Açılan yazdırma ekranında "PDF olarak kaydet"i seç.
 
 ### Sürüşler
 - Bağlandığın andan bağlantıyı kesene kadar geçen her sürüş otomatik kaydedilir: yaklaşık saniyede bir satır, izin verirsen GPS konumuyla.
@@ -67,11 +76,27 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
   - **Grafik:** istediğin iki değeri üst üste gösterir. Uyarı anları kırmızı çizgiyle işaretlidir. Grafiğe dokununca o anki değerler yazılır.
   - **Harita:** yol hıza göre renklenir; uyarıların geldiği yerler işaretlidir.
   - **CSV paylaş / indir:** Excel'de doğrudan açılan tablo. WhatsApp, e-posta ya da Drive'a gönderilebilir.
+  - **Sürüş puanı:** Sert fren, sert hızlanma, hız aşımı ve yüksek devir sayılır; 10 km başına 100 üzerinden bir puan hesaplanır. Olayların yerleri haritada işaretlenir.
+- **Bakım hatırlatıcı:** Yağ, filtreler, buji, triger, fren hidroliği, antifriz, muayene ve sigorta. Kilometre sayacını bir kez gir; sürüşlerle birlikte kendiliğinden artar. Yaklaşan ya da geçen bakımda uyarı verir.
+  - **Triger aralığı araca göre değişir.** Varsayılan 90.000 km / 5 yıl, K4M için temkinli bir değerdir. Kendi servis kitapçığına bak: triger kopması bu motorda supaplara zarar verir.
+- **Masraf defteri:** Yakıt, bakım, sigorta gibi harcamalar. Aylık ve yıllık toplam, km başına maliyet. Depoyu tam doldurduğunda litreyi girersen **gerçek tüketimi** hesaplar ve uygulamanın tahmini tutmuyorsa düzeltme oranını önerir.
 
 ### Ayarlar
 - Her değer için **alt/üst uyarı sınırı** belirlenebilir ve istenmeyen değerler gizlenebilir.
 - **Yakıt:** yakıt türü, litre fiyatı, motor hacmi ve düzeltme oranı.
 - Sesli uyarı, titreşim, ekranı açık tutma, kayıt ve GPS tercihleri.
+
+## Elektrikli araçlar (deneme aşamasında)
+
+Ayarlar → Yakıt türü → **Elektrik** seç. Ardından **Araç profili** seç ya da "Otomatik" bırak.
+
+- **Standart değerler:** batarya doluluğu (PID 5B), kilometre (PID A6) ve hız. Ancak bunları her elektrikli araç vermez.
+- **Opel Corsa-e / Peugeot e-208 (e-CMP):** Batarya doluluğu, voltaj, akım, güç, hücre voltajları, sıcaklık, batarya sağlığı ve 12 V. Topluluk kaynaklarından (evDash, WiCAN, OBDb) derlendi.
+- **KGM Torres EVX:** Yalnızca gösterge doluluğu bir kaynakta doğrulanmış; diğer değerler tahmin.
+- **Anlık güç, kWh/100 km ve sürüş başına enerji maliyeti** hesaplanır. "Şarj oluyor" ve "Frenle geri kazanım" durumları gösterilir.
+- **Özel PID listesi yükle:** Car Scanner ya da Torque CSV biçimindeki komut listelerini içeri alabilirsin. Uygulama yalnızca okuma komutlarını kabul eder.
+
+Bu değerlerin hepsi **"denenmemiş"** olarak işaretli. Gerçek araçta denedikten sonra **Ham yanıtları paylaş** ile sonuçları gönderirsen doğrulayıp düzeltilir.
 
 ## Uyarılar nasıl çalışır?
 
@@ -99,7 +124,7 @@ Birkaç depo sonra gerçek tüketimle karşılaştırıp **Ayarlar → Yakıt �
 - **Ekran açık, uygulama önde kalmalı.** Telefon kilitlenirse ya da başka uygulamaya geçersen Android tarayıcıyı durdurur; takip ve kayıt da durur. Telefonu tutucuya tak ve şarjda tut.
 - Ucuz "v2.1" kopya cihazlar bazı komutları desteklemeyebilir. Bu durumda ilgili bölüm "Araç bu bilgiyi vermiyor" gösterir.
 - Her araç her değeri vermez. Vermediği değerler soluk görünür.
-- Üreticiye özel değerler (şanzıman sıcaklığı, DPF doluluğu…) ve ABS ya da hava yastığı arızaları henüz desteklenmiyor. Bunlar için marka bazlı komut tablosu gerekiyor.
+- Üreticiye özel değerler (şanzıman sıcaklığı, DPF doluluğu…) ve ABS ya da hava yastığı arızaları henüz desteklenmiyor. Bunlar için marka bazlı komut tablosu gerekiyor. Elektrikli araçlar için bu tablolar kısmen eklendi.
 
 ## Gizlilik
 
@@ -114,7 +139,9 @@ Tarayıcı verilerini silersen kayıtlar da silinir. Önemli sürüşleri CSV ol
 Tek sayfalık bir web uygulaması; derleme adımı yok. Tek dış kütüphane harita için Leaflet (cdnjs üzerinden).
 
 ```
-index.html            Uygulamanın tamamı (HTML + CSS + JS)
+index.html            Uygulamanın çekirdeği (HTML + CSS + JS), eklenti kancaları
+features/*.js         Her özellik kendi dosyasında (bkz. CONTRIBUTING.md)
+test/                 Deneme modu testleri: npm install && npm test
 sw.js                 Service worker: çevrimdışı açılış (sayfa ağdan, diğerleri önbellekten)
 manifest.webmanifest  Ana ekrana kurulum bilgisi
 icons/                Uygulama simgeleri
