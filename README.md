@@ -52,7 +52,9 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
 - Renkler: yeşil normal, sarı sınıra yakın, kırmızı sınır aşıldı.
 - **Anlık tüketim** ve **L/100 km** hesaplanan değerlerdir. Ayrıntısı için aşağıdaki "Yakıt hesabı" bölümüne bak.
 - **Düzenle:** Göstergelerin sırasını değiştir, önemli olanları geniş yap, istemediklerini gizle. Hazır düzenler de var: Sürüş, Teşhis ve Tümü.
-- **Ön cam (HUD):** Siyah zemin üzerinde büyük hız, devir, sıcaklık ve tüketim gösterir. "Aynala" ile telefonu torpidoya koyup yazıyı ön camdan okuyabilirsin. Kırmızı yanıp sönme yalnızca o an süren tehlikede olur.
+- **Ön cam (HUD):** Siyah zemin üzerinde büyük hız gösterir. Hız, uyarı sınırına yaklaşınca sarı, aşınca kırmızı olur. Üstte devir çubuğu var; vites değiştirme noktasında yanıp söner. Altta seçtiğin üç değer görünür.
+  - O an süren bir tehlike varsa (örneğin su sıcaklığı sınırı aştıysa) uyarının kendisi en üstte büyük yazıyla çıkar.
+  - Ekrana dokununca ayarlar çıkar: **Ön cam yansıması** (telefon torpidoda düz yatarken yazı camda düz okunsun diye yukarı-aşağı çevirir), **Sağ-sol aynala**, **Parlaklık** (Otomatik seçilirse akşam ve gece kendiliğinden kısılır), **Renk**, **Değerleri seç** ve **Sade** (yalnızca hız ve uyarılar).
 - **Performans ölçümü:** 0-100 km/sa ve 80-120 km/sa (sollama) süresini ölçer. **Yalnızca kapalı ve güvenli bir alanda dene.**
 
 ### Arıza
