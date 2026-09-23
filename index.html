@@ -213,6 +213,8 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
 .sheet{display:grid;gap:8px;padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--accent)}
 .sheet button{text-align:left;font-weight:600}
 .sheet button small{display:block;font-weight:400;font-size:13px;opacity:.8}
+.ext{display:grid;gap:14px;min-width:0}
+.ext:empty{display:none}
 .notice{padding:12px 14px;border-radius:10px;background:var(--warn-bg);border:1px solid var(--warn);font-size:14px}
 </style>
 </head>
@@ -255,6 +257,7 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
   </div>
   <div class="row"><h2 id="gTitle" style="margin-right:auto">Anlık değerler</h2><span class="empty">Dokun: grafiği büyüt</span></div>
   <div class="gauges" id="gauges"></div>
+  <div class="ext" id="ext-canli"></div>
   <details class="card">
     <summary>Uyarı geçmişi</summary>
     <ul class="log" id="log"><li class="empty">Henüz uyarı yok.</li></ul>
@@ -303,6 +306,7 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
     <p class="sub">Motor kapalı, kontak açık olsun. "Testi başlat"a dokun; ekranda <b>"Şimdi marşa bas"</b> yazınca motoru çalıştır. Test yaklaşık 15 saniye sürer.</p>
     <div id="battBox"></div>
   </section>
+  <div class="ext" id="ext-ariza"></div>
 </section>
 
 <section class="tab" data-tab="surus" hidden aria-label="Sürüşler">
@@ -328,7 +332,9 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
     <div id="map"></div>
     <h2 style="font-size:17px">Olaylar</h2>
     <ul class="events" id="vEvents"></ul>
+    <div class="ext" id="ext-viewer"></div>
   </section>
+  <div class="ext" id="ext-surus"></div>
 </section>
 
 <section class="tab" data-tab="ayar" hidden aria-label="Ayarlar">
@@ -393,6 +399,8 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
     <div class="actions"><button class="primary" id="btnInstall">Yükle</button></div>
   </section>
 
+  <div class="ext" id="ext-ayar"></div>
+
   <section class="card help" aria-labelledby="hTitle">
     <h2 id="hTitle">Nasıl kullanılır</h2>
     <p><b>Klasik Bluetooth cihaz</b> (çoğu ucuz ELM327): Önce telefonun Bluetooth ayarlarından cihazı eşleştir (şifre genelde 1234 ya da 0000). Sonra "Bağlan" → "Klasik Bluetooth" → listeden cihazı seç. Bir kez seçtikten sonra "Son cihaza bağlan" ile tek dokunuşla bağlanırsın. Android Chrome 138 ve üstü gerekir.</p>
@@ -427,6 +435,11 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
 
 <script>
 "use strict";
+// ---------- Eklenti kancaları: features/*.js bu anlardan haberdar olur ----------
+// on("connect"|"disconnect"|"tick"|"sample"|"tripEnd"|"tripOpen"|"alarm"|"dtc"|"diag"|"gaugesBuilt", fn)
+const HOOKS = {};
+function on(name, fn){ (HOOKS[name]=HOOKS[name]||[]).push(fn); }
+function emit(name, ...args){ for(const f of HOOKS[name]||[]){ try{ f(...args); }catch(e){ console.error("eklenti hatası:", name, e); } } }
 // ---------- Göstergeler: OBD-II mod 01 PID tanımları (SAE J1979) ----------
 const GAUGES = [
   {pid:"0C", every:1, name:"Motor devri",           unit:"d/dk", f:(a,b)=>(a*256+b)/4,     lo:0,   hi:8000, dec:0, min:null, max:6200},
@@ -466,6 +479,15 @@ const GAUGES = [
   {pid:"FK", virtual:true, name:"Tüketim (100 km)",  unit:"L/100 km", lo:0, hi:30, dec:1, min:null, max:null},
 ];
 const GBY = Object.fromEntries(GAUGES.map(g=>[g.pid,g]));
+// Eklentiler yeni gösterge ekleyebilir. g.read: async ()=>sayı|null (özel komut, ör. mod 22),
+// g.available: ()=>bool (okunsun mu). Ekledikten sonra buildSettings(); buildGauges(); çağır.
+function addGauge(g){
+  if(GBY[g.pid]) return GBY[g.pid];
+  GAUGES.push(g); GBY[g.pid]=g;
+  if(typeof S!=="undefined") S.g[g.pid]={v:null,out:0,inn:0,alarm:false,ts:0,miss:0,hist:[]};
+  if(!settings.lim[g.pid]) settings.lim[g.pid]={show:!g.hide,min:g.min??null,max:g.max??null};
+  return g;
+}
 // Yakıt hesabı için gösterge gizli olsa da okunması gerekenler
 const FUEL_NEED = new Set(["0C","0D","10","0B","0F","06","07","5E"]);
 
@@ -806,6 +828,7 @@ function buildGauges(){
     el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(); } });
     box.appendChild(el); paintRange(g); paintGauge(g);
   }
+  emit("gaugesBuilt");
 }
 
 // ---------- Trend grafikleri (gösterge içinde) ----------
@@ -915,6 +938,7 @@ function raise(key, level, text, say){
   S.alarms.set(key,{level,text,since:new Date()});
   addLog(level,text); beep(level); paintAlarms();
   speak(say||text);
+  emit("alarm", key, level, text);
 }
 
 // ---------- Sesli uyarı (telefonun metin okuma motoru, Türkçe) ----------
@@ -1004,6 +1028,7 @@ async function scanDtc(){
   [...S.alarms.keys()].filter(k=>k.startsWith("dtc")&&!now.has(k.slice(3))).forEach(drop);
   if(mil) raise("mil","crit","Motor arıza lambası yandı"); else drop("mil");
   paintDtc(mil,count);
+  emit("dtc", S.dtc, mil);
 }
 async function clearDtc(){
   $("clearBox").hidden=true;
@@ -1059,7 +1084,7 @@ async function runDiag(){
   } else rows.push(["Şase no (VIN)","Araç vermiyor"]);
   const rc=await q("0904",6000); if(rc){ const cal=ascii(multiFrameBytes(rc,"4904")).replace(/[^\x20-\x7E]/g,"").trim(); if(cal) rows.push(["Motor yazılımı",cal.slice(0,16)]); }
   if(S.proto) rows.push(["İletişim",PROTO[S.proto]||S.proto]);
-  kv($("vehInfo"),rows);
+  kv($("vehInfo"),rows); S.diag={...(S.diag||{}), vehicle:rows};
 
   // Muayene hazırlığı (PID 01, B-C-D baytları)
   const rb=await q("0101"); const b=rb && pidBytes(rb,"01");
@@ -1073,7 +1098,7 @@ async function runDiag(){
     v.textContent = open ? `${open} test henüz tamamlanmadı. Muayeneden önce birkaç gün karışık (şehir içi + yol) sürüş yap; kodları silme.` : "Tüm testler tamamlanmış. Egzoz ölçümü için hazır görünüyor.";
     const ul=document.createElement("ul"); ul.className="ready";
     items.forEach(([n,ok])=>{ const li=document.createElement("li"); li.innerHTML=`<span></span><span class="st ${ok?"ok":"no"}">${ok?"Tamam":"Bekliyor"}</span>`; li.firstChild.textContent=n; ul.appendChild(li); });
-    box.append(v,ul);
+    box.append(v,ul); S.diag.ready={items, diesel, open};
     if(diesel){ const p=document.createElement("p"); p.className="sub"; p.textContent="Dizel motor."; box.appendChild(p); }
   } else box.innerHTML='<p class="empty">Araç bu bilgiyi vermiyor.</p>';
 
@@ -1090,8 +1115,8 @@ async function runDiag(){
       const by=(l.slice(6).match(/.{2}/g)||[]).map(h=>parseInt(h,16)); if(!by.length) continue;
       rowsF.push([g.name, `${fmt(g.f(by[0],by[1]||0),g.dec)} ${g.unit}`]);
     }
-    const dl=document.createElement("dl"); dl.className="kv"; kv(dl,rowsF); ff.appendChild(dl);
-  } else ff.innerHTML='<p class="empty">Kayıtlı donmuş kare yok.</p>';
+    const dl=document.createElement("dl"); dl.className="kv"; kv(dl,rowsF); ff.appendChild(dl); S.diag.freeze=rowsF;
+  } else { ff.innerHTML='<p class="empty">Kayıtlı donmuş kare yok.</p>'; S.diag.freeze=null; }
 
   // Sayaçlar
   const C=[["1F","Motorun bu çalışma süresi",v=>fmtDur(v*1000)],["21","Arıza lambası yanarken gidilen yol",v=>`${fmt(v,0)} km`],
@@ -1104,8 +1129,9 @@ async function runDiag(){
   }
   const d31=cr.find(x=>x[0].startsWith("Kodlar silineli gidilen"));
   if(d31 && parseInt(d31[1].replace(/\D/g,""))<200) cr.push(["Not","Kodlar yakın zamanda silinmiş. İkinci el alıyorsan satıcıya sor."]);
-  kv($("counters"), cr.length?cr:[["Durum","Araç bu bilgileri vermiyor"]]);
+  kv($("counters"), cr.length?cr:[["Durum","Araç bu bilgileri vermiyor"]]); S.diag.counters=cr;
   $("btnDiag").disabled=!S.active;
+  emit("diag");
 }
 $("btnDiag").addEventListener("click",runDiag);
 
@@ -1140,7 +1166,7 @@ async function batteryTest(){
     box.innerHTML=""; const dl=document.createElement("dl"); dl.className="kv"; kv(dl,rows);
     const v=document.createElement("div"); v.className="verdict "+(bad?"no":"ok"); v.textContent=notes.join(" ");
     const p=document.createElement("p"); p.className="sub"; p.textContent="Cihaz saniyede sınırlı ölçüm yaptığı için gerçek en düşük değer biraz daha düşük olabilir. Kesin sonuç için akü test cihazıyla ölçtür.";
-    box.append(v,dl,p);
+    box.append(v,dl,p); S.batt={time:Date.now(), rows, notes, bad};
     addLog(bad?"crit":"warn",`Akü testi: dinlenme ${fmt(restV,2)} V, marş ${cranked?fmt(minP.v,2)+" V":"yok"}, şarj ${chargeV?fmt(chargeV,2)+" V":"—"}`);
   }catch(e){ box.innerHTML='<div class="verdict no"></div>'; box.firstChild.textContent="Test yapılamadı: "+e.message; }
   finally{ S.paused=false; btn.disabled=!S.active; }
@@ -1218,7 +1244,8 @@ async function init(){
 const freshMs = g=>Math.max(3000,(g.every||1)*900);
 async function readGauge(g){
   const st=S.g[g.pid]; let fresh=false;
-  if(g.pid==="42" && S.useAtrv){
+  if(g.read){ const v=await g.read(); if(v!=null && !isNaN(v)){ st.v=v; st.ts=Date.now(); st.miss=0; fresh=true; } else st.miss++; }
+  else if(g.pid==="42" && S.useAtrv){
     const m=(await S.elm.send("ATRV")).match(/(\d+(\.\d+)?)/); if(m){ st.v=parseFloat(m[1]); st.ts=Date.now(); fresh=true; }
   }else{
     const b=pidBytes(await S.elm.send("01"+g.pid),g.pid);
@@ -1232,7 +1259,7 @@ async function loop(){
   while(S.active){
     while(S.paused && S.active) await wait(200);
     cycle++;
-    const list=GAUGES.filter(g=>!g.virtual && (settings.lim[g.pid].show || FUEL_NEED.has(g.pid) || (settings.recAll && REC.trip)) && (!S.supported || S.supported.has(g.pid) || (g.pid==="42"&&S.useAtrv)) && S.g[g.pid].miss<5
+    const list=GAUGES.filter(g=>!g.virtual && (settings.lim[g.pid].show || FUEL_NEED.has(g.pid) || (settings.recAll && REC.trip)) && (g.read ? (!g.available || g.available()) : (!S.supported || S.supported.has(g.pid) || (g.pid==="42"&&S.useAtrv))) && S.g[g.pid].miss<5
       && (cycle===1 || cycle%(g.every||1)===0));
     for(const g of list){
       if(!S.active) return;
@@ -1240,6 +1267,7 @@ async function loop(){
       try{ await readGauge(g); errors=0; }catch(x){ if(++errors>=6){ lost(); return; } }
     }
     computeFuel();
+    emit("tick");
     sample();
     if(Date.now()-S.lastDtc > settings.dtcEvery*1000) await scanDtc();
     if(!list.length) await wait(1000);
@@ -1249,7 +1277,7 @@ function lost(){
   if(!S.active) return;
   S.active=false; setStatus("err","Bağlantı koptu"); try{ S.link && S.link.close(); }catch(e){}
   raise("link","crit","OBD cihazıyla bağlantı koptu");
-  endRec(); uiIdle();
+  endRec(); uiIdle(); emit("disconnect");
 }
 async function start(link){
   $("btNotice").hidden=true;
@@ -1271,13 +1299,14 @@ async function start(link){
     await scanDtc();
     loop();
     runDiag();
+    emit("connect", {name, demo: link instanceof DemoLink});
   }catch(e){
     link.close(); uiIdle();
     if(e && e.name==="NotFoundError") setStatus("","Bağlı değil");
     else { setStatus("err","Bağlanamadı"); showNotice(e && e.message ? e.message : String(e)); }
   }
 }
-function stop(){ S.active=false; S.link&&S.link.close(); setStatus("","Bağlı değil"); drop("link"); endRec(); uiIdle(); }
+function stop(){ S.active=false; S.link&&S.link.close(); setStatus("","Bağlı değil"); drop("link"); endRec(); uiIdle(); emit("disconnect"); }
 function uiIdle(){
   $("btnConnect").disabled=$("btnDemo").disabled=false; $("btnStop").hidden=true; $("btnConnect").hidden=false; $("idleCard").hidden=false;
   $("btnScan").disabled=$("btnClear").disabled=$("btnDiag").disabled=$("btnBatt").disabled=true;
@@ -1367,6 +1396,7 @@ function sample(){
     const lh=cur("FL"), sp=cur("0D");
     if(lh!=null) t.fuel=(t.fuel||0)+lh*dt/3600;
     if(sp!=null) t.odo=(t.odo||0)+sp*dt/3600; }
+  emit("sample", row, t);   // eklenti satıra alan ekleyebilir (ör. row.x)
   REC.lastT=now; REC.buf.push(row); t.samples++; t.end=now;
   if(now-REC.lastFlush>5000) flush(t);
 }
@@ -1379,7 +1409,7 @@ async function endRec(){
   const t=REC.trip; if(!t) return;
   REC.trip=null; stopGps(); $("recBadge").hidden=true;
   await flush(t);
-  if(!t.samples) await deleteTrip(t.id);
+  if(!t.samples) await deleteTrip(t.id); else { emit("tripEnd", t); await putTrip(t); }
   renderTrips();
 }
 
@@ -1446,6 +1476,7 @@ async function openTrip(id){
     li.innerHTML=`<time>${new Date(e.t).toLocaleTimeString("tr-TR")}</time><span class="${e.level==="crit"?"c":"w"}"></span>`;
     li.lastChild.textContent=e.text; li.lastChild.style.color=e.level==="crit"?"var(--crit)":"var(--warn)"; ev.appendChild(li); });
   drawChart(); drawMap();
+  emit("tripOpen", t, V.samples);
   $("viewer").scrollIntoView({behavior:"smooth",block:"start"});
 }
 function niceRange(vals){
@@ -1669,5 +1700,6 @@ $("btnInstall").addEventListener("click",async()=>{ if(!installEvt) return; inst
 setInterval(()=>{ if(REC.trip) renderTrips(); },30000);
 if(!navigator.bluetooth && !navigator.serial) showNotice("Bu tarayıcıda Bluetooth yok. Android'de Chrome ile aç. Şimdilik \"Deneme modu\" ile uygulamayı görebilirsin.");
 </script>
+<!-- eklentiler: her özellik kendi dosyasında (features/) -->
 </body>
 </html>
