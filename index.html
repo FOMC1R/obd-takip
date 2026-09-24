@@ -1060,8 +1060,10 @@ function addLog(level,text){
     li.lastChild.textContent=e.text; ul.appendChild(li); });
   recEvent(level,text);
 }
+// Uyarı sınırı; eklenti anlık değiştirebilir (ör. hız: bulunduğun yolun sınırı, features/speedlimit.js)
+let limOf = pid=>settings.lim[pid];
 function checkLimits(g){
-  const st=S.g[g.pid], L=settings.lim[g.pid]; if(st.v==null) return;
+  const st=S.g[g.pid], L=limOf(g.pid); if(st.v==null) return;
   const out = (L.max!=null && st.v>L.max) || (L.min!=null && st.v<L.min);
   if(out){ st.out++; st.inn=0; } else { st.inn++; st.out=0; }
   if(out && st.out>=3 && !st.alarm){
@@ -1839,5 +1841,6 @@ if(!navigator.bluetooth && !navigator.serial) showNotice("Bu tarayıcıda Blueto
 <script src="features/cluster.js"></script>
 <script src="features/stats.js"></script>
 <script src="features/autoview.js"></script>
+<script src="features/speedlimit.js"></script>
 </body>
 </html>

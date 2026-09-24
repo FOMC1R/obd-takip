@@ -6,7 +6,7 @@ const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192
   "./features/layout.js", "./features/hud.js", "./features/misfire.js", "./features/ai.js",
   "./features/maintenance.js", "./features/expenses.js", "./features/report.js",
   "./features/score.js", "./features/perf.js", "./features/ev.js", "./features/diagpack.js", "./features/prices.js",
-  "./features/vehicles-data.js", "./features/vehicles.js", "./features/cluster.js", "./features/stats.js", "./features/autoview.js",
+  "./features/vehicles-data.js", "./features/vehicles.js", "./features/cluster.js", "./features/stats.js", "./features/speedlimit.js", "./features/autoview.js",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"];
 
@@ -25,7 +25,8 @@ self.addEventListener("fetch", e => {
   if (url.hostname.endsWith("tile.openstreetmap.org")) return;   // harita karoları önbelleğe alınmaz
   if (url.hostname === "api.anthropic.com") return;              // yapay zekâ isteği hiç önbelleğe girmez
   if (url.hostname === "vpic.nhtsa.dot.gov") return;             // araç tanıma yedeği: sonucu uygulama kendisi saklar
-  if (url.hostname === "raw.githubusercontent.com") return;      // güncel yakıt fiyatı: her seferinde ağdan (uygulama son fiyatı kendisi saklar)
+  if (url.hostname.endsWith("overpass-api.de")) return;          // yolun hız sınırı: konuma bağlı, önbelleğe girmez
+  if (url.hostname === "raw.githubusercontent.com") return;     // güncel yakıt fiyatı: her seferinde ağdan (uygulama son fiyatı kendisi saklar)
   if (url.origin === location.origin) {
     // Önce ağ, olmazsa önbellek
     e.respondWith(fetch(req).then(r => {

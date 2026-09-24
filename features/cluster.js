@@ -139,13 +139,15 @@
   const isEv=()=>typeof EVA!=="undefined" && EVA.isEv ? EVA.isEv() : settings.fuel==="elektrik";
   const accent=()=>ACCENTS[settings.cluster.accent]||ACCENTS.buz;
   const lim=pid=>settings.lim[pid]||{};
+  // Hız sınırı: bulunduğun yolun sınırı (features/speedlimit.js) varsa o, yoksa elle girilen
+  const spdMax=()=>{ try{ const w=window.SPEEDLIM; if(w && w.now) return w.now().v; }catch(e){} return lim("0D").max; };
   const rafFn=typeof requestAnimationFrame==="function" ? requestAnimationFrame : (f=>setTimeout(()=>f(Date.now()),33));
   const cafFn=typeof cancelAnimationFrame==="function" ? cancelAnimationFrame : clearTimeout;
 
   // ---------- Değerler ----------
   function socNow(){ const a=cur("EV_SOC"); return a!=null ? a : cur("5B"); }
   function speedState(sp){
-    const L=lim("0D").max; if(sp==null || !L) return "";
+    const L=spdMax(); if(sp==null || !L) return "";
     return sp>L ? "over" : sp>L-5 ? "near" : "";
   }
   function redline(){ return lim("0C").max || 6200; }
@@ -351,7 +353,7 @@
     if(!H.open) return;
     const ev=isEv(), d=H.dials;
     // hız
-    const sp=cur("0D"), ss=speedState(sp), L=lim("0D").max;
+    const sp=cur("0D"), ss=speedState(sp), L=spdMax();
     d.spd.num.textContent=fmt(sp,0);
     d.spd.num.className="cl-num"+(ss?" "+ss:"");
     d.spd.target=sp; d.spd.state=ss;
@@ -417,7 +419,7 @@
   }
   // Sabit yüz (çentikler, rakamlar, kırmızı bölge) ayrı tuvale bir kez çizilir
   function drawFace(d){
-    const s=scale(d.kind), px=d.size, st=style(), key=[st,d.kind,px,s.max,s.red,accent(),lim("0D").max].join("|");
+    const s=scale(d.kind), px=d.size, st=style(), key=[st,d.kind,px,s.max,s.red,accent(),spdMax()].join("|");
     if(d.faceKey===key && d.face) return d.face;
     const f=d.face || mk("canvas"); f.width=px; f.height=px;
     const ctx=f.getContext && f.getContext("2d"); d.face=f; d.faceKey=key;
@@ -433,8 +435,8 @@
   }
   // hız sınırı işareti: dış kenarda küçük üçgen
   function limMark(ctx,d,s,c,R){
-    if(d.kind!=="spd" || !lim("0D").max) return;
-    const a=ang(s,lim("0D").max), r0=R*1.0, r1=R*0.9;
+    if(d.kind!=="spd" || !spdMax()) return;
+    const a=ang(s,spdMax()), r0=R*1.0, r1=R*0.9;
     ctx.fillStyle=C.red;
     ctx.beginPath();
     ctx.moveTo(c+r1*Math.cos(a),c+r1*Math.sin(a));
@@ -503,7 +505,7 @@
     ctx.lineCap="round"; ctx.lineWidth=R*0.02; ctx.strokeStyle="rgba(255,255,255,.09)";
     ctx.beginPath(); ctx.arc(c,c,R*0.88,A0,A0+SWEEP); ctx.stroke();
     if(s.red!=null){ ctx.strokeStyle="rgba(255,59,48,.6)"; ctx.beginPath(); ctx.arc(c,c,R*0.88,ang(s,s.red),A0+SWEEP); ctx.stroke(); }
-    if(d.kind==="spd" && lim("0D").max){ const a=ang(s,lim("0D").max); ctx.fillStyle=C.red;
+    if(d.kind==="spd" && spdMax()){ const a=ang(s,spdMax()); ctx.fillStyle=C.red;
       ctx.beginPath(); ctx.arc(c+R*0.96*Math.cos(a),c+R*0.96*Math.sin(a),R*0.022,0,Math.PI*2); ctx.fill(); }
   }
   function faceModern(ctx,d,s,c,R){
