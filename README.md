@@ -55,7 +55,9 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
 - **Ön cam (HUD):** Siyah zemin üzerinde büyük hız gösterir. Hız, uyarı sınırına yaklaşınca sarı, aşınca kırmızı olur. Üstte devir çubuğu var; vites değiştirme noktasında yanıp söner. Altta seçtiğin üç değer görünür.
   - O an süren bir tehlike varsa (örneğin su sıcaklığı sınırı aştıysa) uyarının kendisi en üstte büyük yazıyla çıkar.
   - Ekrana dokununca ayarlar çıkar: **Ön cam yansıması** (telefon torpidoda düz yatarken yazı camda düz okunsun diye yukarı-aşağı çevirir), **Sağ-sol aynala**, **Parlaklık** (Otomatik seçilirse akşam ve gece kendiliğinden kısılır), **Renk**, **Değerleri seç** ve **Sade** (yalnızca hız ve uyarılar).
+  - **Stil** düğmesiyle üç görünüm arasında geçilir: **Klasik** (yukarıdaki), **Şerit** (dev hız, altında ince devir çizgisi ve tek satır değerler) ve **Sportif** (üstte yarış arabalarındaki gibi sırayla yanan vites ışıkları).
 - **Gösterge paneli:** Modern araçlardaki gibi dijital kadran. Yuvarlak hız ve devir göstergeleri, ortada bilgi sayfaları (yolculuk, tüketim, motor, saat), su, yakıt ve akü göstergeleri ve arıza lambaları. Yatay tutucuda iki kadran yan yana durur. Elektrikli araçta devir yerine güç (kW) göstergesi çıkar.
+  - Ekrana dokununca çıkan **Stil** düğmesiyle dört görünüm arasında geçilir: **Modern** (parlayan yay), **Klasik** (ortadan dönen ibre, krom çerçeve), **Spor** (bölmeli ışık çubuğu) ve **Sade** (ince çizgi; gece gözü yormaz). **Renk** seçeneğine turuncu eklendi.
 - **Performans ölçümü:** 0-100 km/sa ve 80-120 km/sa (sollama) süresini ölçer. **Yalnızca kapalı ve güvenli bir alanda dene.**
 
 ### Arıza
