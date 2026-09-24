@@ -139,7 +139,9 @@ const STATS = (()=>{
   function currentVeh(){ if(!profilesOn()) return "*"; return st.veh ?? (vehOf(settings.activeVehicle)||{key:String(settings.activeVehicle)}).key; }
   function matchVeh(t,key){
     if(key==="*" || key==null) return true;
-    if(t.vehicle==null) return vehicles().length<=1;   // profil öncesi kayıtlar: tek araç varsa ona aittir
+    // profil öncesi (damgasız) kayıtlar: araç profilleri eklentisinin belirlediği sahibe (legacyVehicle) aittir;
+    // o yoksa ve tek araç varsa ona
+    if(t.vehicle==null) return settings.legacyVehicle ? String(settings.legacyVehicle)===String(key) : vehicles().length<=1;
     const v=vehOf(key); const tv=String(t.vehicle);
     return tv===key || (!!v && !!v.vin && (tv===v.vin.slice(0,11) || tv===v.vin));
   }
