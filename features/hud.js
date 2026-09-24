@@ -1,9 +1,11 @@
 // Ön cam görünümü (HUD — telefonu torpidoya koyup ön camdaki yansımasını okumak için).
 // Üstte devir çubuğu ve vites uyarısı, ortada çok büyük hız ve hız sınırı, altta seçilebilir
 // üç değer; o an süren tehlikede uyarının kendisi büyük yazıyla çıkar.
-// Kalıcı ayar: settings.hud = {flipY, flipX, bright:"oto"|"gunduz"|"aksam"|"gece", color, slots:[pid…], shift, simple}
+// Üç stil: Klasik (yukarıdaki), Şerit (dev hız + ince devir çizgisi + tek satır değer), Sportif (vites ışıkları,
+// italik kalın rakam, kutulu değerler). Hepsi siyah zeminde; yansıma, parlaklık, renk, sade kip hepsinde geçerli.
+// Kalıcı ayar: settings.hud = {flipY, flipX, bright:"oto"|"gunduz"|"aksam"|"gece", color, slots:[pid…], shift, simple, style}
 (function(){
-  const DEF={flipY:false, flipX:false, bright:"oto", color:"turkuaz", slots:["05","FUEL","42"], shift:0, simple:false};
+  const DEF={flipY:false, flipX:false, bright:"oto", color:"turkuaz", slots:["05","FUEL","42"], shift:0, simple:false, style:"klasik"};
   if(settings.hud===undefined) settings.hud={};
   // eski sürüm: {mirror:bool} → sağ-sol aynalama
   if(settings.hud.mirror!==undefined && settings.hud.flipX===undefined) settings.hud.flipX=!!settings.hud.mirror;
@@ -11,6 +13,8 @@
 
   // Renkler: gece yansımasında göz almayan, siyah zeminde en okunaklı tonlar
   const COLORS={turkuaz:"#00e5ff", yesil:"#3dff8a", beyaz:"#ffffff", amber:"#ffb020"};
+  const STYLES={klasik:"Klasik", serit:"Şerit", spor:"Sportif"};
+  if(!STYLES[settings.hud.style]) settings.hud.style="klasik";
   const BRIGHT={gunduz:1, aksam:.7, gece:.42};
   const BRIGHT_NAME={oto:"Otomatik", gunduz:"Gündüz", aksam:"Akşam", gece:"Gece"};
   // Alt satıra konabilecek değerler ("FUEL": hareket ederken L/100 km, dururken L/sa)
@@ -57,9 +61,49 @@
 .hud-bar button{min-height:52px;background:#161a1a;color:#fff;border:1px solid #444;font-size:15px;font-weight:600;padding:6px 4px;line-height:1.15}
 .hud-bar button[aria-pressed="true"]{border-color:var(--hc);color:var(--hc)}
 .hud-bar .hint{grid-column:1/-1;color:#9aa;font:13px/1.35 var(--f-body);margin:0}
+/* ---- ek parçalar (yalnız kendi stilinde görünür) ---- */
+.hud-line,.hud-lights,.hud-rn,.hud-strip{display:none}
+/* Şerit: dev ince hız, altında tek çizgi devir, en altta tek satır değerler */
+.hud.st-serit .hud-top,.hud.st-serit .hud-rpm,.hud.st-serit .hud-row{display:none}
+.hud.st-serit .hud-in{grid-template-rows:1fr auto;padding:4vh 6vw 6vh}
+.hud.st-serit .hud-spd{font-weight:600;letter-spacing:-.02em;font-size:min(72vw,44vh)}
+.hud.st-serit .hud-spd.d3{font-size:min(50vw,36vh)}
+.hud.st-serit .hud-line{display:block;width:min(80vw,60vh);height:max(6px,1.1vh);border-radius:99px;background:#1a1d1d;margin-top:1.6vh;overflow:hidden}
+.hud.st-serit .hud-line[hidden]{display:none}
+.hud-line i{display:block;height:100%;width:0;border-radius:99px;background:var(--hc)}
+.hud-line.red i{background:#ff3b30}
+.hud.st-serit .hud-u{font-weight:500;color:#bbb}
+.hud.st-serit .hud-strip{display:flex;justify-content:center;flex-wrap:wrap;gap:1vh 5vw;font:600 min(4.6vw,3vh)/1.2 var(--f-body);color:#ddd;font-variant-numeric:tabular-nums;text-align:center}
+.hud-strip span{white-space:nowrap}
+.hud-strip b{font-family:var(--f-num);font-size:1.35em;font-weight:700;color:#fff;margin:0 .2em}
+.hud-strip .bad,.hud-strip .bad b{color:#ff3b30}.hud-strip .warn,.hud-strip .warn b{color:#ffc400}
+.hud.simple .hud-strip{visibility:hidden}
+/* Sportif: üstte 10 vites ışığı, italik kalın hız, devir rakamı, kutulu değerler */
+.hud.st-spor .hud-rpm{display:none}
+.hud.st-spor .hud-lights{display:grid;grid-template-columns:repeat(10,1fr);gap:2vw;padding:0 2vw;align-items:center}
+.hud-lights i{aspect-ratio:1;width:100%;max-width:7vh;justify-self:center;border-radius:50%;background:#141717;box-shadow:inset 0 0 0 2px #262b2b}
+.hud-lights i.on.g{background:#35e07a;box-shadow:0 0 14px #35e07a}.hud-lights i.on.y{background:#ffc400;box-shadow:0 0 14px #ffc400}
+.hud-lights i.on.r{background:#ff3b30;box-shadow:0 0 14px #ff3b30}
+.hud-lights.shift i{background:#3d7dff;box-shadow:0 0 18px #3d7dff;animation:hudblue .16s steps(2) infinite}
+@keyframes hudblue{50%{background:#061030;box-shadow:none}}
+/* italik rakam sağa yaslanır görünür: sağ boşlukla ortaya çekilir */
+.hud.st-spor .hud-spd{font-style:italic;font-weight:700;letter-spacing:-.04em;margin-right:.22em}
+.hud.st-spor .hud-rn{display:block;font-style:italic;font-weight:700;font-size:min(8vw,5vh);color:#fff;font-variant-numeric:tabular-nums;margin-top:.8vh}
+.hud.st-spor .hud-rn small{font-size:.5em;color:#9aa;margin-left:.3em;font-style:normal}
+.hud.st-spor .hud-u{color:#9aa}
+.hud.st-spor .hud-c{border:2px solid #2a3030;background:#070909;padding:1.4vh 0}
+.hud.st-spor .hud-v{font-style:italic}
+.hud.simple .hud-lights{visibility:hidden}
 @media (orientation:landscape){
   .hud-in{grid-template-columns:1.3fr 1fr;grid-template-rows:auto auto 1fr;padding:2.5vh 3vw}
-  .hud-top,.hud-rpm{grid-column:1/-1}
+  .hud-top,.hud-rpm,.hud-lights{grid-column:1/-1}
+  .hud.st-serit .hud-in{grid-template-columns:1fr;grid-template-rows:1fr auto}
+  .hud.st-serit .hud-spd{font-size:min(40vw,64vh)}
+  .hud.st-serit .hud-spd.d3{font-size:min(30vw,56vh)}
+  .hud.st-serit .hud-line{width:min(50vw,90vh)}
+  .hud.st-serit .hud-strip{font-size:min(3vw,5.6vh)}
+  .hud-lights i{max-width:9vh}
+  .hud.st-spor .hud-rn{font-size:min(4.4vw,8vh)}
   .hud-spd{font-size:min(34vw,64vh)}
   .hud-spd.d3{font-size:min(25vw,56vh)}
   .hud-u{font-size:min(3vw,6vh)}
@@ -71,7 +115,7 @@
   .hud-alert{left:3vw;right:3vw;top:calc(env(safe-area-inset-top,0px) + 1.5vh);font-size:min(4vw,7vh);padding:1.6vh 3vw}
   .hud-bar{grid-template-columns:repeat(6,1fr);left:50%;right:auto;transform:translateX(-50%);width:min(96vw,900px)}
 }
-@media (prefers-reduced-motion:reduce){.hud.alarm,.hud-rpm.shift i{animation:none}}
+@media (prefers-reduced-motion:reduce){.hud.alarm,.hud-rpm.shift i,.hud-lights.shift i{animation:none}}
 `;
   document.head.appendChild(css);
 
@@ -110,9 +154,13 @@
     const top=mk("div","hud-top"), clock=mk("span"), trip=mk("span"); top.append(clock,trip);
     const rpm=mk("div","hud-rpm"); rpm.setAttribute("aria-hidden","true");
     const segs=[]; for(let i=0;i<20;i++){ const s=mk("i"); rpm.appendChild(s); segs.push(s); }
+    const lights=mk("div","hud-lights"), lamps=[]; lights.setAttribute("aria-hidden","true");
+    for(let i=0;i<10;i++){ const l=mk("i"); lights.appendChild(l); lamps.push(l); }
     const main=mk("div","hud-main"), spd=mk("div","hud-spd","—");
+    const line=mk("div","hud-line"), lineI=mk("i"); line.appendChild(lineI); line.setAttribute("aria-hidden","true");
+    const rn=mk("div","hud-rn","");
     const sub=mk("div","hud-sub"), u=mk("span","hud-u","km/sa"), lim=mk("span","hud-lim","");
-    lim.setAttribute("aria-label","Hız uyarı sınırı"); sub.append(lim,u); main.append(spd,sub);
+    lim.setAttribute("aria-label","Hız uyarı sınırı"); sub.append(lim,u); main.append(spd,line,sub,rn);
     const alert=mk("div","hud-alert"); alert.hidden=true;
     const row=mk("div","hud-row"), slots=[];
     for(let i=0;i<3;i++){
@@ -120,7 +168,9 @@
       c.append(v,l); row.appendChild(c); slots.push({c,v,l});
       c.addEventListener("click",e=>{ if(!H.edit) return; e.stopPropagation(); cycleSlot(i); showBar(); });
     }
-    inn.append(top,rpm,main,row,alert); o.appendChild(inn);
+    const strip=mk("div","hud-strip"), stripEls=[];
+    for(let i=0;i<3;i++){ const sp=mk("span"); strip.appendChild(sp); stripEls.push(sp); }
+    inn.append(top,rpm,lights,main,row,strip,alert); o.appendChild(inn);
 
     const bar=mk("div","hud-bar"); bar.hidden=true;
     const bY=btn("Ön cam yansıması",()=>{ settings.hud.flipY=!settings.hud.flipY; save(); applyView(); });
@@ -129,15 +179,16 @@
     const bC=btn("Renk",()=>{ const k=Object.keys(COLORS); settings.hud.color=k[(k.indexOf(settings.hud.color)+1)%k.length]; save(); applyView(); });
     const bE=btn("Değerleri seç",()=>{ H.edit=!H.edit; applyView(); });
     const bS=btn("Sade",()=>{ settings.hud.simple=!settings.hud.simple; save(); applyView(); });
+    const bT=btn("",()=>{ const k=Object.keys(STYLES); settings.hud.style=k[(k.indexOf(settings.hud.style)+1)%k.length]; save(); applyView(); });
     const bK=btn("Kapat",()=>close());
     const hint=mk("p","hint","Torpidoda düz yatan telefonda \"Ön cam yansıması\"nı aç. \"Değerleri seç\" açıkken alttaki değerlere dokunarak değiştir.");
-    bar.append(bY,bX,bB,bC,bE,bS,bK,hint);
-    // 3 sütunda 7 düğme: Kapat son satırın tamamını kaplar
-    bK.style.gridColumn="1/-1";
+    bar.append(bY,bX,bB,bC,bE,bS,bT,bK,hint);
+    // 3 sütunda 8 düğme: Kapat son satırda iki hücre kaplar
+    bK.style.gridColumn="span 2";
     o.appendChild(bar);
     o.addEventListener("click",showBar);
-    Object.assign(H,{el:o, inn, bar, segs, rpmEl:rpm, slots, alertEl:alert, limEl:lim, clock, trip,
-      vals:{spd}, btns:{bY,bX,bB,bC,bE,bS}});
+    Object.assign(H,{el:o, inn, bar, segs, rpmEl:rpm, slots, lights, lamps, line, lineI, rn, stripEls, alertEl:alert, limEl:lim, clock, trip,
+      vals:{spd}, btns:{bY,bX,bB,bC,bE,bS,bT}});
   }
 
   function cycleSlot(i){
@@ -163,6 +214,7 @@
     b.bC.textContent="Renk: "+settings.hud.color.replace("yesil","yeşil");
     b.bE.setAttribute("aria-pressed",String(H.edit));
     b.bS.setAttribute("aria-pressed",String(!!settings.hud.simple));
+    b.bT.textContent="Stil: "+STYLES[settings.hud.style];
     update();
   }
   function showBar(){
@@ -199,11 +251,27 @@
       H.segs.forEach((s,i)=>{ const f=(i+1)/20*full; s.className=(i<n?"on":"")+(f>red?" h":f>red*.75?" m":""); });
       H.rpmEl.classList.toggle("shift", rpm>=shift);
     }
+    // Şerit: tek çizgi; kırmızı bölgede kırmızı
+    H.line.hidden=(rpm==null);
+    if(rpm!=null){ H.lineI.style.width=(Math.min(1,rpm/full)*100).toFixed(1)+"%"; H.line.className="hud-line"+(rpm>=red?" red":""); }
+    // Sportif: vites noktasının %60'ından itibaren 10 ışık dolar (4 yeşil, 3 sarı, 3 kırmızı); vites noktasında hepsi mavi yanıp söner
+    const from=shift*0.6, nl=rpm==null ? 0 : Math.max(0,Math.min(10,Math.round((rpm-from)/(shift-from)*10)));
+    H.lamps.forEach((l,i)=>{ l.className=(i<nl?"on ":"")+(i<4?"g":i<7?"y":"r"); });
+    H.lights.className="hud-lights"+(rpm!=null && rpm>=shift?" shift":"");
+    H.lit=nl;
+    H.rn.innerHTML=rpm==null ? "" : fmt(rpm,0)+"<small>d/dk</small>";
     // alt satır
     settings.hud.slots.forEach((pid,i)=>{
       const s=H.slots[i]; if(!s) return;
       s.v.textContent=slotValue(pid); s.l.textContent=slotLabel(pid);
       s.c.className="hud-c "+slotState(pid);
+      // Şerit: "Su 90 °C" biçiminde tek satır
+      const e=H.stripEls[i]; if(e){
+        const lb=slotLabel(pid), m=lb.match(/^(.*?) \((.*)\)$/);
+        e.className=slotState(pid);
+        e.innerHTML=""; e.append((m?m[1]:lb)+" "); e.appendChild(mk("b",null,slotValue(pid))); if(m) e.append(m[2]);
+        e.setAttribute("aria-label",(m?m[1]:lb)+" "+slotValue(pid)+(m?" "+m[2]:""));
+      }
     });
     // saat ve sürüş
     const d=new Date(); H.clock.textContent=d.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
@@ -211,7 +279,7 @@
     // süren tehlike
     const txt=alertText();
     H.alertEl.hidden=!txt; if(txt) H.alertEl.textContent=txt;
-    const cls="hud"+(txt?" alarm":"")+(H.edit?" edit":"")+(settings.hud.simple?" simple":"");
+    const cls="hud st-"+settings.hud.style+(txt?" alarm":"")+(H.edit?" edit":"")+(settings.hud.simple?" simple":"");
     if(H.el.className!==cls) H.el.className=cls;
   }
 
@@ -267,6 +335,7 @@
   }
 
   window.HUD={open, close, update, setMirror, applyView, cycleSlot, alertText,
+    STYLES, get lit(){ return H.lit; }, get line(){ return H.line; }, get strip(){ return H.stripEls; }, get rn(){ return H.rn; }, get lights(){ return H.lights; },
     get isOpen(){ return H.open; }, get vals(){ return H.vals; }, get slots(){ return H.slots; }, get el(){ return H.el; }, get rpmEl(){ return H.rpmEl; },
     set edit(v){ H.edit=!!v; }};
 })();
