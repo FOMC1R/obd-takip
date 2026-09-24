@@ -15,7 +15,7 @@ require("./harness")(String.raw`
   ok(d.trip && d.trip.dur>5000 && d.trip.crit.length>0, "son sürüş: "+Math.round(d.trip.dur/1000)+" sn, "+d.trip.crit.length+" kritik uyarı");
   ok(d.maint.some(x=>x.name==="Motor yağı + filtre"), "bakım özeti");
   const h=Report.html(d);
-  for(const s of ["Araç arıza raporu","P0301","1. silindirde tekleme","YANIYOR","Bekleyen (henüz kesinleşmedi)","Donmuş kare","Muayene hazırlığı","Şase no (VIN)","NMTK33BE5R0045678","Dinlenme voltajı","Son sürüş","Bakım durumu","Motor yağı + filtre","148.230 km","Kesin teşhis değildir"])
+  for(const s of ["Araç arıza raporu","P0301","1. silindirde tekleme","YANIYOR","Bekleyen (henüz kesinleşmedi)","Donmuş kare","Muayene hazırlığı","Şase no (VIN)","NMTKZ3BE30R045678","Dinlenme voltajı","Son sürüş","Bakım durumu","Motor yağı + filtre","148.230 km","Kesin teşhis değildir"])
     if(!h.includes(s)) throw new Error("raporda yok: "+s);
   console.log("  tamam: rapor içeriği tam ("+h.length+" karakter)");
   ok(!/<script/i.test(Report.html({...d, car:"<script>x</script>"})), "araç adı kaçışlı yazılıyor");

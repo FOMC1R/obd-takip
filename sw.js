@@ -1,11 +1,12 @@
 // Çevrimdışı açılış. Uygulamanın kendi dosyaları (sayfa, features/*.js, simgeler) önce ağdan
 // alınır ki güncellemeler hemen gelsin; ağ yoksa son kaydedilen kopya kullanılır.
 // Dış kütüphane (Leaflet, cdnjs) sürümü sabit olduğu için önbellekten verilir.
-const CACHE = "obd-takip-v4";
+const CACHE = "obd-takip-v5";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png",
   "./features/layout.js", "./features/hud.js", "./features/misfire.js", "./features/ai.js",
   "./features/maintenance.js", "./features/expenses.js", "./features/report.js",
   "./features/score.js", "./features/perf.js", "./features/ev.js", "./features/diagpack.js", "./features/prices.js",
+  "./features/vehicles-data.js", "./features/vehicles.js",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"];
 
@@ -23,6 +24,7 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   if (url.hostname.endsWith("tile.openstreetmap.org")) return;   // harita karoları önbelleğe alınmaz
   if (url.hostname === "api.anthropic.com") return;              // yapay zekâ isteği hiç önbelleğe girmez
+  if (url.hostname === "vpic.nhtsa.dot.gov") return;             // araç tanıma yedeği: sonucu uygulama kendisi saklar
   if (url.origin === location.origin) {
     // Önce ağ, olmazsa önbellek
     e.respondWith(fetch(req).then(r => {
