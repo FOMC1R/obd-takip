@@ -1,20 +1,12 @@
 // Çevrimdışı açılış. Uygulamanın kendi dosyaları (sayfa, features/*.js, simgeler) önce ağdan
 // alınır ki güncellemeler hemen gelsin; ağ yoksa son kaydedilen kopya kullanılır.
 // Dış kütüphane (Leaflet, cdnjs) sürümü sabit olduğu için önbellekten verilir.
-<<<<<<< HEAD
-const CACHE = "obd-takip-v6";
+const CACHE = "obd-takip-v7";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png",
   "./features/layout.js", "./features/hud.js", "./features/misfire.js", "./features/ai.js",
   "./features/maintenance.js", "./features/expenses.js", "./features/report.js",
   "./features/score.js", "./features/perf.js", "./features/ev.js", "./features/diagpack.js", "./features/prices.js",
-  "./features/vehicles-data.js", "./features/vehicles.js",
-=======
-const CACHE = "obd-takip-v5";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png",
-  "./features/layout.js", "./features/hud.js", "./features/misfire.js", "./features/ai.js",
-  "./features/maintenance.js", "./features/expenses.js", "./features/report.js",
-  "./features/score.js", "./features/perf.js", "./features/ev.js", "./features/diagpack.js", "./features/prices.js", "./features/cluster.js",
->>>>>>> worktree-agent-a1dff57186e22abf6
+  "./features/vehicles-data.js", "./features/vehicles.js", "./features/cluster.js",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"];
 
