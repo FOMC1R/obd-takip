@@ -130,6 +130,16 @@ Cihaz yanında değilken uygulamayı görmek içindir. **Değerler ve arıza kod
 - Sürüş kaydedilmez.
 - Önceki sürümlerden kalan deneme kayıtları Sürüşler sekmesindeki **"Deneme kayıtlarını sil"** düğmesiyle silinebilir.
 
+## Kullanım istatistiği
+
+Uygulamayı geliştirmek için **anonim** kullanım sayımı yapılır: günde kaç kişinin açtığı, ne sıklıkla kullanıldığı ("4-7 gündür kullanıyor", "2-3 gün arayla açıyor" gibi aralıklar), hangi bölümlerin ve ekranların (HUD, gösterge paneli, stiller) kullanıldığı, bağlantı türü, yakıt türü ve araç markası.
+
+- **Gönderilmeyenler:** kimlik numarası, çerez, konum, şase numarası, cihaz adı, araç değerleri, arıza kodları.
+- Sayaç [GoatCounter](https://www.goatcounter.com)'dır (açık kaynak, reklamsız). IP adresi ve tarayıcı bilgisini kaydetmez; aynı kişiyi yalnızca 8 saat boyunca geçici olarak ayırt eder.
+- Uygulama başka bir sitenin betiğini yüklemez; her sayım tek bir küçük resim isteğidir.
+- **Ayarlar → Kullanım istatistiği** bölümünden kapatılabilir.
+- Sonuçlar: https://obd-takip.goatcounter.com (yalnızca uygulamanın sahibi görür).
+
 ## Uyarılar nasıl çalışır?
 
 - Bir değer sınırın dışına **3 ölçüm üst üste** çıkarsa uyarı verilir. Tek bir hatalı okuma alarm çaldırmasın diye böyle ayarlandı.
