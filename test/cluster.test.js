@@ -107,6 +107,35 @@ require("./harness")(String.raw`
   settings.cluster.style="bilinmeyen"; CL.update(); if(!CL.el.className.includes("st-modern")) throw new Error("bilinmeyen stil modern'e dönmedi");
   settings.cluster.style="modern";
 
+  // yeni lambalar: soğuk motor mavi, tekleme yanıp söner, bekleyen kod/bakım servis, motor dururken zayıf akü sarı
+  const cw=S.g["05"], cr=S.g["0C"], cv=S.g["42"];
+  cr.v=900; cr.ts=Date.now(); cw.v=35; cw.ts=Date.now(); cv.v=14.2; cv.ts=Date.now(); CL.update();
+  if(CL.telltales().temp!=="blue" || CL.tts.temp.className!=="blue") throw new Error("soğuk motorda mavi lamba yok");
+  cw.v=90; cw.ts=Date.now();
+  raise("misfire2","warn","2. silindirde tekleme artıyor",false); CL.update();
+  if(CL.tts.mil.className!=="amber flash") throw new Error("teklemede arıza lambası yanıp sönmüyor");
+  drop("misfire2");
+  S.dtc.pending=["P0171"]; CL.update(); if(CL.telltales().serv!=="amber") throw new Error("bekleyen kodda servis lambası yok");
+  S.dtc.pending=[]; raise("maint","warn","Bakım zamanı",false); if(CL.telltales().serv!=="amber") throw new Error("bakımda servis lambası yok");
+  drop("maint"); if(CL.telltales().serv) throw new Error("servis lambası sönmedi");
+  cr.v=0; cv.v=12.0; cv.ts=Date.now(); if(CL.telltales().batt!=="amber") throw new Error("motor dururken zayıf akü sarı değil");
+  cr.v=900; cv.v=14.2; if(CL.telltales().ready!==null) throw new Error("benzinlide READY lambası var");
+  // açılış testi: tüm lambalar kendi renginde, ibre ölçeğin sonuna gider, sonra gerçek hâline döner
+  settings.cluster.check=true; CL.startCheck();
+  if(!CL.checking) throw new Error("açılış testi başlamadı");
+  const lit=Object.entries(CL.tts).filter(([k,e])=>!e.hidden && e.className).map(([k])=>k);
+  console.log("açılış testinde yanan:", lit.join(","));
+  const applicable=Object.entries(CL.telltales()).filter(([k,v])=>v!==null).map(([k])=>k);
+  if(lit.slice().sort().join()!==applicable.slice().sort().join() || lit.includes("ready")) throw new Error("açılış testinde lambalar yanlış: "+lit+" / "+applicable);
+  await wait(700); for(let i=0;i<5;i++) CL.frame();
+  if(D.spd.shown < CL.scale("spd").max*0.6) throw new Error("ibre ölçeğin sonuna gitmedi: "+D.spd.shown);
+  await wait(1800);
+  if(CL.checking) throw new Error("açılış testi bitmedi");
+  for(let i=0;i<60;i++) CL.frame();
+  if(Math.abs(D.spd.shown-D.spd.target)>1 || CL.tts.link.className) throw new Error("test sonrası gerçek hâle dönmedi");
+  settings.cluster.check=false; CL.startCheck(); if(CL.checking) throw new Error("kapalıyken açılış testi çalıştı");
+  settings.cluster.check=true;
+
   // kapat: sayaçlar durur
   S.paused=false;
   CL.close();

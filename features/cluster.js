@@ -5,7 +5,7 @@
 // Stiller: modern (parlayan yay + kısa ibre), klasik (ortadan dönen ibre, krom çerçeve),
 // spor (bölmeli ışık çubuğu, ibre yok), sade (ince yay, çentiksiz; gece için)
 (function(){
-  const DEF={bright:"oto", accent:"buz", page:0, style:"modern"};
+  const DEF={bright:"oto", accent:"buz", page:0, style:"modern", check:true};
   if(settings.cluster===undefined) settings.cluster={};
   for(const k in DEF) if(settings.cluster[k]===undefined) settings.cluster[k]=DEF[k];
 
@@ -22,23 +22,37 @@
 
   const css=document.createElement("style");
   css.textContent=`
-.cl{position:fixed;inset:0;z-index:1001;overflow:hidden;color:#e8eef7;user-select:none;-webkit-user-select:none;touch-action:manipulation;
+/* Tek ölçü birimi --u: tüm panel (kadranlar, orta alan, lambalar, yazılar) ekranla orantılı büyür/küçülür.
+   Dikey düzen 100u × 190u, yatay düzen 226u × 100u kutuya sığacak şekilde hesaplanır (.cl kutusuna göre). */
+@property --u{syntax:"<length>";inherits:true;initial-value:4px}
+.cl{position:fixed;inset:0;z-index:1001;overflow:hidden;color:#e8eef7;user-select:none;-webkit-user-select:none;touch-action:manipulation;container-type:size;
   background:radial-gradient(120% 90% at 50% 45%,#0e1a2e 0%,#070c17 55%,#03050a 100%);font-family:var(--f-num);--ca:#42c8ff}
-.cl-in{position:absolute;inset:0;display:grid;padding:calc(env(safe-area-inset-top,0px) + 6px) calc(env(safe-area-inset-right,0px) + 12px) calc(env(safe-area-inset-bottom,0px) + 8px) calc(env(safe-area-inset-left,0px) + 12px);
-  grid-template-columns:1fr;grid-template-rows:auto 1fr auto auto auto 1fr;grid-template-areas:"top" "." "spd" "al" "mid" ".";justify-items:center;align-items:center;gap:10px}
-.cl-top{grid-area:top;width:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;min-height:34px}
-.cl-clock{font-size:20px;font-weight:600;color:#c9d4e4;font-variant-numeric:tabular-nums;letter-spacing:.02em}
-.cl-out{justify-self:end;font-size:18px;font-weight:600;color:#7d8ba3;font-variant-numeric:tabular-nums}
-.cl-tt{display:flex;gap:6px;justify-content:center}
-.cl-tt i{display:block;width:30px;height:30px;color:rgba(160,180,210,.12);transition:color .2s}
+.cl-in{position:absolute;inset:0;display:grid;box-sizing:border-box;
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);
+  --u:min(calc(96cqw / 100), calc(96cqh / 190));
+  grid-template-columns:calc(var(--u)*96);grid-template-areas:"top" "spd" "al" "mid";
+  justify-content:center;align-content:center;justify-items:center;align-items:center;gap:calc(var(--u)*2.4)}
+.cl-top{grid-area:top;width:100%;display:grid;grid-template-columns:1fr auto;grid-template-areas:"c o" "t t";align-items:center;row-gap:calc(var(--u)*2)}
+.cl-clock{grid-area:c;font-size:calc(var(--u)*4.6);font-weight:600;color:#c9d4e4;font-variant-numeric:tabular-nums;letter-spacing:.02em;display:flex;align-items:center;gap:calc(var(--u)*2)}
+.cl-rec{font:700 calc(var(--u)*2.6)/1 var(--f-body);color:#ff5b50;letter-spacing:.1em}
+.cl-rec::before{content:"";display:inline-block;width:.8em;height:.8em;border-radius:50%;background:#ff3b30;margin-right:.35em;vertical-align:-.05em}
+.cl-out{grid-area:o;justify-self:end;font-size:calc(var(--u)*4.2);font-weight:600;color:#7d8ba3;font-variant-numeric:tabular-nums}
+.cl-tt{grid-area:t;display:flex;flex-wrap:wrap;gap:calc(var(--u)*1.6);justify-content:center;min-height:calc(var(--u)*8)}
+.cl-tt i{display:grid;place-items:center;width:calc(var(--u)*8);height:calc(var(--u)*8);color:rgba(160,180,210,.2);transition:color .2s}
 .cl-tt i svg{width:100%;height:100%;display:block}
+.cl-tt i b{font:800 calc(var(--u)*2.5)/1 var(--f-body);letter-spacing:.04em}
 .cl-tt i.amber{color:#ffb020;filter:drop-shadow(0 0 5px rgba(255,176,32,.55))}
 .cl-tt i.red{color:#ff3b30;filter:drop-shadow(0 0 5px rgba(255,59,48,.6))}
+.cl-tt i.blue{color:#3d8bff;filter:drop-shadow(0 0 5px rgba(61,139,255,.6))}
+.cl-tt i.green{color:#35d07f;filter:drop-shadow(0 0 5px rgba(53,208,127,.55))}
+.cl-tt i.flash{animation:clflash .5s steps(2) infinite}
+@keyframes clflash{50%{color:rgba(160,180,210,.2);filter:none}}
+@media (prefers-reduced-motion:reduce){.cl-tt i.flash{animation:none}}
 .cl-tt i[hidden]{display:none}
 .cl-dial{position:relative;aspect-ratio:1;container-type:inline-size}
 .cl-dial canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.cl-spd{grid-area:spd;width:min(94vw,47vh)}
-.cl-mid{grid-area:mid;width:100%;display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"rpm panel" "mini mini";gap:14px 10px;align-items:center}
+.cl-spd{grid-area:spd;width:calc(var(--u)*84)}
+.cl-mid{grid-area:mid;width:100%;display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"rpm panel" "mini mini";gap:calc(var(--u)*3) calc(var(--u)*2.4);align-items:center}
 .cl-rpm{width:100%}
 .cl-read{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;text-align:center;line-height:1;pointer-events:none}
 .cl-num{font-size:25cqw;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em;color:#f2f6fc;text-shadow:0 0 18px rgba(120,190,255,.18)}
@@ -50,41 +64,41 @@
 .cl-sub{position:absolute;left:0;right:0;bottom:12cqw;text-align:center;font:600 5.6cqw/1 var(--f-body);color:#7d8ba3;letter-spacing:.08em;text-transform:uppercase}
 .cl-sub.regen{color:#35d07f}
 /* orta bilgi sayfası */
-.cl-panel{position:relative;width:100%;min-height:150px;box-sizing:border-box;padding:12px 12px 22px;border-radius:18px;cursor:pointer;
-  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(160,190,230,.10);display:grid;align-content:center;gap:8px}
-.cl-ph{font:600 12px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--ca)}
-.cl-kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 10px}
+.cl-panel{position:relative;width:100%;min-height:calc(var(--u)*34);box-sizing:border-box;padding:calc(var(--u)*2.8) calc(var(--u)*2.8) calc(var(--u)*5);border-radius:calc(var(--u)*4);cursor:pointer;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(160,190,230,.10);display:grid;align-content:center;gap:calc(var(--u)*1.8)}
+.cl-ph{font:600 calc(var(--u)*2.7)/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--ca)}
+.cl-kv{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*2.2)}
 .cl-kv div{min-width:0}
-.cl-kv b{display:block;font-size:26px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;color:#eef3fa}
-.cl-kv b small{font-size:13px;color:#7d8ba3;font-weight:600;margin-left:3px}
-.cl-kv span{display:block;font:500 11px/1.2 var(--f-body);color:#7d8ba3;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cl-big{font-size:44px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:#f2f6fc}
-.cl-big small{font-size:15px;color:#7d8ba3;margin-left:4px}
-.cl-bar{height:8px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden}
-.cl-bar i{display:block;height:100%;border-radius:4px;background:var(--ca);box-shadow:0 0 10px var(--ca)}
-.cl-note{font:500 12px/1.3 var(--f-body);color:#7d8ba3}
-.cl-time{font-size:58px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;text-align:center;color:#f2f6fc}
-.cl-date{font:500 14px/1.3 var(--f-body);color:#9aa8bd;text-align:center}
-.cl-dots{position:absolute;left:0;right:0;bottom:8px;display:flex;justify-content:center;gap:6px}
-.cl-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)}
+.cl-kv b{display:block;font-size:calc(var(--u)*5.8);font-weight:600;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;color:#eef3fa}
+.cl-kv b small{font-size:.5em;color:#7d8ba3;font-weight:600;margin-left:.2em}
+.cl-kv span{display:block;font:500 calc(var(--u)*2.5)/1.2 var(--f-body);color:#7d8ba3;margin-top:calc(var(--u)*.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-big{font-size:calc(var(--u)*10);font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:#f2f6fc}
+.cl-big small{font-size:.34em;color:#7d8ba3;margin-left:.25em}
+.cl-bar{height:calc(var(--u)*1.8);border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.cl-bar i{display:block;height:100%;border-radius:99px;background:var(--ca);box-shadow:0 0 10px var(--ca)}
+.cl-note{font:500 calc(var(--u)*2.8)/1.3 var(--f-body);color:#7d8ba3}
+.cl-time{font-size:calc(var(--u)*13);font-weight:600;line-height:1;font-variant-numeric:tabular-nums;text-align:center;color:#f2f6fc}
+.cl-date{font:500 calc(var(--u)*3.1)/1.3 var(--f-body);color:#9aa8bd;text-align:center}
+.cl-dots{position:absolute;left:0;right:0;bottom:calc(var(--u)*1.8);display:flex;justify-content:center;gap:calc(var(--u)*1.4)}
+.cl-dots i{width:calc(var(--u)*1.4);height:calc(var(--u)*1.4);border-radius:50%;background:rgba(255,255,255,.16)}
 .cl-dots i.on{background:var(--ca)}
 /* küçük göstergeler */
-.cl-mini{width:100%;display:flex;justify-content:center;gap:10px}
-.cl-m{flex:1 1 0;max-width:120px;min-width:0;display:grid;justify-items:center;line-height:1}
+.cl-mini{width:100%;display:flex;justify-content:center;gap:calc(var(--u)*2.4)}
+.cl-m{flex:1 1 0;max-width:calc(var(--u)*27);min-width:0;display:grid;justify-items:center;line-height:1}
 .cl-m svg{width:100%;height:auto;display:block;overflow:visible}
-.cl-m b{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:3px;color:#e8eef7}
-.cl-m span{font:600 10px/1 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:#7d8ba3;margin-top:4px}
+.cl-m b{font-size:calc(var(--u)*4.4);font-weight:600;font-variant-numeric:tabular-nums;margin-top:calc(var(--u)*.7);color:#e8eef7}
+.cl-m span{font:600 calc(var(--u)*2.3)/1 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:#7d8ba3;margin-top:calc(var(--u)*.9)}
 .cl-m.warn b{color:#ffb020}.cl-m.bad b{color:#ff3b30}
 .cl-m[hidden]{display:none}
 /* süren tehlike: ortada kırmızı yazı */
 .cl-alert{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 46px);transform:translateX(-50%);width:max-content;max-width:88vw;z-index:3;
-  background:#e0201a;color:#fff;border-radius:14px;padding:12px 22px;font:700 22px/1.2 var(--f-body);text-align:center;box-shadow:0 0 0 4px rgba(0,0,0,.6),0 0 40px rgba(255,40,30,.45)}
+  background:#e0201a;color:#fff;border-radius:calc(var(--u)*3);padding:calc(var(--u)*2.4) calc(var(--u)*4.6);font:700 calc(var(--u)*4.8)/1.2 var(--f-body);text-align:center;box-shadow:0 0 0 4px rgba(0,0,0,.6),0 0 40px rgba(255,40,30,.45)}
 .cl.alarm{box-shadow:inset 0 0 0 4px #ff3b30}
 /* kontrol çubuğu (dokununca 4 sn) */
 .cl-ctl{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:4;display:grid;grid-template-columns:1fr 1fr;gap:8px;
   background:rgba(8,12,22,.94);padding:10px;border-radius:16px;border:1px solid rgba(160,190,230,.18);backdrop-filter:blur(6px)}
 .cl-ctl button{min-height:52px;background:#121a2a;color:#e8eef7;border:1px solid rgba(160,190,230,.2);border-radius:12px;font:600 15px/1.15 var(--f-body);padding:6px 4px}
-.cl-ctl button.x{border-color:var(--ca);color:var(--ca);grid-column:1/-1}
+.cl-ctl button.x{border-color:var(--ca);color:var(--ca)}
 /* stiller */
 .cl.st-klasik{background:radial-gradient(110% 85% at 50% 40%,#171a21 0%,#0a0c11 60%,#030405 100%)}
 .cl.st-klasik .cl-read{place-content:start center;padding-top:60cqw}
@@ -103,18 +117,22 @@
 .cl.st-sade .cl-bar i{box-shadow:none}
 .cl.st-sade .cl-m svg path{filter:none!important}
 @media (orientation:landscape){
-  .cl-in{grid-template-columns:1fr minmax(0,auto) 1fr;grid-template-rows:auto 1fr;grid-template-areas:"top top top" "spd mid rpm";column-gap:0;row-gap:0;padding-top:calc(env(safe-area-inset-top,0px) + 4px)}
-  .cl-top{min-height:32px}
-  .cl-spd{width:min(37vw,calc(100vh - 52px));justify-self:end}
+  .cl-in{--u:min(calc(97cqw / 226), calc(97cqh / 100));
+    grid-template-columns:calc(var(--u)*84) calc(var(--u)*54) calc(var(--u)*84);grid-template-rows:auto calc(var(--u)*84);
+    grid-template-areas:"top top top" "spd mid rpm";column-gap:calc(var(--u)*2);row-gap:calc(var(--u)*2)}
+  .cl-top{grid-template-columns:1fr auto 1fr;grid-template-areas:"c t o"}
+  .cl-tt{gap:calc(var(--u)*1.4);min-height:calc(var(--u)*7)}
+  .cl-tt i{width:calc(var(--u)*7);height:calc(var(--u)*7)}
+  .cl-tt i b{font-size:calc(var(--u)*2.2)}
+  .cl-spd{width:100%}
   .cl-mid{display:contents}
-  .cl-rpm{grid-area:rpm;width:min(37vw,calc(100vh - 52px));justify-self:start}
-  .cl-center{grid-area:mid;width:min(23vw,240px);display:grid;gap:10px;align-content:start;align-self:start;margin-top:3vh}
-  .cl-ctl{grid-template-columns:repeat(5,1fr);left:50%;right:auto;transform:translateX(-50%);width:min(94vw,860px)}
-  .cl-ctl button.x{grid-column:auto}
+  .cl-rpm{grid-area:rpm;width:100%}
+  .cl-center{grid-area:mid;width:100%;height:100%;display:grid;grid-template-rows:1fr auto;gap:calc(var(--u)*3);padding-block:calc(var(--u)*3) calc(var(--u)*13);box-sizing:border-box}
+  .cl-ctl{grid-template-columns:repeat(6,1fr);left:50%;right:auto;transform:translateX(-50%);width:min(94vw,960px)}
   /* yatayda iki kadranın arasındaki alt boşluk: rakamları kapatmaz */
-  .cl-alert{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);max-width:44vw;font-size:21px;padding:10px 18px}
+  .cl-alert{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + var(--u)*2);max-width:calc(var(--u)*110);font-size:calc(var(--u)*4.2)}
 }
-@media (orientation:portrait){ .cl-alert{grid-area:al;position:static;transform:none;max-width:100%;font-size:20px;padding:10px 16px}
+@media (orientation:portrait){ .cl-alert{grid-area:al;position:static;transform:none;max-width:100%}
   .cl-center{display:contents} .cl-rpm{grid-area:rpm} .cl-panel{grid-area:panel} .cl-mini{grid-area:mini} }
 `;
   document.head.appendChild(css);
@@ -128,8 +146,14 @@
     fuel:'<svg viewBox="0 0 48 48"><path fill="currentColor" d="M10 7h18a2 2 0 0 1 2 2v14h2a4 4 0 0 1 4 4v7a1.5 1.5 0 0 0 3 0V19l-4-4 2-2 5 5v16a4.5 4.5 0 0 1-9 0v-7a1 1 0 0 0-1-1h-2v14h2v3H6v-3h2V9a2 2 0 0 1 2-2zm2 4v9h14v-9z"/></svg>',
     link:'<svg viewBox="0 0 48 48"><path fill="currentColor" d="M20 6h3v7h2V6h3v7h3v9a8 8 0 0 1-6 7.7V34h-4v-4.3A8 8 0 0 1 15 22v-9h5zm-9 29l3-3 23 23-3 3zM17 38h6v4h-6z"/></svg>',
   };
-  const TT_ORDER=["mil","batt","temp","oil","fuel","link"];
-  const TT_NAME={mil:"Motor arıza lambası", batt:"Şarj / akü", temp:"Su sıcaklığı", oil:"Yağ sıcaklığı", fuel:"Yakıt azaldı", link:"Bağlantı koptu"};
+  ICON.serv='<svg viewBox="0 0 48 48"><path fill="currentColor" d="M31 5a11 11 0 0 0-10.4 14.6L6.3 33.9a4.5 4.5 0 0 0 6.4 6.4l14.3-14.3A11 11 0 0 0 42 17l-6.3 6.3-6.4-1.7-1.7-6.4L34 9a11 11 0 0 0-3-4z"/></svg>';
+  ICON.ready='<b>READY</b>';
+  const TT_ORDER=["mil","batt","temp","oil","fuel","serv","ready","link"];
+  const TT_NAME={mil:"Motor arıza lambası (yanıp sönüyorsa tekleme)", batt:"Şarj / akü", temp:"Motor sıcaklığı (mavi: soğuk, kırmızı: hararet)", oil:"Yağ sıcaklığı",
+    fuel:"Yakıt azaldı", serv:"Servis: bekleyen arıza kodu ya da bakım zamanı", ready:"Elektrikli araç sürüşe hazır", link:"Bağlantı koptu"};
+  // Açılış gösterge kontrolü: her lamba kendi renginde yanar, ibreler sona gidip döner
+  const CHECK_COLOR={mil:"amber", batt:"red", temp:"red", oil:"red", fuel:"amber", serv:"amber", ready:"green", link:"red"};
+  const CHECK_MS=2200, SWEEP_UP_MS=900;
 
   const H={open:false, el:null, pushed:false, fs:false, barT:null, timer:null, raf:null, lastDraw:0, mil:false,
     dials:{}, reduce:false, font:"", onResize:null, swipe:null};
@@ -165,11 +189,17 @@
   function telltales(){
     const al=S.alarms, ev=isEv(), out={};
     const stored=S.dtc && S.dtc.stored ? S.dtc.stored.length : 0;
-    out.mil = (al.has("mil") || H.mil || stored>0) ? "amber" : "";
+    const misfire=[...al.keys()].some(k=>k.startsWith("misfire"));
+    // gerçek araçlardaki gibi: tekleme sürerken arıza lambası yanıp söner
+    out.mil = misfire ? "amber flash" : (al.has("mil") || H.mil || stored>0) ? "amber" : "";
     const v=cur("42"), rpm=cur("0C"), running=ev ? S.active : (rpm!=null && rpm>400);
-    out.batt = (al.has("g42") || (running && v!=null && v<13.0)) ? "red" : "";
+    // motor çalışırken şarj yok: kırmızı; motor dururken akü zayıf (12,2 V altı): sarı
+    out.batt = (al.has("g42") || (running && v!=null && v<13.0)) ? "red" : (!running && !ev && v!=null && v<12.2) ? "amber" : "";
     const w=cur("05"), wm=lim("05").max;
-    out.temp = (al.has("g05") || (w!=null && wm!=null && w>=wm)) ? "red" : "";
+    out.temp = (al.has("g05") || (w!=null && wm!=null && w>=wm)) ? "red" : (running && w!=null && w<50) ? "blue" : "";
+    const pending=S.dtc && S.dtc.pending ? S.dtc.pending.length : 0;
+    out.serv = (pending>0 || al.has("maint")) ? "amber" : "";
+    out.ready = ev ? (S.active ? "green" : "") : null;
     out.oil = cur("5C")==null && !al.has("g5C") ? null : (al.has("g5C") ? "red" : "");
     const lvl=ev ? socNow() : cur("2F"), lmin=ev ? (lim("EV_SOC").min ?? lim("5B").min ?? 10) : (lim("2F").min ?? 10);
     out.fuel = lvl==null ? null : (lvl<=lmin ? "amber" : "");
@@ -199,6 +229,8 @@
     const top=mk("div","cl-top"), clock=mk("div","cl-clock",""), tt=mk("div","cl-tt"), outT=mk("div","cl-out","");
     const tts={};
     for(const k of TT_ORDER){ const i=mk("i"); i.innerHTML=ICON[k]; i.setAttribute("role","img"); i.setAttribute("aria-label",TT_NAME[k]); i.title=TT_NAME[k]; tt.appendChild(i); tts[k]=i; }
+    const recEl=mk("span","cl-rec","KAYIT"); recEl.hidden=true; recEl.title="Sürüş kaydediliyor";
+    const clockT=mk("span",null,""); clock.append(clockT,recEl);
     top.append(clock,tt,outT);
     const spd=dial("cl-spd"), rpm=dial("cl-rpm"); spd.kind="spd"; rpm.kind="rpm";
     const limEl=mk("div","cl-lim",""); limEl.setAttribute("aria-label","Hız uyarı sınırı"); spd.w.appendChild(limEl);
@@ -229,9 +261,10 @@
     const bP=btn("Bilgi sayfası",()=>cyclePage(1));
     const bC=btn("",()=>{ const k=Object.keys(ACCENTS); settings.cluster.accent=k[(k.indexOf(settings.cluster.accent)+1)%k.length]; save(); applyView(); });
     const bS=btn("",()=>{ settings.cluster.style=STYLES[(STYLES.indexOf(style())+1)%STYLES.length]; save(); applyView(); });
-    bar.append(bS,bC,bB,bP,bK); o.appendChild(bar);
+    const bT=btn("",()=>{ settings.cluster.check=!settings.cluster.check; save(); applyView(); if(settings.cluster.check) startCheck(); });
+    bar.append(bS,bC,bB,bP,bT,bK); o.appendChild(bar);
     o.addEventListener("click",showBar);
-    Object.assign(H,{el:o, inn, bar, clock, outT, tts, limEl, sub, panel, pbody, dotEls, minis, alertEl:alert, btns:{bB,bP,bC,bS}});
+    Object.assign(H,{el:o, inn, bar, clock:clockT, recEl, outT, tts, limEl, sub, panel, pbody, dotEls, minis, alertEl:alert, btns:{bB,bP,bC,bS,bT}});
     H.dials={spd, rpm};
   }
 
@@ -246,6 +279,7 @@
     H.btns.bB.textContent="Parlaklık: "+BRIGHT_NAME[settings.cluster.bright];
     H.btns.bC.textContent="Renk: "+(ACCENT_NAME[settings.cluster.accent]||"");
     H.btns.bS.textContent="Stil: "+STYLE_NAME[style()];
+    H.btns.bT.textContent="Açılış testi: "+(settings.cluster.check?"Açık":"Kapalı");
     for(const d of Object.values(H.dials)) d.faceKey="";   // yüz yeniden çizilsin (vurgu rengi)
     update(); kick(true);
   }
@@ -378,7 +412,11 @@
     }
     // uyarı lambaları
     const tt=telltales(); H.tt=tt;
-    for(const k of TT_ORDER){ const e=H.tts[k], s=tt[k]; e.hidden=(s===null); e.className=s||""; }
+    const chk=checking();
+    for(const k of TT_ORDER){ const e=H.tts[k], s=tt[k];
+      if(chk && s!==null){ e.hidden=false; e.className=CHECK_COLOR[k]; continue; }   // araçta olmayan lamba (ör. benzinlide READY) testte de yanmaz
+      e.hidden=(s===null); e.className=s||""; }
+    H.recEl.hidden=!(REC.trip && S.active);
     // üst satır
     const now=new Date();
     H.clock.textContent=now.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
@@ -630,19 +668,32 @@
     if(!H.force && now-H.lastDraw<30){ H.raf=rafFn(frame); return; }
     const dt=H.lastDraw ? Math.min(200, now-H.lastDraw) : 33;
     let moving=false;
+    const chk=checking(), up=chk && !H.reduce && now-H.checkT<SWEEP_UP_MS;
     for(const d of Object.values(H.dials)){
       const s=scale(d.kind);
-      if(d.target==null){ d.shown=null; }
-      else if(d.shown==null || H.reduce){ d.shown=d.target; }
+      // açılış testi: önce ölçeğin sonuna, sonra gerçek değere (değer yoksa sıfıra)
+      const tg = up ? s.max : (chk && !H.reduce && d.target==null) ? (s.zero!=null?0:s.min) : d.target;
+      if(tg==null){ d.shown=null; }
+      else if(d.shown==null && chk && !H.reduce){ d.shown=s.zero!=null?0:s.min; moving=true; }
+      else if(d.shown==null || H.reduce){ d.shown=tg; }
       else {
-        const k=1-Math.exp(-dt/110);
-        d.shown+= (d.target-d.shown)*k;
-        if(Math.abs(d.target-d.shown) < (s.max-s.min)*0.0015) d.shown=d.target; else moving=true;
+        const k=1-Math.exp(-dt/(chk?160:110));
+        d.shown+= (tg-d.shown)*k;
+        if(Math.abs(tg-d.shown) < (s.max-s.min)*0.0015) d.shown=tg; else moving=true;
       }
       sizeCanvas(d); drawDial(d);
     }
     H.lastDraw=now; H.force=false;
-    if(moving) H.raf=rafFn(frame);
+    if(moving || chk) H.raf=rafFn(frame);
+  }
+  function checking(){ return H.checkT!=null && Date.now()-H.checkT<CHECK_MS; }
+  function startCheck(){
+    if(!H.open || !settings.cluster.check) return;
+    H.checkT=Date.now();
+    for(const d of Object.values(H.dials)) d.shown=null;
+    clearTimeout(H.checkTimer);
+    H.checkTimer=setTimeout(()=>{ H.checkT=null; H.checkTimer=null; update(); kick(true); }, CHECK_MS+50);
+    update(); kick(true);
   }
 
   // ---------- Aç / kapat ----------
@@ -666,12 +717,14 @@
     try{ if(typeof keepAwake==="function") keepAwake(); }catch(e){}
     update(); showBar();
     H.timer=setInterval(update,1000);
+    startCheck();
   }
   function close(fromPop){
     if(!H.open) return;
     H.open=false;
     clearInterval(H.timer); H.timer=null;
     clearTimeout(H.barT); H.barT=null;
+    clearTimeout(H.checkTimer); H.checkTimer=null; H.checkT=null;
     if(H.raf!=null){ cafFn(H.raf); H.raf=null; }
     try{ if(H.onResize) window.removeEventListener("resize",H.onResize); }catch(e){}
     H.onResize=null;
@@ -684,6 +737,7 @@
   on("tick",update);
   on("dtc",(dtc,mil)=>{ H.mil=!!mil; update(); });
   on("disconnect",()=>{ H.mil=false; update(); });
+  on("connect",()=>startCheck());   // panel açıkken bağlanınca: kontak açılışı gibi
   window.addEventListener("popstate",()=>{ if(H.open){ H.pushed=false; close(true); } });
   document.addEventListener("keydown",e=>{ if(H.open && e.key==="Escape") close(); });
   document.addEventListener("fullscreenchange",()=>{
@@ -707,9 +761,10 @@
     else t.appendChild(b);
   }
 
-  window.CLUSTER={open, close, update, applyView, cyclePage, telltales, alertText, scale, ang, STYLES,
+  window.CLUSTER={open, close, update, applyView, cyclePage, telltales, alertText, scale, ang, STYLES, startCheck,
+    get checking(){ return checking(); }, get recEl(){ return H.recEl; },
     get btns(){ return H.btns; },
     get isOpen(){ return H.open; }, get dials(){ return H.dials; }, get minis(){ return H.minis; }, get page(){ return H.page; },
     get el(){ return H.el; }, get limEl(){ return H.limEl; }, get sub(){ return H.sub; }, get tts(){ return H.tts; },
-    get timers(){ return {interval:H.timer, raf:H.raf, bar:H.barT, resize:H.onResize}; }, frame:()=>{ H.force=true; if(H.raf!=null){ cafFn(H.raf); H.raf=null; } frame(); }};
+    get timers(){ return {interval:H.timer, raf:H.raf, bar:H.barT, resize:H.onResize, check:H.checkTimer}; }, frame:()=>{ H.force=true; if(H.raf!=null){ cafFn(H.raf); H.raf=null; } frame(); }};
 })();
