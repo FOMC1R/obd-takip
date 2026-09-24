@@ -55,6 +55,7 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
 - **Ön cam (HUD):** Siyah zemin üzerinde büyük hız gösterir. Hız, uyarı sınırına yaklaşınca sarı, aşınca kırmızı olur. Üstte devir çubuğu var; vites değiştirme noktasında yanıp söner. Altta seçtiğin üç değer görünür.
   - O an süren bir tehlike varsa (örneğin su sıcaklığı sınırı aştıysa) uyarının kendisi en üstte büyük yazıyla çıkar.
   - Ekrana dokununca ayarlar çıkar: **Ön cam yansıması** (telefon torpidoda düz yatarken yazı camda düz okunsun diye yukarı-aşağı çevirir), **Sağ-sol aynala**, **Parlaklık** (Otomatik seçilirse akşam ve gece kendiliğinden kısılır), **Renk**, **Değerleri seç** ve **Sade** (yalnızca hız ve uyarılar).
+- **Gösterge paneli:** Modern araçlardaki gibi dijital kadran. Yuvarlak hız ve devir göstergeleri, ortada bilgi sayfaları (yolculuk, tüketim, motor, saat), su, yakıt ve akü göstergeleri ve arıza lambaları. Yatay tutucuda iki kadran yan yana durur. Elektrikli araçta devir yerine güç (kW) göstergesi çıkar.
 - **Performans ölçümü:** 0-100 km/sa ve 80-120 km/sa (sollama) süresini ölçer. **Yalnızca kapalı ve güvenli bir alanda dene.**
 
 ### Arıza
@@ -83,10 +84,23 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
   - **Triger aralığı araca göre değişir.** Varsayılan 90.000 km / 5 yıl, K4M için temkinli bir değerdir. Kendi servis kitapçığına bak: triger kopması bu motorda supaplara zarar verir.
 - **Masraf defteri:** Yakıt, bakım, sigorta gibi harcamalar. Aylık ve yıllık toplam, km başına maliyet. Depoyu tam doldurduğunda litreyi girersen **gerçek tüketimi** hesaplar ve uygulamanın tahmini tutmuyorsa düzeltme oranını önerir.
 
+### İstatistik
+- **Özet:** Seçilen dönemin (bu hafta, bu ay, son 3 ay, bu yıl, tümü) toplam km, süre, yakıt, maliyet ve ortalama tüketimi; önceki döneme göre artış ve azalışı.
+- **Grafikler:** Km, sürüş başına tüketim, günün saatlerine göre sürüş ve sürüş uzunluğu.
+- **Araç sağlığı eğilimleri:** Her sürüşteki şarj voltajı, uzun süreli yakıt ayarı, en yüksek su sıcaklığı, ısınma süresi ve rölantide geçen süre.
+  - Son sürüşlerde yavaş bir bozulma varsa sade bir cümleyle söyler. Örneğin: "Son 10 sürüşte şarj voltajı ortalama 0,3 V düştü — akü/alternatör kontrolü önerilir."
+  - Yorum için en az 5 gerçek sürüş gerekir.
+- **Rekorlar ve arıza geçmişi.**
+- Deneme kayıtları istatistiğe katılmaz.
+
 ### Ayarlar
 - Her değer için **alt/üst uyarı sınırı** belirlenebilir ve istenmeyen değerler gizlenebilir.
 - **Yakıt:** yakıt türü, litre fiyatı, motor hacmi ve düzeltme oranı.
 - Sesli uyarı, titreşim, ekranı açık tutma, kayıt ve GPS tercihleri.
+- **Araçlarım:** Uygulama bağlandığı aracı şase numarasından tanır ve her araç için sürüşleri, bakımı, masrafları ve ayarları ayrı tutar.
+  - İlk bağlantıda "Yeni araç tanındı: … — doğru mu?" diye sorar ve araca uygun varsayılanları getirir; örneğin Fluence K4M için benzin, 1,6 L.
+  - Gerekirse şase numarasının yalnızca ilk 11 karakteri bir araç tanıma servisine gönderilir; aracın seri numarası hiçbir yere gitmez.
+  - Eski Renault'ların şase numarasında model yılı bulunmaz; uygulama bu yüzden yıl göstermez.
 - **Tanılama paketi gönder:** Uygulamanın senin aracında nasıl çalıştığını tek bir dosyada toplar ve paylaşma menüsünü açar. Dosyada şunlar var: cihaz ve bağlantı bilgisi, aracın hangi değerleri verdiği, cihazla konuşmanın ham kaydı, arıza durumu, canlı değerler ve sürüş özetleri. Geliştirme için bu dosyayı göndermen yeterli. **API anahtarı, konum ve masraf notları dosyaya girmez.**
 
 ## Elektrikli araçlar (deneme aşamasında)
