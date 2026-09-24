@@ -1,0 +1,26 @@
+{
+  "surum": 1,
+  "guncelleme": "2026-09-24",
+  "arac": "otomobil (M1)",
+  "otomobil": { "yerlesim": 50, "sehirlerarasi": 90, "bolunmus": 110, "otoyol": 120 },
+  "yolAdi": {
+    "yerlesim": "Yerleşim yeri içi",
+    "sehirlerarasi": "Şehirlerarası çift yönlü yol",
+    "bolunmus": "Bölünmüş yol",
+    "otoyol": "Otoyol"
+  },
+  "otoyolNot": "Bazı otoyollarda sınır 130 ya da 140 km/sa'e çıkarıldı (İçişleri Bakanlığı, 1 Temmuz 2022). Haritada bu yollar genellikle kendi sınırıyla işaretlidir.",
+  "bolgeKodlari": { "TR:urban": "yerlesim", "TR:rural": "sehirlerarasi", "TR:trunk": "bolunmus", "TR:dual_carriageway": "bolunmus", "TR:motorway": "otoyol" },
+  "yolTuru": { "motorway": "otoyol", "motorway_link": "otoyol", "residential": "yerlesim", "living_street": "yerlesim" },
+  "ceza": {
+    "yerlesimIciBaslangic": 6,
+    "yerlesimDisiBaslangic": 11,
+    "not": "Ceza, sınırın yerleşim yeri içinde 6, dışında 11 km/sa ve üstünde aşılmasıyla başlar (7574 sayılı Kanun, Resmî Gazete 27 Şubat 2026)."
+  },
+  "kaynaklar": [
+    "https://www.trafiksozluk.com/karayollari-trafik-yonetmeligi-100-madde/",
+    "https://www.icisleri.gov.tr/otoyollarda-otomobiller-icin-yeni-hiz-siniri-uygulamasi-1-temmuzda-basliyor",
+    "https://www.harbiyehukuk.com/trafikte-hiz-sinirlari-ve-uymamanin-cezasi/",
+    "https://wiki.openstreetmap.org/wiki/Default_speed_limits"
+  ]
+}

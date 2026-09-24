@@ -6,7 +6,7 @@ const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192
   "./features/layout.js", "./features/hud.js", "./features/misfire.js", "./features/ai.js",
   "./features/maintenance.js", "./features/expenses.js", "./features/report.js",
   "./features/score.js", "./features/perf.js", "./features/ev.js", "./features/diagpack.js", "./features/prices.js",
-  "./features/vehicles-data.js", "./features/vehicles.js", "./features/cluster.js", "./features/stats.js",
+  "./features/vehicles-data.js", "./features/vehicles.js", "./features/cluster.js", "./features/stats.js", "./features/speedlimit.js",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"];
 
