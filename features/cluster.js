@@ -1,15 +1,20 @@
 // Gösterge paneli: yeni arabalardaki ekran gösterge paneli gibi — solda hız, sağda devir (elektrikli araçta güç)
 // saati, ortada seçilebilir bilgi sayfası ve küçük göstergeler (su, yakıt/batarya, akü), üstte uyarı lambaları.
 // Kadranlar <canvas> ile çizilir; rakamlar ve sayfalar düz yazıdır (keskin ve test edilebilir).
-// Kalıcı ayar: settings.cluster = {bright:"oto"|"gunduz"|"gece", accent, page}
+// Kalıcı ayar: settings.cluster = {bright:"oto"|"gunduz"|"gece", accent, page, style}
+// Stiller: modern (parlayan yay + kısa ibre), klasik (ortadan dönen ibre, krom çerçeve),
+// spor (bölmeli ışık çubuğu, ibre yok), sade (ince yay, çentiksiz; gece için)
 (function(){
-  const DEF={bright:"oto", accent:"buz", page:0};
+  const DEF={bright:"oto", accent:"buz", page:0, style:"modern"};
   if(settings.cluster===undefined) settings.cluster={};
   for(const k in DEF) if(settings.cluster[k]===undefined) settings.cluster[k]=DEF[k];
 
   // Renkler: koyu lacivert-siyah zemin, soğuk beyaz rakamlar, tek vurgu rengi; sarı/kırmızı yalnızca uyarıda
-  const ACCENTS={buz:"#42c8ff", nane:"#34e0b4", mor:"#a08cff", beyaz:"#e6edf7"};
-  const ACCENT_NAME={buz:"Buz mavisi", nane:"Nane", mor:"Mor", beyaz:"Beyaz"};
+  const ACCENTS={buz:"#42c8ff", nane:"#34e0b4", mor:"#a08cff", turuncu:"#ff8a1f", beyaz:"#e6edf7"};
+  const ACCENT_NAME={buz:"Buz mavisi", nane:"Nane", mor:"Mor", turuncu:"Turuncu", beyaz:"Beyaz"};
+  const STYLES=["modern","klasik","spor","sade"];
+  const STYLE_NAME={modern:"Modern", klasik:"Klasik", spor:"Spor", sade:"Sade"};
+  const style=()=>STYLES.includes(settings.cluster.style) ? settings.cluster.style : "modern";
   const C={ink:"#e8eef7", mute:"#7d8ba3", dim:"rgba(170,190,220,.32)", amber:"#ffb020", red:"#ff3b30", green:"#35d07f"};
   const BRIGHT={gunduz:1, gece:.6};
   const BRIGHT_NAME={oto:"Otomatik", gunduz:"Gündüz", gece:"Gece"};
@@ -79,7 +84,24 @@
 .cl-ctl{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:4;display:grid;grid-template-columns:1fr 1fr;gap:8px;
   background:rgba(8,12,22,.94);padding:10px;border-radius:16px;border:1px solid rgba(160,190,230,.18);backdrop-filter:blur(6px)}
 .cl-ctl button{min-height:52px;background:#121a2a;color:#e8eef7;border:1px solid rgba(160,190,230,.2);border-radius:12px;font:600 15px/1.15 var(--f-body);padding:6px 4px}
-.cl-ctl button.x{border-color:var(--ca);color:var(--ca)}
+.cl-ctl button.x{border-color:var(--ca);color:var(--ca);grid-column:1/-1}
+/* stiller */
+.cl.st-klasik{background:radial-gradient(110% 85% at 50% 40%,#171a21 0%,#0a0c11 60%,#030405 100%)}
+.cl.st-klasik .cl-read{place-content:start center;padding-top:60cqw}
+.cl.st-klasik .cl-num,.cl.st-klasik .cl-rpm .cl-num{font-size:13cqw;text-shadow:none}
+.cl.st-klasik .cl-unit{font-size:4.6cqw;margin-top:.8cqw}
+.cl.st-klasik .cl-lim{bottom:auto;top:25cqw;width:11cqw;height:11cqw;font-size:4.6cqw;border-width:1.2cqw}
+.cl.st-klasik .cl-sub{bottom:auto;top:30cqw;font-size:4.4cqw}
+.cl.st-klasik .cl-panel{border-radius:10px;border-color:rgba(200,210,225,.16)}
+.cl.st-spor{background:radial-gradient(120% 90% at 50% 45%,#1f1113 0%,#0c0708 55%,#030202 100%)}
+.cl.st-spor .cl-num{font-style:italic;font-weight:700;text-shadow:0 0 22px rgba(255,120,80,.16)}
+.cl.st-spor .cl-kv b,.cl.st-spor .cl-big,.cl.st-spor .cl-time{font-style:italic;font-weight:700}
+.cl.st-spor .cl-panel{border-radius:6px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border-color:rgba(255,255,255,.09);border-left:3px solid var(--ca)}
+.cl.st-sade{background:#000}
+.cl.st-sade .cl-num{font-weight:500;text-shadow:none}
+.cl.st-sade .cl-panel{background:none;border-color:rgba(255,255,255,.07)}
+.cl.st-sade .cl-bar i{box-shadow:none}
+.cl.st-sade .cl-m svg path{filter:none!important}
 @media (orientation:landscape){
   .cl-in{grid-template-columns:1fr minmax(0,auto) 1fr;grid-template-rows:auto 1fr;grid-template-areas:"top top top" "spd mid rpm";column-gap:0;row-gap:0;padding-top:calc(env(safe-area-inset-top,0px) + 4px)}
   .cl-top{min-height:32px}
@@ -87,7 +109,8 @@
   .cl-mid{display:contents}
   .cl-rpm{grid-area:rpm;width:min(37vw,calc(100vh - 52px));justify-self:start}
   .cl-center{grid-area:mid;width:min(23vw,240px);display:grid;gap:10px;align-content:start;align-self:start;margin-top:3vh}
-  .cl-ctl{grid-template-columns:repeat(4,1fr);left:50%;right:auto;transform:translateX(-50%);width:min(94vw,760px)}
+  .cl-ctl{grid-template-columns:repeat(5,1fr);left:50%;right:auto;transform:translateX(-50%);width:min(94vw,860px)}
+  .cl-ctl button.x{grid-column:auto}
   /* yatayda iki kadranın arasındaki alt boşluk: rakamları kapatmaz */
   .cl-alert{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);max-width:44vw;font-size:21px;padding:10px 18px}
 }
@@ -203,9 +226,10 @@
     const bB=btn("",()=>{ const k=["oto","gunduz","gece"]; settings.cluster.bright=k[(k.indexOf(settings.cluster.bright)+1)%k.length]; save(); applyView(); });
     const bP=btn("Bilgi sayfası",()=>cyclePage(1));
     const bC=btn("",()=>{ const k=Object.keys(ACCENTS); settings.cluster.accent=k[(k.indexOf(settings.cluster.accent)+1)%k.length]; save(); applyView(); });
-    bar.append(bK,bB,bP,bC); o.appendChild(bar);
+    const bS=btn("",()=>{ settings.cluster.style=STYLES[(STYLES.indexOf(style())+1)%STYLES.length]; save(); applyView(); });
+    bar.append(bS,bC,bB,bP,bK); o.appendChild(bar);
     o.addEventListener("click",showBar);
-    Object.assign(H,{el:o, inn, bar, clock, outT, tts, limEl, sub, panel, pbody, dotEls, minis, alertEl:alert, btns:{bB,bP,bC}});
+    Object.assign(H,{el:o, inn, bar, clock, outT, tts, limEl, sub, panel, pbody, dotEls, minis, alertEl:alert, btns:{bB,bP,bC,bS}});
     H.dials={spd, rpm};
   }
 
@@ -219,6 +243,7 @@
     if(H.el.style.setProperty) H.el.style.setProperty("--ca", accent());
     H.btns.bB.textContent="Parlaklık: "+BRIGHT_NAME[settings.cluster.bright];
     H.btns.bC.textContent="Renk: "+(ACCENT_NAME[settings.cluster.accent]||"");
+    H.btns.bS.textContent="Stil: "+STYLE_NAME[style()];
     for(const d of Object.values(H.dials)) d.faceKey="";   // yüz yeniden çizilsin (vurgu rengi)
     update(); kick(true);
   }
@@ -360,7 +385,7 @@
     // süren tehlike
     const txt=alertText();
     H.alertEl.hidden=!txt; if(txt) H.alertEl.textContent=txt;
-    const cls="cl"+(txt?" alarm":"");
+    const cls="cl st-"+style()+(txt?" alarm":"");
     if(H.el.className!==cls) H.el.className=cls;
     kick(false);
   }
@@ -392,13 +417,96 @@
   }
   // Sabit yüz (çentikler, rakamlar, kırmızı bölge) ayrı tuvale bir kez çizilir
   function drawFace(d){
-    const s=scale(d.kind), px=d.size, key=[d.kind,px,s.max,s.red,accent(),lim("0D").max].join("|");
+    const s=scale(d.kind), px=d.size, st=style(), key=[st,d.kind,px,s.max,s.red,accent(),lim("0D").max].join("|");
     if(d.faceKey===key && d.face) return d.face;
     const f=d.face || mk("canvas"); f.width=px; f.height=px;
     const ctx=f.getContext && f.getContext("2d"); d.face=f; d.faceKey=key;
     if(!ctx) return f;
     const c=px/2, R=px/2*0.96;
     ctx.clearRect(0,0,px,px);
+    if(st==="klasik") faceKlasik(ctx,d,s,c,R);
+    else if(st==="spor") faceSpor(ctx,d,s,c,R);
+    else if(st==="sade") faceSade(ctx,d,s,c,R);
+    else faceModern(ctx,d,s,c,R);
+    if(st!=="sade") limMark(ctx,d,s,c,R);
+    return f;
+  }
+  // hız sınırı işareti: dış kenarda küçük üçgen
+  function limMark(ctx,d,s,c,R){
+    if(d.kind!=="spd" || !lim("0D").max) return;
+    const a=ang(s,lim("0D").max), r0=R*1.0, r1=R*0.9;
+    ctx.fillStyle=C.red;
+    ctx.beginPath();
+    ctx.moveTo(c+r1*Math.cos(a),c+r1*Math.sin(a));
+    ctx.lineTo(c+r0*Math.cos(a-0.035),c+r0*Math.sin(a-0.035));
+    ctx.lineTo(c+r0*Math.cos(a+0.035),c+r0*Math.sin(a+0.035));
+    ctx.closePath(); ctx.fill();
+  }
+  const isMajor=(s,v)=>Math.abs((v-s.min)%s.major)<1e-6 || Math.abs(v)%s.major<1e-6;
+  function ticks(ctx,s,c,R,{maj0,min0,r1,majW,minW,majC,minC,hotC,skipMinor}){
+    for(let v=s.min; v<=s.max+1e-6; v+=s.minor){
+      const a=ang(s,v), major=isMajor(s,v);
+      if(skipMinor && !major) continue;
+      const hot=(s.red!=null && v>=s.red) || (s.zero!=null && v<0);
+      ctx.strokeStyle= hot ? (s.zero!=null?"rgba(120,230,170,.9)":hotC) : major ? majC : minC;
+      ctx.lineWidth=R*(major?majW:minW);
+      const r0=R*(major?maj0:min0);
+      ctx.beginPath(); ctx.moveTo(c+r0*Math.cos(a),c+r0*Math.sin(a)); ctx.lineTo(c+R*r1*Math.cos(a),c+R*r1*Math.sin(a)); ctx.stroke();
+    }
+  }
+  function numbers(ctx,d,s,c,R,{rr,size,weight,italic,col}){
+    const fs=R*size;
+    ctx.font=`${italic?"italic ":""}${weight} ${fs.toFixed(1)}px ${fontFam()}`; ctx.textAlign="center"; ctx.textBaseline="middle";
+    for(let v=s.min; v<=s.max+1e-6; v+=s.major){
+      const a=ang(s,v);
+      ctx.fillStyle= (s.red!=null && v>=s.red) ? "#ff6a60" : (s.zero!=null && v<0) ? "#6fe0a4" : col;
+      ctx.fillText(s.label(v), c+R*rr*Math.cos(a), c+R*rr*Math.sin(a)+fs*0.04);
+    }
+  }
+  // Klasik: koyu kadran, krom çerçeve, uzun çentikler, ortadan dönen ibre
+  function faceKlasik(ctx,d,s,c,R){
+    ctx.fillStyle=rgrad(ctx,c,c*0.85,R*0.1,R,[[0,"#1b212c"],[.7,"#0d1017"],[1,"#07080c"]]);
+    ctx.beginPath(); ctx.arc(c,c,R*0.97,0,Math.PI*2); ctx.fill();
+    ctx.lineWidth=R*0.035;
+    ctx.strokeStyle=lgrad(ctx,0,c-R,0,c+R,[[0,"#e3e9f2"],[.35,"#7c8594"],[.7,"#3a404a"],[1,"#9aa3b1"]]);
+    ctx.beginPath(); ctx.arc(c,c,R*0.975,0,Math.PI*2); ctx.stroke();
+    if(s.red!=null){ ctx.strokeStyle="rgba(230,40,30,.85)"; ctx.lineWidth=R*0.06;
+      ctx.beginPath(); ctx.arc(c,c,R*0.895,ang(s,s.red),A0+SWEEP); ctx.stroke(); }
+    if(s.zero!=null){ ctx.strokeStyle="rgba(53,208,127,.6)"; ctx.lineWidth=R*0.04;
+      ctx.beginPath(); ctx.arc(c,c,R*0.895,A0,ang(s,0)); ctx.stroke(); }
+    ctx.lineCap="butt";
+    ticks(ctx,s,c,R,{maj0:0.8,min0:0.87,r1:0.93,majW:0.022,minW:0.01,majC:"#f1f4f8",minC:"rgba(220,228,240,.55)",hotC:"#ff7a70"});
+    numbers(ctx,d,s,c,R,{rr:0.68,size:d.kind==="spd"?0.11:0.14,weight:600,col:"#f1f4f8"});
+  }
+  // Spor: bölmeli ışık çubuğu; sönük bölmeler yüzde, yananlar her karede
+  const SEG=44;
+  function segs(ctx,s,c,R,col,from,to,dim){
+    const step=SWEEP/SEG, gap=step*0.28;
+    for(let i=0;i<SEG;i++){
+      const a0=A0+i*step, a1=a0+step-gap, mid=s.min+(s.max-s.min)*(i+0.5)/SEG;
+      if(!dim && (a1<from-1e-6 || a0>to+1e-6)) continue;
+      const hot=s.red!=null && mid>=s.red;
+      ctx.strokeStyle= dim ? (hot?"rgba(255,59,48,.22)":"rgba(255,255,255,.07)") : (hot?C.red:col);
+      ctx.beginPath(); ctx.arc(c,c,R*0.81,a0,a1); ctx.stroke();
+    }
+  }
+  function faceSpor(ctx,d,s,c,R){
+    ctx.lineCap="butt"; ctx.lineWidth=R*0.12;
+    segs(ctx,s,c,R,null,0,0,true);
+    ctx.strokeStyle="rgba(255,255,255,.14)"; ctx.lineWidth=Math.max(1,R*0.01);
+    ctx.beginPath(); ctx.arc(c,c,R*0.955,A0,A0+SWEEP); ctx.stroke();
+    ticks(ctx,s,c,R,{maj0:0.92,min0:0.92,r1:0.99,majW:0.02,minW:0,majC:"rgba(240,244,250,.9)",minC:"transparent",hotC:"#ff6a60",skipMinor:true});
+    numbers(ctx,d,s,c,R,{rr:0.6,size:d.kind==="spd"?0.1:0.125,weight:700,italic:true,col:"rgba(236,240,246,.85)"});
+  }
+  // Sade: yalnızca ince yol ve kırmızı bölge
+  function faceSade(ctx,d,s,c,R){
+    ctx.lineCap="round"; ctx.lineWidth=R*0.02; ctx.strokeStyle="rgba(255,255,255,.09)";
+    ctx.beginPath(); ctx.arc(c,c,R*0.88,A0,A0+SWEEP); ctx.stroke();
+    if(s.red!=null){ ctx.strokeStyle="rgba(255,59,48,.6)"; ctx.beginPath(); ctx.arc(c,c,R*0.88,ang(s,s.red),A0+SWEEP); ctx.stroke(); }
+    if(d.kind==="spd" && lim("0D").max){ const a=ang(s,lim("0D").max); ctx.fillStyle=C.red;
+      ctx.beginPath(); ctx.arc(c+R*0.96*Math.cos(a),c+R*0.96*Math.sin(a),R*0.022,0,Math.PI*2); ctx.fill(); }
+  }
+  function faceModern(ctx,d,s,c,R){
     // çerçeve: üstte ışık alan ince halka
     ctx.lineWidth=Math.max(1,R*0.012);
     ctx.strokeStyle=lgrad(ctx,0,c-R,0,c+R,[[0,"rgba(190,215,255,.30)"],[.5,"rgba(120,150,200,.08)"],[1,"rgba(120,150,200,.02)"]]);
@@ -438,17 +546,6 @@
       ctx.fillStyle= hot ? "#ff6a60" : (s.zero!=null && v<0) ? "#6fe0a4" : "rgba(226,235,248,.9)";
       ctx.fillText(s.label(v), c+rr*Math.cos(a), c+rr*Math.sin(a)+fs*0.04);
     }
-    // hız sınırı işareti: dış kenarda küçük üçgen
-    if(d.kind==="spd" && lim("0D").max){
-      const a=ang(s,lim("0D").max), r0=R*1.0, r1=R*0.9;
-      ctx.fillStyle=C.red;
-      ctx.beginPath();
-      ctx.moveTo(c+r1*Math.cos(a),c+r1*Math.sin(a));
-      ctx.lineTo(c+r0*Math.cos(a-0.035),c+r0*Math.sin(a-0.035));
-      ctx.lineTo(c+r0*Math.cos(a+0.035),c+r0*Math.sin(a+0.035));
-      ctx.closePath(); ctx.fill();
-    }
-    return f;
   }
   function colorFor(d){
     if(d.state==="over") return C.red;
@@ -463,7 +560,32 @@
     try{ ctx.drawImage(face,0,0); }catch(e){}
     if(d.shown==null) return;
     const v=clamp(d.shown,s.min,s.max), col=colorFor(d);
-    const from = s.zero!=null ? ang(s,0) : A0, to=ang(s,v);
+    const from = s.zero!=null ? ang(s,0) : A0, to=ang(s,v), st=style();
+    if(st==="klasik"){   // ortadan dönen, uca doğru incelen ibre + göbek
+      const ca=Math.cos(to), sa=Math.sin(to), nx=-sa, ny=ca, r0=-R*0.16, r1=R*0.9, w0=R*0.032, w1=R*0.007;
+      ctx.save(); ctx.shadowColor="rgba(0,0,0,.6)"; ctx.shadowBlur=R*0.03; ctx.fillStyle=col;
+      ctx.beginPath();
+      ctx.moveTo(c+r0*ca+nx*w0, c+r0*sa+ny*w0); ctx.lineTo(c+r1*ca+nx*w1, c+r1*sa+ny*w1);
+      ctx.lineTo(c+r1*ca-nx*w1, c+r1*sa-ny*w1); ctx.lineTo(c+r0*ca-nx*w0, c+r0*sa-ny*w0);
+      ctx.closePath(); ctx.fill(); ctx.restore();
+      ctx.fillStyle=rgrad(ctx,c,c-R*0.02,0,R*0.075,[[0,"#5b6472"],[1,"#15181e"]]);
+      ctx.beginPath(); ctx.arc(c,c,R*0.075,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle="rgba(220,228,240,.35)"; ctx.lineWidth=Math.max(1,R*0.008);
+      ctx.beginPath(); ctx.arc(c,c,R*0.075,0,Math.PI*2); ctx.stroke();
+      return;
+    }
+    if(st==="spor"){   // yanan bölmeler
+      ctx.save(); ctx.lineCap="butt"; ctx.lineWidth=R*0.12; ctx.shadowColor=col; ctx.shadowBlur=R*0.05;
+      segs(ctx,s,c,R,col,Math.min(from,to),Math.max(from,to),false); ctx.restore();
+      return;
+    }
+    if(st==="sade"){   // ince yay ve uçta nokta
+      ctx.save(); ctx.lineCap="round"; ctx.lineWidth=R*0.02; ctx.strokeStyle=col;
+      ctx.beginPath(); ctx.arc(c,c,R*0.88,Math.min(from,to),Math.max(from,to)); ctx.stroke();
+      ctx.fillStyle=col; ctx.beginPath(); ctx.arc(c+R*0.88*Math.cos(to),c+R*0.88*Math.sin(to),R*0.035,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+      return;
+    }
     // parlayan ilerleme yayı
     ctx.save();
     ctx.lineCap="butt"; ctx.lineWidth=R*0.045; ctx.strokeStyle=col;
@@ -583,7 +705,8 @@
     else t.appendChild(b);
   }
 
-  window.CLUSTER={open, close, update, applyView, cyclePage, telltales, alertText, scale, ang,
+  window.CLUSTER={open, close, update, applyView, cyclePage, telltales, alertText, scale, ang, STYLES,
+    get btns(){ return H.btns; },
     get isOpen(){ return H.open; }, get dials(){ return H.dials; }, get minis(){ return H.minis; }, get page(){ return H.page; },
     get el(){ return H.el; }, get limEl(){ return H.limEl; }, get sub(){ return H.sub; }, get tts(){ return H.tts; },
     get timers(){ return {interval:H.timer, raf:H.raf, bar:H.barT, resize:H.onResize}; }, frame:()=>{ H.force=true; if(H.raf!=null){ cafFn(H.raf); H.raf=null; } frame(); }};

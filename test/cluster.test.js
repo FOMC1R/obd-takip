@@ -89,6 +89,23 @@ require("./harness")(String.raw`
   settings.cluster.bright="gece"; CL.applyView();
   if(CL.el._kids[0].style.filter!=="brightness(0.6)") throw new Error("gece parlaklığı uygulanmadı");
   settings.cluster.bright="oto"; CL.applyView();
+  // stiller: düğme sırayla dolaşır, sınıf ve yüz değişir, rakamlar aynı kalır
+  if(CL.STYLES.length<3) throw new Error("üçten az stil");
+  settings.cluster.style="modern"; CL.applyView();
+  const seen=[];
+  for(let i=0;i<CL.STYLES.length;i++){
+    const s=settings.cluster.style;
+    CL.update(); CL.frame();
+    if(!CL.el.className.includes("st-"+s)) throw new Error("stil sınıfı yok: "+s);
+    if(!D.spd.faceKey.startsWith(s+"|")) throw new Error("kadran yüzü stile göre çizilmedi: "+s);
+    if(D.spd.num.textContent!==fmt(cur("0D"),0)) throw new Error("stilde hız farklı: "+s);
+    seen.push(CL.btns.bS.textContent);
+    CL.btns.bS.ev.click({stopPropagation(){}});
+  }
+  console.log("stiller:", seen.join(" → "));
+  if(settings.cluster.style!=="modern" || new Set(seen).size!==CL.STYLES.length) throw new Error("stil düğmesi dolaşmadı");
+  settings.cluster.style="bilinmeyen"; CL.update(); if(!CL.el.className.includes("st-modern")) throw new Error("bilinmeyen stil modern'e dönmedi");
+  settings.cluster.style="modern";
 
   // kapat: sayaçlar durur
   S.paused=false;
