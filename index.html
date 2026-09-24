@@ -76,13 +76,34 @@ button.icon svg{width:22px;height:22px}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 
 /* alarm şeridi */
-.alarms{display:grid;gap:8px}
-.alarm{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:10px;font-weight:600;border:1px solid}
-.alarm.crit{background:var(--crit-bg);border-color:var(--crit);color:var(--crit);animation:pulse 1.2s ease-in-out infinite}
-.alarm.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--text)}
-.alarm small{font-weight:400;color:var(--muted);margin-left:auto;white-space:nowrap}
-@keyframes pulse{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--crit) 30%,transparent)}}
-@media (prefers-reduced-motion:reduce){.alarm.crit{animation:none}}
+/* Başlık yapışkan olduğu için uyarılar tek satırda durur; ayrıntı dokununca açılır */
+.alarms{display:grid;gap:6px;min-width:0}
+.abar{display:flex;align-items:center;gap:10px;width:100%;min-width:0;min-height:44px;padding:6px 12px;border-radius:10px;border:1px solid;font-weight:600;font-size:15px;text-align:left;line-height:1.2}
+.abar .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.abar i{width:10px;height:10px;border-radius:50%;background:currentColor;flex:none}
+.abar .n{flex:none;font-size:13px;font-variant-numeric:tabular-nums;padding:2px 8px;border-radius:99px;border:1px solid currentColor}
+.abar .n:empty{display:none}
+.abar::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.7;transition:transform .2s}
+.abar[aria-expanded="true"]::after{transform:translateY(2px) rotate(-135deg)}
+.abar.crit{background:var(--crit-bg);border-color:var(--crit);color:var(--crit)}
+.abar.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--text)}
+.abar.warn i{background:var(--warn)}
+.abar.quiet{background:var(--panel-2);border-color:var(--line);color:var(--muted);font-weight:500}
+.abar.flash{animation:aflash .45s ease-in-out 4}
+@keyframes aflash{50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--crit) 40%,transparent)}}
+.apanel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:10px;max-height:min(55vh,440px);overflow:auto}
+.alist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.alist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:6px 6px 6px 10px;border-radius:10px;background:var(--panel-2);border-left:4px solid var(--warn)}
+.alist li.crit{border-left-color:var(--crit)}
+.alist li span{font-weight:600;font-size:14px;line-height:1.3;overflow-wrap:anywhere}
+.alist li.crit span{color:var(--crit)}
+.alist li small{grid-row:2;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.alist li button,.alist li em{grid-row:1/span 2;grid-column:2}
+.alist li button{padding:8px 12px;font-size:14px}
+.alist li em{font-style:normal;font-size:12px;color:var(--muted);padding:0 8px}
+.alist li.seen{opacity:.72}
+.apanel .actions{justify-content:flex-end}
+@media (prefers-reduced-motion:reduce){.abar.flash{animation:none}.abar::after{transition:none}}
 
 /* arıza kartı */
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px}
@@ -244,7 +265,7 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
     <button id="cCancel">Vazgeç</button>
   </div>
   <div class="demo-banner" id="demoBanner" hidden role="status">DENEME MODU — gösterilen değerler ve arıza kodları gerçek araçtan değil. Sürüş kaydedilmez.</div>
-  <div class="alarms" id="alarms" aria-live="assertive"></div>
+  <div class="alarms" id="alarms"></div>
 </header>
 
 <div class="notice" id="btNotice" hidden></div>
@@ -941,7 +962,7 @@ function beep(level){
 function raise(key, level, text, say){
   if(S.alarms.has(key)) return;
   S.alarms.set(key,{level,text,since:new Date()});
-  addLog(level,text); beep(level); paintAlarms();
+  addLog(level,text); beep(level); paintAlarms(); if(level==="crit") flashAlarmBar();
   speak(say||text);
   emit("alarm", key, level, text);
 }
@@ -962,13 +983,73 @@ const SAY_UNIT={"°C":"derece","km/sa":"kilometre","V":"volt","d/dk":"devir","kP
 function sayValue(g,v){ const n=fmt(v,g.dec); return g.unit==="%" ? `yüzde ${n}` : `${n} ${SAY_UNIT[g.unit]||""}`; }
 const sayCode = c=>c.split("").join(" ");
 function drop(key){ if(S.alarms.delete(key)) paintAlarms(); }
+// Uyarı şeridi: başlıkta tek satır (en önemli görülmemiş uyarı + "+N"); dokununca bütün uyarıların listesi.
+// "Gördüm" uyarıyı yalnızca şeritten indirir; uyarı S.alarms'ta kalır (HUD, panel, kayıt aynen görür).
+// Uyarı kalkıp yeniden gelirse yeni kayıt olduğundan yine görünür.
+const ALARM_SEEN=new WeakSet();
+let alarmOpen=false, alarmFlashT=null, alarmBuilt=false;
+function alarmOrder(){
+  return [...S.alarms.entries()].sort(([,a],[,b])=>(a.level==="crit"?0:1)-(b.level==="crit"?0:1) || b.since-a.since);
+}
+function buildAlarmBar(){
+  if(alarmBuilt) return; alarmBuilt=true;
+  const el=(tag,id,cls)=>{ const e=document.createElement(tag); if(id) e.id=id; if(cls) e.className=cls; return e; };
+  const bar=el("button","alarmBar","abar"); bar.type="button"; bar.hidden=true;
+  bar.setAttribute("aria-expanded","false"); bar.setAttribute("aria-controls","alarmPanel");
+  const dot=el("i"); dot.setAttribute("aria-hidden","true");
+  const txt=el("span","alarmBarText","t"); txt.setAttribute("aria-live","assertive");
+  const more=el("b","alarmBarMore","n");
+  bar.appendChild(dot); bar.appendChild(txt); bar.appendChild(more);
+  bar.addEventListener("click",()=>openAlarms(!alarmOpen));
+  const panel=el("div","alarmPanel","apanel"); panel.hidden=true; panel.setAttribute("aria-label","Süren uyarılar");
+  const ul=el("ul","alarmList","alist");
+  const acts=el("div",null,"actions");
+  const all=el("button","alarmSeenAll"); all.type="button"; all.textContent="Hepsini gördüm";
+  all.addEventListener("click",()=>{ S.alarms.forEach(a=>ALARM_SEEN.add(a)); openAlarms(false); });
+  const cl=el("button","alarmClose"); cl.type="button"; cl.textContent="Kapat";
+  cl.addEventListener("click",()=>openAlarms(false));
+  acts.appendChild(all); acts.appendChild(cl);
+  panel.appendChild(ul); panel.appendChild(acts);
+  const box=$("alarms"); box.appendChild(bar); box.appendChild(panel);
+  document.addEventListener("keydown",e=>{ if(alarmOpen && e.key==="Escape") openAlarms(false); });
+  document.addEventListener("click",e=>{ if(alarmOpen && e.target && e.target.closest && !e.target.closest("#alarms")) openAlarms(false); });
+}
+function openAlarms(v){ alarmOpen=!!v && S.alarms.size>0; paintAlarms(); }
+function seeAlarm(key){ const a=S.alarms.get(key); if(a){ ALARM_SEEN.add(a); paintAlarms(); } }
+function flashAlarmBar(){
+  const b=$("alarmBar"); if(!b || !b.classList) return;
+  b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash");
+  clearTimeout(alarmFlashT); alarmFlashT=setTimeout(()=>b.classList.remove("flash"),2000);
+}
 function paintAlarms(){
-  const box=$("alarms"); box.innerHTML="";
-  [...S.alarms.values()].sort((a,b)=>(a.level==="crit"?0:1)-(b.level==="crit"?0:1)).forEach(a=>{
-    const d=document.createElement("div"); d.className="alarm "+a.level;
-    d.innerHTML=`<span></span><small>${a.since.toLocaleTimeString("tr-TR")}</small>`;
-    d.firstChild.textContent=a.text; box.appendChild(d);
-  });
+  buildAlarmBar();
+  const list=alarmOrder(), unseen=list.filter(([,a])=>!ALARM_SEEN.has(a));
+  const bar=$("alarmBar"), panel=$("alarmPanel"), flash=bar.className.includes("flash");
+  if(!list.length) alarmOpen=false;
+  bar.hidden=!list.length;
+  if(list.length){
+    const quiet=!unseen.length, a=(unseen[0]||list[0])[1], n=list.length-1;
+    bar.className="abar "+(quiet?"quiet":a.level)+(flash?" flash":"");
+    $("alarmBarText").textContent = quiet ? `${list.length} uyarı sürüyor · görüldü` : a.text;
+    $("alarmBarMore").textContent = !quiet && n>0 ? "+"+n : "";
+    bar.setAttribute("aria-label", (quiet ? `${list.length} uyarı sürüyor` : a.text+(n>0?`, ${n} uyarı daha`:""))+". Listeyi aç");
+  }
+  bar.setAttribute("aria-expanded",String(alarmOpen));
+  panel.hidden=!alarmOpen;
+  if(!alarmOpen) return;
+  const ul=$("alarmList"); ul.innerHTML="";
+  for(const [key,a] of list){
+    const seen=ALARM_SEEN.has(a), li=document.createElement("li");
+    li.className=a.level+(seen?" seen":"");
+    const t=document.createElement("span"); t.textContent=a.text;
+    const tm=document.createElement("small"); tm.textContent=a.since.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
+    li.appendChild(t); li.appendChild(tm);
+    if(seen){ const e=document.createElement("em"); e.textContent="görüldü"; li.appendChild(e); }
+    else { const b=document.createElement("button"); b.type="button"; b.textContent="Gördüm";
+      b.setAttribute("aria-label","Gördüm: "+a.text); b.addEventListener("click",e=>{ e.stopPropagation(); seeAlarm(key); }); li.appendChild(b); }
+    ul.appendChild(li);
+  }
+  $("alarmSeenAll").hidden=!unseen.length;
 }
 function addLog(level,text){
   if(S.link instanceof DemoLink && S.active && !/^Deneme: /.test(text)) text="Deneme: "+text;
