@@ -99,6 +99,10 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
 - Her değer için **alt/üst uyarı sınırı** belirlenebilir ve istenmeyen değerler gizlenebilir.
 - **Yakıt:** yakıt türü, litre fiyatı, motor hacmi ve düzeltme oranı.
 - Sesli uyarı, titreşim, ekranı açık tutma, kayıt ve GPS tercihleri.
+- **Sürüşte otomatik aç:** Kapalı, Gösterge paneli ya da Ön cam (HUD). Araç 5 saniye boyunca 15 km/sa'yı geçince seçtiğin ekran kendiliğinden açılır. Elle kapatırsan aynı sürüşte yeniden açılmaz; araç 1 dakika durup tekrar kalkınca açılır. İstersen "Araç 2 dakika durunca kapat" da seçilebilir. Bunun için uygulama telefon ekranında açık olmalı.
+- **Hız sınırı:** Türkiye'deki yasal sınırlar (yerleşim yeri 50, şehirlerarası 90, bölünmüş yol 110, otoyol 120; bazı otoyollarda 130-140) internetteki bir dosyada tutulur, uygulama her açılışta güncelini alır.
+  - **Bulunduğum yolun sınırını haritadan al** (varsayılan kapalı): açarsan konumun OpenStreetMap'e (herkesin katkıyla oluşan açık harita) gönderilir ve o yolun tabeladaki sınırı alınır. Tabela bilgisi yoksa yolun türüne göre yasal sınır kullanılır. Panel ve HUD'daki hız tabelası ve hız uyarısı buna göre değişir. Konum başka hiçbir yere gitmez.
+  - **Uyarı payı:** sınırın tam üstünde, +5, +10 ya da "ceza başlamadan önce" (50 ve altı yollarda +5, diğerlerinde +10).
 - **Araçlarım:** Uygulama bağlandığı aracı şase numarasından tanır ve her araç için sürüşleri, bakımı, masrafları ve ayarları ayrı tutar.
   - İlk bağlantıda "Yeni araç tanındı: … — doğru mu?" diye sorar ve araca uygun varsayılanları getirir; örneğin Fluence K4M için benzin, 1,6 L.
   - Gerekirse şase numarasının yalnızca ilk 11 karakteri bir araç tanıma servisine gönderilir; aracın seri numarası hiçbir yere gitmez.
@@ -129,7 +133,7 @@ Cihaz yanında değilken uygulamayı görmek içindir. **Değerler ve arıza kod
 ## Uyarılar nasıl çalışır?
 
 - Bir değer sınırın dışına **3 ölçüm üst üste** çıkarsa uyarı verilir. Tek bir hatalı okuma alarm çaldırmasın diye böyle ayarlandı.
-- Uyarı gelince ekranın üstünde kırmızı şerit çıkar, bip sesi çalar ve telefon titrer. Telefon ayrıca uyarıyı Türkçe okur, örneğin "Dikkat. Soğutma suyu sıcaklığı 108 derece".
+- Uyarı gelince ekranın üstünde tek satırlık bir şerit çıkar, bip sesi çalar ve telefon titrer. Birden çok uyarı varsa şeritte en önemlisi ve yanında "+3" gibi bir sayı görünür. Şeride dokununca hepsinin listesi açılır; **Gördüm** dediğin uyarı şeritten iner (panel ve HUD göstermeye devam eder), yeniden gelirse tekrar görünür. Telefon ayrıca uyarıyı Türkçe okur, örneğin "Dikkat. Soğutma suyu sıcaklığı 108 derece".
 - Değer 3 ölçüm boyunca normale dönerse uyarı kendiliğinden kalkar.
 - Sağ üstteki hoparlör düğmesi bütün sesleri (bip ve konuşma) kapatır.
 
