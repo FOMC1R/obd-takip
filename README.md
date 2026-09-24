@@ -129,6 +129,8 @@ Konuşma İngilizce aksanlı geliyorsa telefonda Türkçe ses paketi yok demekti
 
 **Dizelde** hava miktarından yapılan hesap yanıltıcıdır. Bu yüzden dizelde tüketim yalnızca araç kendi değerini veriyorsa gösterilir.
 
+**Litre fiyatı kendiliğinden güncellenir:** Fiyatlar günde üç kez (06:15, 12:15, 18:15) Petrol Ofisi'nin il sayfalarından alınır; Petrol Ofisi'ne ulaşılamazsa Opet yedek kaynaktır. Ayarlar → Yakıt'tan ilini ve istersen ilçeni seç. Kendi fiyatını yazarsan otomatik güncelleme kapanır.
+
 Birkaç depo sonra gerçek tüketimle karşılaştırıp **Ayarlar → Yakıt → Düzeltme oranı** ile ince ayar yapabilirsin. Örneğin uygulama 6,0 L/100 km gösteriyor, gerçekte 6,6 ise oranı 110 yap.
 
 ## Bilmen gereken sınırlar
