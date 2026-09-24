@@ -72,7 +72,12 @@ const SCORE = (()=>{
   function note(types){
     const t=REC.trip; if(!t || !types.length) return;
     if(!t.scoreEvents) t.scoreEvents=zero();
-    types.forEach(k=>{ t.scoreEvents[k]++; pending.push(k); });
+    types.forEach(k=>{
+      t.scoreEvents[k]++; pending.push(k);
+      // Sürüşün olay listesine de yaz: ekrandaki "Olaylar" ve CSV'nin "Olay" sütunu aynı kaynaktan beslensin
+      const sp=cur("0D"), rp=cur("0C");
+      recEvent("warn", `${LABEL[k]} · ${k==="devir" ? fmt(rp,0)+" d/dk" : fmt(sp,0)+" km/sa"}`);
+    });
   }
   on("connect",()=>{ det=detector(); pending=[]; if(REC.trip && !REC.trip.scoreEvents) REC.trip.scoreEvents=zero(); paintLive(); });
   on("disconnect",()=>{ det=detector(); pending=[]; paintLive(); });

@@ -330,9 +330,9 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
     <div class="chart-box"><canvas id="chart"></canvas></div>
     <div id="readout">Grafiğe dokun ya da üzerinde gezin; o anki değerler burada görünür.</div>
     <div id="map"></div>
+    <div class="ext" id="ext-viewer"></div>
     <h2 style="font-size:17px">Olaylar</h2>
     <ul class="events" id="vEvents"></ul>
-    <div class="ext" id="ext-viewer"></div>
   </section>
   <div class="ext" id="ext-surus"></div>
 </section>
@@ -1584,6 +1584,12 @@ function exportCsv(){
   const ts=ms=>{ const d=new Date(ms); return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`; };
   const head=["Zaman","Enlem","Boylam","GPS hızı (km/sa)","GPS doğruluğu (m)",...cols.map(g=>`${g.name} (${g.unit})`),"Olay"];
   const evAt=new Map(); t.events.forEach(e=>{ let b=smp[0]; for(const s of smp) if(Math.abs(s.t-e.t)<Math.abs(b.t-e.t)) b=s; if(b) evAt.set(b.t,[...(evAt.get(b.t)||[]),e.text]); });
+  // Eklentilerin satıra işlediği olaylar (ör. sürüş puanı: row.ev="fren,hiz"); listede zaten yoksa ekle
+  const lab=k=>(typeof SCORE!=="undefined" && SCORE.LABEL && SCORE.LABEL[k]) || k;
+  // (yeni kayıtlarda olay listesinde zaten var: ±5 sn içinde aynı adlı olay varsa tekrar yazma)
+  smp.forEach(s=>{ if(!s.ev) return; const cur=evAt.get(s.t)||[];
+    s.ev.split(",").map(lab).forEach(x=>{ if(!t.events.some(e=>e.text.startsWith(x) && Math.abs(e.t-s.t)<5000)) cur.push(x); });
+    if(cur.length) evAt.set(s.t,cur); });
   const rows=smp.map(s=>[ts(s.t),num(s.lat),num(s.lon),num(s.gs),num(s.acc),...cols.map(g=>num(s.v[g.pid])),`"${(evAt.get(s.t)||[]).join(" | ").replace(/"/g,"'")}"`].join(";"));
   const blob=new Blob(["﻿"+head.join(";")+"\r\n"+rows.join("\r\n")],{type:"text/csv;charset=utf-8"});
   const d=new Date(t.start), a=document.createElement("a");
