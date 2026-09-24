@@ -25,7 +25,8 @@ self.addEventListener("fetch", e => {
   if (url.hostname.endsWith("tile.openstreetmap.org")) return;   // harita karoları önbelleğe alınmaz
   if (url.hostname === "api.anthropic.com") return;              // yapay zekâ isteği hiç önbelleğe girmez
   if (url.hostname === "vpic.nhtsa.dot.gov") return;             // araç tanıma yedeği: sonucu uygulama kendisi saklar
-  if (url.hostname === "raw.githubusercontent.com") return;      // güncel yakıt fiyatı: her seferinde ağdan (uygulama son fiyatı kendisi saklar)
+  if (url.hostname.endsWith("overpass-api.de")) return;          // yolun hız sınırı: konuma bağlı, önbelleğe girmez
+  if (url.hostname === "raw.githubusercontent.com") return;     // güncel yakıt fiyatı: her seferinde ağdan (uygulama son fiyatı kendisi saklar)
   if (url.origin === location.origin) {
     // Önce ağ, olmazsa önbellek
     e.respondWith(fetch(req).then(r => {
