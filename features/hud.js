@@ -234,9 +234,11 @@
     return a.text.replace(/\s*\(.*\)\s*$/,"").replace(":","").toLocaleUpperCase("tr-TR");
   }
 
+  // Hız sınırı: yolun sınırı açıksa oradan (features/speedlimit.js), değilse ayardaki
+  const spdMax=()=>{ try{ const w=window.SPEEDLIM; if(w && w.now) return w.now().v; }catch(e){} return settings.lim["0D"] && settings.lim["0D"].max; };
   function update(){
     if(!H.open) return;
-    const sp=cur("0D"), rpm=cur("0C"), lim=settings.lim["0D"] && settings.lim["0D"].max;
+    const sp=cur("0D"), rpm=cur("0C"), lim=spdMax();
     // hız ve sınır
     H.vals.spd.textContent=fmt(sp,0);
     // üç haneli hızda yazı küçülür ki ekrana sığsın
@@ -309,6 +311,7 @@
   }
 
   on("tick",update);
+  on("speedLimit",update);
   window.addEventListener("popstate",()=>{ if(H.open){ H.pushed=false; close(true); } });
   document.addEventListener("keydown",e=>{ if(H.open && e.key==="Escape") close(); });
   document.addEventListener("fullscreenchange",()=>{
@@ -336,6 +339,6 @@
 
   window.HUD={open, close, update, setMirror, applyView, cycleSlot, alertText,
     STYLES, get lit(){ return H.lit; }, get line(){ return H.line; }, get strip(){ return H.stripEls; }, get rn(){ return H.rn; }, get lights(){ return H.lights; },
-    get isOpen(){ return H.open; }, get vals(){ return H.vals; }, get slots(){ return H.slots; }, get el(){ return H.el; }, get rpmEl(){ return H.rpmEl; },
+    get isOpen(){ return H.open; }, get vals(){ return H.vals; }, get slots(){ return H.slots; }, get el(){ return H.el; }, get rpmEl(){ return H.rpmEl; }, get limEl(){ return H.limEl; },
     set edit(v){ H.edit=!!v; }};
 })();
