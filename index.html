@@ -213,6 +213,7 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
 .sheet{display:grid;gap:8px;padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--accent)}
 .sheet button{text-align:left;font-weight:600}
 .sheet button small{display:block;font-weight:400;font-size:13px;opacity:.8}
+.demo-banner{padding:8px 12px;border-radius:10px;background:repeating-linear-gradient(135deg,var(--warn-bg) 0 14px,transparent 14px 28px);border:2px dashed var(--warn);font-weight:700;font-size:14px;color:var(--text)}
 .ext{display:grid;gap:14px;min-width:0}
 .ext:empty{display:none}
 .notice{padding:12px 14px;border-radius:10px;background:var(--warn-bg);border:1px solid var(--warn);font-size:14px}
@@ -242,6 +243,7 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
     <button id="cBle">Bluetooth LE (BLE)<small>Ayarlardan eşleştirmeden, uygulama içinden bağlanan cihaz</small></button>
     <button id="cCancel">Vazgeç</button>
   </div>
+  <div class="demo-banner" id="demoBanner" hidden role="status">DENEME MODU — gösterilen değerler ve arıza kodları gerçek araçtan değil. Sürüş kaydedilmez.</div>
   <div class="alarms" id="alarms" aria-live="assertive"></div>
 </header>
 
@@ -312,11 +314,13 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
 <section class="tab" data-tab="surus" hidden aria-label="Sürüşler">
   <section class="card" aria-labelledby="tripsTitle">
     <div class="row"><h2 id="tripsTitle" style="margin-right:auto">Sürüş kayıtları</h2><span class="empty" id="storeInfo"></span></div>
+    <div class="actions" id="demoTripsRow" hidden><button id="btnDelDemo">Deneme kayıtlarını sil</button></div>
     <ul class="trips" id="trips"><li class="empty">Henüz kayıt yok. Bağlandığında sürüş otomatik kaydedilir.</li></ul>
   </section>
 
   <section class="card" id="viewer" hidden aria-labelledby="vTitle">
     <div class="row"><h2 id="vTitle" style="margin-right:auto">Sürüş</h2><button id="vClose">Kapat</button></div>
+    <div class="demo-banner" id="vDemo" hidden>DENEME KAYDI — bu sürüş deneme modunda oluştu; değerler ve arıza kodları gerçek araçtan değil.</div>
     <div class="actions"><button id="vCsv">CSV paylaş / indir</button><button id="vDel">Sil</button></div>
     <div class="confirm" id="vDelBox" hidden>
       <div><b>Bu sürüş kaydı silinsin mi?</b> Silinen kayıt geri getirilemez.</div>
@@ -966,6 +970,7 @@ function paintAlarms(){
   });
 }
 function addLog(level,text){
+  if(S.link instanceof DemoLink && S.active && !/^Deneme: /.test(text)) text="Deneme: "+text;
   S.log.unshift({level,text,t:new Date()}); S.log=S.log.slice(0,200);
   const ul=$("log"); ul.innerHTML="";
   S.log.forEach(e=>{ const li=document.createElement("li");
@@ -1292,6 +1297,7 @@ async function start(link){
     const info=await init();
     S.active=true; drop("link");
     setStatus("on",`Bağlı · ${name} · ${info}`);
+    $("demoBanner").hidden=!(link instanceof DemoLink);
     $("btnStop").hidden=false; $("btnConnect").hidden=true; $("idleCard").hidden=true; $("btnScan").disabled=$("btnClear").disabled=$("btnBatt").disabled=false;
     GAUGES.forEach(paintGauge);
     keepAwake();
@@ -1308,7 +1314,7 @@ async function start(link){
 }
 function stop(){ S.active=false; S.link&&S.link.close(); setStatus("","Bağlı değil"); drop("link"); endRec(); uiIdle(); emit("disconnect"); }
 function uiIdle(){
-  $("btnConnect").disabled=$("btnDemo").disabled=false; $("btnStop").hidden=true; $("btnConnect").hidden=false; $("idleCard").hidden=false;
+  $("btnConnect").disabled=$("btnDemo").disabled=false; $("btnStop").hidden=true; $("btnConnect").hidden=false; $("idleCard").hidden=false; $("demoBanner").hidden=true;
   $("btnScan").disabled=$("btnClear").disabled=$("btnDiag").disabled=$("btnBatt").disabled=true;
   S.paused=false;
   if(S.wake){ S.wake.release().catch(()=>{}); S.wake=null; }
@@ -1367,6 +1373,8 @@ function demoFix(now){
 
 async function startRec(device, demo){
   if(!settings.record) return;
+  // Deneme verisi gerçek sürüşlerle karışmasın: deneme modunda kayıt yok (testler recordDemo ile açar)
+  if(demo && !settings.recordDemo) return;
   try{
     if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
     const t={start:Date.now(), end:Date.now(), device, demo, samples:0, distance:0, stats:{}, events:[], dtcs:[]};
@@ -1436,6 +1444,8 @@ async function renderTrips(){
     li.querySelector("button").addEventListener("click",()=>openTrip(t.id));
     ul.appendChild(li);
   }
+  const demoTrips=trips.filter(t=>t.demo); $("demoTripsRow").hidden=!demoTrips.length;
+  $("btnDelDemo").textContent=`Deneme kayıtlarını sil (${demoTrips.length})`;
   try{ const e=await navigator.storage.estimate(); $("storeInfo").textContent=`Kullanılan alan: ${fmt(e.usage/1048576,1)} MB`; }catch(e){}
 }
 
@@ -1447,7 +1457,7 @@ async function openTrip(id){
   if(REC.trip && REC.trip.id===id) await flush(REC.trip);
   const t=(await getTrips()).find(x=>x.id===id); if(!t) return;
   V.trip=t; V.samples=(await getSamples(id)).sort((a,b)=>a.t-b.t); V.hover=null;
-  $("viewer").hidden=false; $("vDelBox").hidden=true;
+  $("viewer").hidden=false; $("vDelBox").hidden=true; $("vDemo").hidden=!t.demo;
   $("vTitle").textContent="Sürüş · "+fmtDate(t.start)+(t.demo?" (deneme)":"");
   const st=t.stats, box=$("vStats"); box.innerHTML="";
   const moving=V.samples.map(s=>s.v["0D"]).filter(x=>x>2);
@@ -1603,6 +1613,11 @@ function exportCsv(){
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
 }
 $("vCsv").addEventListener("click",exportCsv);
+$("btnDelDemo").addEventListener("click",async()=>{
+  for(const t of (await getTrips()).filter(t=>t.demo && !(REC.trip && REC.trip.id===t.id))) await deleteTrip(t.id);
+  if(V.trip && V.trip.demo) $("viewer").hidden=true;
+  renderTrips();
+});
 $("vClose").addEventListener("click",()=>{ $("viewer").hidden=true; if(V.map){ V.map.remove(); V.map=null; V.hoverMarker=null; } });
 $("vDel").addEventListener("click",()=>{ $("vDelBox").hidden=false; });
 $("vDelNo").addEventListener("click",()=>{ $("vDelBox").hidden=true; });

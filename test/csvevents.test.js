@@ -12,7 +12,7 @@ require("./harness")(String.raw`
   stop(); await wait(800);
   const tr=(await getTrips())[0];
   console.log("olay listesi ("+tr.events.length+"):", tr.events.map(e=>e.text).join(" | "));
-  if(!tr.events.some(e=>e.text.startsWith("Sert fren"))) throw new Error("sert fren olay listesine yazılmadı");
+  if(!tr.events.some(e=>e.text.includes("Sert fren"))) throw new Error("sert fren olay listesine yazılmadı");
   await openTrip(tr.id);
   __els.vCsv.ev.click();
   const csv=global.__csv;
