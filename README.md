@@ -87,6 +87,7 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
 - Her değer için **alt/üst uyarı sınırı** belirlenebilir ve istenmeyen değerler gizlenebilir.
 - **Yakıt:** yakıt türü, litre fiyatı, motor hacmi ve düzeltme oranı.
 - Sesli uyarı, titreşim, ekranı açık tutma, kayıt ve GPS tercihleri.
+- **Tanılama paketi gönder:** Uygulamanın senin aracında nasıl çalıştığını tek bir dosyada toplar ve paylaşma menüsünü açar. Dosyada şunlar var: cihaz ve bağlantı bilgisi, aracın hangi değerleri verdiği, cihazla konuşmanın ham kaydı, arıza durumu, canlı değerler ve sürüş özetleri. Geliştirme için bu dosyayı göndermen yeterli. **API anahtarı, konum ve masraf notları dosyaya girmez.**
 
 ## Elektrikli araçlar (deneme aşamasında)
 
@@ -99,6 +100,15 @@ Ayarlar → Yakıt türü → **Elektrik** seç. Ardından **Araç profili** se�
 - **Özel PID listesi yükle:** Car Scanner ya da Torque CSV biçimindeki komut listelerini içeri alabilirsin. Uygulama yalnızca okuma komutlarını kabul eder.
 
 Bu değerlerin hepsi **"denenmemiş"** olarak işaretli. Gerçek araçta denedikten sonra **Ham yanıtları paylaş** ile sonuçları gönderirsen doğrulayıp düzeltilir.
+
+## Deneme modu
+
+Cihaz yanında değilken uygulamayı görmek içindir. **Değerler ve arıza kodları sahtedir.** Örneğin deneme modu bilerek P0301 ve P0171 kodlarını gösterir.
+
+- Açıkken her ekranın üstünde **"DENEME MODU"** şeridi görünür.
+- Uyarılar "Deneme:" diye başlar.
+- Sürüş kaydedilmez.
+- Önceki sürümlerden kalan deneme kayıtları Sürüşler sekmesindeki **"Deneme kayıtlarını sil"** düğmesiyle silinebilir.
 
 ## Uyarılar nasıl çalışır?
 
