@@ -1446,8 +1446,9 @@ const km = m=>fmt(m/1000,1)+" km";
 async function renderTrips(){
   let trips=[]; try{ trips=await getTrips(); }catch(e){ $("trips").innerHTML='<li class="empty">Bu tarayıcı kayıt tutamıyor (gizli sekme olabilir).</li>'; return; }
   const ul=$("trips"); ul.innerHTML="";
-  if(!trips.length) ul.innerHTML='<li class="empty">Henüz kayıt yok. Bağlandığında sürüş otomatik kaydedilir.</li>';
-  for(const t of trips){
+  const view={trips, empty:""}; emit("tripList", view);   // eklenti listeyi süzebilir (ör. yalnızca bu araç)
+  if(!view.trips.length) ul.innerHTML=`<li class="empty">${trips.length && view.empty || "Henüz kayıt yok. Bağlandığında sürüş otomatik kaydedilir."}</li>`;
+  for(const t of view.trips){
     const live = REC.trip && REC.trip.id===t.id;
     const sp=t.stats["0D"], cl=t.stats["05"], crit=t.events.filter(e=>e.level==="crit").length;
     const li=document.createElement("li"); li.className="trip";
@@ -1459,6 +1460,7 @@ async function renderTrips(){
       ${live?'<span class="rec">Kayıt sürüyor</span>':""}${t.demo?'<span class="chip info">Deneme</span>':""}
       <button>Aç</button>`;
     li.querySelector("button").addEventListener("click",()=>openTrip(t.id));
+    emit("tripItem", li, t);
     ul.appendChild(li);
   }
   const demoTrips=trips.filter(t=>t.demo); $("demoTripsRow").hidden=!demoTrips.length;

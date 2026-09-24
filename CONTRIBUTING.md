@@ -12,7 +12,7 @@ Uygulama `index.html` içindeki tek bir betikten oluşur. Yeni özellikler **ken
 
 | Ad | Ne |
 |---|---|
-| `on(ad, fn)` | Kanca: `connect({name,demo})`, `disconnect()`, `tick()` (her okuma turu sonu), `sample(row, trip)` (kayda satır yazılmadan önce; `row.v[pid]`, `row.lat/lon/gs`; satıra alan eklenebilir), `tripEnd(trip)` (sürüş kapanırken; `trip`'e alan eklenebilir, sonra kaydedilir), `tripOpen(trip, samples)` (sürüş ayrıntısı açıldı), `alarm(key, level, text)`, `dtc(S.dtc, mil)`, `diag()`, `gaugesBuilt()` |
+| `on(ad, fn)` | Kanca: `connect({name,demo})`, `disconnect()`, `tick()` (her okuma turu sonu), `sample(row, trip)` (kayda satır yazılmadan önce; `row.v[pid]`, `row.lat/lon/gs`; satıra alan eklenebilir), `tripEnd(trip)` (sürüş kapanırken; `trip`'e alan eklenebilir, sonra kaydedilir), `tripOpen(trip, samples)` (sürüş ayrıntısı açıldı), `tripList(view)` (sürüş listesi çizilmeden önce; `view.trips` süzülebilir, `view.empty` boş liste yazısı), `tripItem(li, trip)` (listedeki her sürüş satırı), `alarm(key, level, text)`, `dtc(S.dtc, mil)`, `diag()`, `gaugesBuilt()` |
 | `S` | Canlı durum: `S.active`, `S.elm.send(cmd, timeoutMs)` (ELM327'ye komut; sıralı), `S.g[pid].v/.ts/.hist`, `S.supported` (Set), `S.isCan`, `S.proto`, `S.cra` (motor filtresi), `S.paused` (true yapınca canlı okuma durur), `S.dtc {stored,pending,perm}`, `S.diag {vehicle, ready, freeze, counters}`, `S.batt`, `S.vin`, `S.link` |
 | `GAUGES`, `GBY[pid]`, `addGauge(def)` | Gösterge tanımları. `addGauge({pid, name, unit, lo, hi, dec, min, max, every, hide, read: async()=>sayı, available: ()=>bool})` sonra `buildSettings(); buildGauges();` |
 | `cur(pid)` | Güncel değer ya da `null` |
