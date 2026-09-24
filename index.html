@@ -1056,9 +1056,25 @@ const WMI = {NMT:"Toyota (Türkiye)",NM0:"Ford Otosan (Türkiye)",NM4:"Tofaş / 
   W0L:"Opel",WF0:"Ford (Almanya)",TMB:"Škoda",VSS:"SEAT",ZFA:"Fiat (İtalya)",SB1:"Toyota (İngiltere)",VNK:"Toyota (Fransa)",JTD:"Toyota (Japonya)",
   KMH:"Hyundai (Kore)",TMA:"Hyundai (Çekya)",KNA:"Kia (Kore)",U5Y:"Kia (Slovakya)",SJN:"Nissan (İngiltere)",VSK:"Nissan (İspanya)",JHM:"Honda (Japonya)",
   TSM:"Suzuki (Macaristan)",YV1:"Volvo",SAL:"Land Rover",ZAR:"Alfa Romeo",VF6:"Renault Trucks",LSG:"SAIC / MG (Çin)",LRW:"Tesla (Çin)",XP7:"Tesla (Almanya)"};
+// Denetim hanesi (9. hane; ISO 3779 / ABD 49 CFR 565.15): harfler sayıya çevrilir, konum ağırlıklarıyla çarpılıp
+// toplanır, 11'e bölümden kalan 9. hanededir (10 ise "X"). Kuzey Amerika kuralına uyan üreticiler kullanır;
+// Avrupa'da çoğu üretici (Renault, Opel/Stellantis…) 9. haneyi serbest kullanır, 10. hane de orada model yılı DEĞİLDİR
+// (ör. "VF1LZB10A44…" Fluence'ta eski hesap 2003 diyordu; araç 2010-2016 arası).
+const VIN_TR = {A:1,B:2,C:3,D:4,E:5,F:6,G:7,H:8,J:1,K:2,L:3,M:4,N:5,P:7,R:9,S:2,T:3,U:4,V:5,W:6,X:7,Y:8,Z:9};
+const VIN_W = [8,7,6,5,4,3,2,10,0,9,8,7,6,5,4,3,2];
+function vinCheckOk(v){
+  if(typeof v!=="string" || !/^[A-HJ-NPR-Z0-9]{17}$/.test(v)) return false;
+  let sum=0; for(let i=0;i<17;i++){ const c=v[i]; sum += (c>="0"&&c<="9" ? +c : VIN_TR[c]) * VIN_W[i]; }
+  const r=sum%11; return v[8]===(r===10 ? "X" : String(r));
+}
+// Model yılı yalnızca denetim hanesi tutan şase numarasında 10. haneden okunur. 30 yıllık döngü:
+// 7. hane harfse 2010-2039, rakamsa 1980-2009 (ABD'de binek ve hafif ticari araç kuralı).
 function vinYear(v){
+  if(!vinCheckOk(v)) return null;
   const code="ABCDEFGHJKLMNPRSTVWXY123456789".indexOf(v[9]); if(code<0) return null;
-  const now=new Date().getFullYear(); let y=1980+code; while(y+30<=now+1) y+=30; return y;
+  let y=1980+code+(/[A-Z]/.test(v[6]) ? 30 : 0);
+  if(y>new Date().getFullYear()+1) y-=30;
+  return y;
 }
 function multiFrameBytes(resp, head){
   const ls=lines(resp).filter(l=>!/SEARCHING/.test(l));
@@ -1085,7 +1101,7 @@ async function runDiag(){
   const rv=await q("0902",6000); const vin = rv ? ascii(multiFrameBytes(rv,"4902")).replace(/[^A-HJ-NPR-Z0-9]/g,"").slice(-17) : "";
   if(vin.length===17){
     rows.push(["Şase no (VIN)",vin], ["Üretici", WMI[vin.slice(0,3)] || `Kod: ${vin.slice(0,3)}`]);
-    const y=vinYear(vin); if(y) rows.push(["Model yılı (tahmini)",String(y)]);
+    const y=vinYear(vin); rows.push(y ? ["Model yılı (tahmini)",String(y)] : ["Model yılı","Şase numarasından çıkarılamıyor"]);
     S.vin=vin; if(REC.trip && !REC.trip.vin){ REC.trip.vin=vin; }
   } else rows.push(["Şase no (VIN)","Araç vermiyor"]);
   const rc=await q("0904",6000); if(rc){ const cal=ascii(multiFrameBytes(rc,"4904")).replace(/[^\x20-\x7E]/g,"").trim(); if(cal) rows.push(["Motor yazılımı",cal.slice(0,16)]); }
