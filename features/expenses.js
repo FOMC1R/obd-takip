@@ -13,7 +13,9 @@ const Expenses = (()=>{
   const sorted=()=>[...list()].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
 
   function add(e){
-    const x={id:Date.now()*100+Math.floor(Math.random()*100), date:e.date||today(), type:EXP_TYPES.includes(e.type)?e.type:"Diğer",
+    // benzersiz kimlik: aynı milisaniyede eklenen kayıtlar çakışmasın
+    let id=Date.now()*100; const used=new Set(list().map(y=>y.id)); while(used.has(id)) id++;
+    const x={id, date:e.date||today(), type:EXP_TYPES.includes(e.type)?e.type:"Diğer",
       amount:numIn(e.amount), km:numIn(e.km), litre:e.type==="Yakıt"?numIn(e.litre):null, full:e.type==="Yakıt"?e.full!==false:false, note:String(e.note||"").slice(0,200)};
     if(!(x.amount>0)) return null;
     list().push(x); save(); return x;
