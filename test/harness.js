@@ -30,6 +30,8 @@ module.exports = function run(testCode){
   if(!global.navigator || !global.navigator.storage)
     Object.defineProperty(global,"navigator",{value:Object.assign({storage:{estimate:async()=>({usage:1}),persist:async()=>true}},global.__navExtra||{}),configurable:true});
   global.__els = els;
+  // Testler internete çıkmasın (ör. yakıt fiyatı yüklemesi); ağ taklidi isteyen test global.__fetchMock=true der
+  if(!global.__fetchMock) global.fetch=async()=>{ throw new Error("test ortamında ağ yok"); };
   // Testler deneme cihazıyla sürüş kaydını da sınar; uygulamada deneme kaydı varsayılan olarak kapalı
   eval(js + "\n;settings.recordDemo=true;(async()=>{" + testCode + "\n})().then(()=>process.exit(0)).catch(e=>{console.error('FAIL',e);process.exit(1);});");
 };

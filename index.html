@@ -372,7 +372,7 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
       <input type="number" id="fuelCalib" min="50" max="200" step="1" inputmode="numeric">
     </div>
     <p class="sub" id="fuelNote"></p>
-    <p class="sub">Varsayılan fiyatlar 21 Eylül 2026 İstanbul pompa ortalamasıdır (benzin 80,40 · motorin 96,30 · LPG 34,99 TL). Kendi fiyatını girebilirsin.</p>
+    <p class="sub">Fiyat seçtiğin il ya da ilçeye göre günde üç kez kendiliğinden güncellenir. Kendi fiyatını yazarsan otomatik güncelleme kapanır.</p>
   </section>
 
   <section class="card" aria-labelledby="optTitle">
@@ -567,8 +567,9 @@ function dtcInfo(code){
 
 // ---------- Ayarlar (yerel saklama) ----------
 const STORE_KEY = "obdTakip.v1";
-// Varsayılan litre fiyatları (TL) — 21 Eylül 2026, İstanbul Avrupa yakası pompa ortalaması
-const FUEL_PRICE = {benzin:80.40, dizel:96.30, lpg:34.99}, FUEL_PRICE_DATE = "21 Eylül 2026";
+// Yedek litre fiyatları (TL): güncel fiyatlara ulaşılamazsa. 24 Eylül 2026, Petrol Ofisi İstanbul il ortalaması
+// (güncel fiyat features/prices.js ile günde 3 kez gelir)
+const FUEL_PRICE = {benzin:80.40, dizel:90.90, lpg:34.99}, FUEL_PRICE_DATE = "24 Eylül 2026";
 function defaults(){
   const lim={}; GAUGES.forEach(g=>lim[g.pid]={show:!g.hide,min:g.min,max:g.max});
   return {lim, fuel:"benzin", disp:1.6, ve:85, price:FUEL_PRICE.benzin, calib:100, dtcEvery:30, trendMin:2, recAll:true, voice:true, vibrate:true, wake:true, mute:false, record:true, gps:true};
@@ -1733,5 +1734,6 @@ if(!navigator.bluetooth && !navigator.serial) showNotice("Bu tarayıcıda Blueto
 <script src="features/perf.js"></script>
 <script src="features/ev.js"></script>
 <script src="features/diagpack.js"></script>
+<script src="features/prices.js"></script>
 </body>
 </html>

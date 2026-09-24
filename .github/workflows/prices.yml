@@ -1,0 +1,36 @@
+# Akaryakıt fiyatlarını günde üç kez günceller (Türkiye saatiyle 06:15, 12:15, 18:15).
+# Tarayıcı fiyat sitelerine doğrudan erişemediği için fiyatlar burada çekilip data/prices.json'a yazılır;
+# uygulama bu dosyayı okur. Fiyatlar değişmediyse commit atılmaz.
+name: Yakıt fiyatları
+
+on:
+  schedule:
+    - cron: "15 3,9,15 * * *"   # UTC → TSİ 06:15, 12:15, 18:15
+  workflow_dispatch: {}          # elle çalıştırma: Actions → Yakıt fiyatları → Run workflow
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prices
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Fiyatları çek
+        run: node scripts/update-prices.mjs
+      - name: Değiştiyse kaydet
+        run: |
+          git config user.name "fiyat-botu"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/prices.json
+          if git diff --cached --quiet; then echo "Değişiklik yok"; exit 0; fi
+          git commit -m "chore(fiyat): akaryakıt fiyatlarını güncelle"
+          git push
