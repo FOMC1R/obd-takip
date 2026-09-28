@@ -59,8 +59,8 @@
 .cl-rpm .cl-num{font-size:19cqw}
 .cl-unit{font-size:6.6cqw;font-weight:600;color:#7d8ba3;letter-spacing:.08em;margin-top:1.4cqw;font-family:var(--f-body)}
 .cl-num.near{color:#ffb020}.cl-num.over{color:#ff3b30}.cl-num.regen{color:#35d07f}
-.cl-lim{position:absolute;left:50%;bottom:9cqw;transform:translateX(-50%);width:13cqw;height:13cqw;border-radius:50%;box-sizing:border-box;
-  border:1.5cqw solid #ff3b30;background:#f4f6fa;color:#0a0f18;display:grid;place-items:center;font-weight:700;font-size:5.4cqw;font-variant-numeric:tabular-nums}
+.cl-lim{position:absolute;left:50%;bottom:4cqw;transform:translateX(-50%);width:20cqw;height:20cqw;border-radius:50%;box-sizing:border-box;
+  border:2.3cqw solid #ff3b30;background:#f4f6fa;color:#0a0f18;display:grid;place-items:center;font-weight:700;font-size:8.4cqw;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .cl-sub{position:absolute;left:0;right:0;bottom:12cqw;text-align:center;font:600 5.6cqw/1 var(--f-body);color:#7d8ba3;letter-spacing:.08em;text-transform:uppercase}
 .cl-sub.regen{color:#35d07f}
 /* orta bilgi sayfası */
@@ -104,7 +104,7 @@
 .cl.st-klasik .cl-read{place-content:start center;padding-top:60cqw}
 .cl.st-klasik .cl-num,.cl.st-klasik .cl-rpm .cl-num{font-size:13cqw;text-shadow:none}
 .cl.st-klasik .cl-unit{font-size:4.6cqw;margin-top:.8cqw}
-.cl.st-klasik .cl-lim{bottom:auto;top:25cqw;width:11cqw;height:11cqw;font-size:4.6cqw;border-width:1.2cqw}
+.cl.st-klasik .cl-lim{bottom:auto;top:23cqw;width:16cqw;height:16cqw;font-size:6.8cqw;border-width:1.8cqw}
 .cl.st-klasik .cl-sub{bottom:auto;top:30cqw;font-size:4.4cqw}
 .cl.st-klasik .cl-panel{border-radius:10px;border-color:rgba(200,210,225,.16)}
 .cl.st-spor{background:radial-gradient(120% 90% at 50% 45%,#1f1113 0%,#0c0708 55%,#030202 100%)}
