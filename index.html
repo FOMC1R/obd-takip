@@ -8,6 +8,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
+<!-- Açılış animasyonu açıksa sayfa, animasyon (features/splash.js) başlayana kadar görünmesin; takılırsa 4 sn'de açılır -->
+<style>.sp-boot body{background:#030509}.sp-boot body>*{visibility:hidden}</style>
+<script id="boot">try{var o=JSON.parse(localStorage.getItem("obdTakip.v1")||"{}");if(o.splash!==false&&document.visibilityState!=="hidden"){document.documentElement.classList.add("sp-boot");setTimeout(function(){document.documentElement.classList.remove("sp-boot")},4000);}}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -461,7 +464,7 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
 <script>
 "use strict";
 // Sürüm: her yayında artar; ikinci sayı sw.js önbellek numarasıyla aynıdır (test/integrity.test.js denetler)
-const APP_VERSION = "1.15";
+const APP_VERSION = "1.16";
 // ---------- Eklenti kancaları: features/*.js bu anlardan haberdar olur ----------
 // on("connect"|"disconnect"|"tick"|"sample"|"tripEnd"|"tripOpen"|"alarm"|"dtc"|"diag"|"gaugesBuilt", fn)
 const HOOKS = {};
@@ -1852,5 +1855,6 @@ if(!navigator.bluetooth && !navigator.serial) showNotice("Bu tarayıcıda Blueto
 <script src="features/systems.js"></script>
 <script src="features/home.js"></script>
 <script src="features/update.js"></script>
+<script src="features/splash.js"></script>
 </body>
 </html>

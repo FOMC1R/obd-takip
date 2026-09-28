@@ -46,6 +46,9 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
 
 ## Ekranlar
 
+### Açılış animasyonu
+Uygulama açılırken yaklaşık 3 saniyelik bir animasyon oynar. Bir aracın kontak açılışı gibi: veri sinyali, uyarı lambalarının yanıp sönmesi, ibrenin sona gidip dönmesi ve "HAZIR". Ekrana dokununca atlanır. Telefonda "hareketi azalt" ayarı açıksa yalnızca kısa bir solma gösterilir. **Ayarlar → Açılış animasyonu** ile kapatılabilir ya da yeniden oynatılabilir.
+
 ### Ana sayfa
 Uygulama bu sayfayla açılır. Telefon uygulamalarındaki gibi büyük kutucuklar var: **Motor, Şanzıman, Arızalar, Sürüşler, İstatistik, Gösterge paneli, Ön cam (HUD), Bakım ve masraf, Ayarlar**. Araçta başka bir sistem bulunursa (örneğin hibrit sistem) onun da kutucuğu çıkar.
 - Kutucukların altında o bölümün kısa özeti yazar: motor sıcaklığı ve akü voltajı, o anki vites, arıza kodu sayısı gibi.
