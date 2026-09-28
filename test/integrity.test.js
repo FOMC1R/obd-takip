@@ -16,5 +16,8 @@ for(const m of html.matchAll(/<script src="(features\/[^"]+)"><\/script>/g)){
   if(!fs.existsSync(path.join(ROOT,m[1]))) bad.push(m[1]+": dosya yok");
   if(!sw.includes("./"+m[1])) bad.push(m[1]+": sw.js SHELL listesinde yok");
 }
+// Sürüm numarası ile service worker önbellek numarası birlikte artmalı (yoksa telefon eski dosyaları gösterir)
+const ver=(html.match(/const APP_VERSION = "(\d+)\.(\d+)"/)||[])[2], cache=(sw.match(/obd-takip-v(\d+)/)||[])[1];
+if(!ver || ver!==cache) bad.push(`sürüm (${ver}) ile sw.js önbellek numarası (v${cache}) aynı değil`);
 if(bad.length){ console.error(bad.join("\n")); process.exit(1); }
 console.log("bütünlük tamam:", files.length, "dosya");
