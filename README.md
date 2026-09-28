@@ -51,6 +51,7 @@ Uygulama bu sayfayla açılır. Telefon uygulamalarındaki gibi büyük kutucukl
 - Kutucukların altında o bölümün kısa özeti yazar: motor sıcaklığı ve akü voltajı, o anki vites, arıza kodu sayısı gibi.
 - Üstte bağlantı durumu ve süren uyarılar görünür.
 - Sağ alt köşede **sürüm numarası** yazar. Bir sorun bildirirken bu numarayı da söyle.
+- Yeni sürüm yayınlanınca üstte **"Yeni sürüm hazır — Yenile"** uyarısı çıkar. Araca bağlıyken yenilersen bağlantı kesilir, sürüş kaydı kaydedilir.
 
 ### Şanzıman ve diğer sistemler
 Araca bağlanınca uygulama, motor dışında standart veri veren başka beyinler (araçtaki küçük bilgisayarlar) olup olmadığını arar. Bu arama her araç için bir kez yapılır; **Şanzıman → Sistemleri yeniden ara** ile tekrarlanabilir.

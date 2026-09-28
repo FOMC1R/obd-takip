@@ -461,7 +461,7 @@ h3{font-family:var(--f-num);font-weight:600;font-size:17px;margin:4px 0 -4px;let
 <script>
 "use strict";
 // Sürüm: her yayında artar; ikinci sayı sw.js önbellek numarasıyla aynıdır (test/integrity.test.js denetler)
-const APP_VERSION = "1.14";
+const APP_VERSION = "1.15";
 // ---------- Eklenti kancaları: features/*.js bu anlardan haberdar olur ----------
 // on("connect"|"disconnect"|"tick"|"sample"|"tripEnd"|"tripOpen"|"alarm"|"dtc"|"diag"|"gaugesBuilt", fn)
 const HOOKS = {};
@@ -1851,5 +1851,6 @@ if(!navigator.bluetooth && !navigator.serial) showNotice("Bu tarayıcıda Blueto
 <script src="features/background.js"></script>
 <script src="features/systems.js"></script>
 <script src="features/home.js"></script>
+<script src="features/update.js"></script>
 </body>
 </html>
