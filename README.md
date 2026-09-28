@@ -110,6 +110,10 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
   - İlk bağlantıda "Yeni araç tanındı: … — doğru mu?" diye sorar ve araca uygun varsayılanları getirir; örneğin Fluence K4M için benzin, 1,6 L.
   - Gerekirse şase numarasının yalnızca ilk 11 karakteri bir araç tanıma servisine gönderilir; aracın seri numarası hiçbir yere gitmez.
   - Eski Renault'ların şase numarasında model yılı bulunmaz; uygulama bu yüzden yıl göstermez.
+- **Arka planda çalışma:** Telefon, arka plandaki sayfayı yavaşlatır ya da durdurur. Bunun için iki yardım var:
+  - **Küçük pencere:** Başka bir uygulamaya (örneğin haritaya) geçmeden önce Canlı sekmesindeki **Küçük pencere** düğmesine bas. Hız, devir, hararet ve en önemli uyarı ekranın köşesinde küçük bir pencerede kalır. Pencere açıkken okuma ve kayıt sürer. "Uygulamadan çıkınca kendiliğinden açmayı dene" seçeneği Chrome izin verirse pencereyi kendisi açar.
+  - **Kendiliğinden yeniden bağlanma** (varsayılan açık): Bağlantı koparsa uygulama aynı cihaza 3 dakika boyunca yeniden bağlanmayı dener. Başarırsa sürüş kaydı bölünmez, kesinti süresi sürüşün olaylarına yazılır. "Durdur"a basınca deneme biter.
+  - Uygulamanın ne zaman arka plana geçtiği ve okumanın ne kadar durduğu ölçülür. Kartta kısa özeti görünür, ayrıntısı tanılama paketine girer.
 - **Tanılama paketi gönder:** Uygulamanın senin aracında nasıl çalıştığını tek bir dosyada toplar ve paylaşma menüsünü açar. Dosyada şunlar var: cihaz ve bağlantı bilgisi, aracın hangi değerleri verdiği, cihazla konuşmanın ham kaydı, arıza durumu, canlı değerler ve sürüş özetleri. Geliştirme için bu dosyayı göndermen yeterli. **API anahtarı, konum ve masraf notları dosyaya girmez.**
 
 ## Elektrikli araçlar (deneme aşamasında)
@@ -168,7 +172,7 @@ Birkaç depo sonra gerçek tüketimle karşılaştırıp **Ayarlar → Yakıt �
 
 ## Bilmen gereken sınırlar
 
-- **Ekran açık, uygulama önde kalmalı.** Telefon kilitlenirse ya da başka uygulamaya geçersen Android tarayıcıyı durdurur; takip ve kayıt da durur. Telefonu tutucuya tak ve şarjda tut.
+- **Ekran açık kalmalı.** Telefon kilitlenirse Android tarayıcıyı durdurur; takip ve kayıt da durur. Başka uygulamaya geçeceksen önce **Küçük pencere**yi aç (Ayarlar → Arka planda çalışma). Telefonu tutucuya tak ve şarjda tut.
 - Ucuz "v2.1" kopya cihazlar bazı komutları desteklemeyebilir. Bu durumda ilgili bölüm "Araç bu bilgiyi vermiyor" gösterir.
 - Her araç her değeri vermez. Vermediği değerler soluk görünür.
 - Üreticiye özel değerler (şanzıman sıcaklığı, DPF doluluğu…) ve ABS ya da hava yastığı arızaları henüz desteklenmiyor. Bunlar için marka bazlı komut tablosu gerekiyor. Elektrikli araçlar için bu tablolar kısmen eklendi.
