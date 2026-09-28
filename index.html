@@ -1693,10 +1693,11 @@ function drawMap(){
 function exportCsv(){
   const t=V.trip, smp=V.samples; if(!t) return;
   const cols=GAUGES.filter(g=>smp.some(s=>s.v[g.pid]!=null));
+  const xcols=[]; emit("csvCols", xcols, smp);   // eklenti sütunları: {head, get:satır=>değer}
   const num=v=>v==null?"":String(v).replace(".",",");
   const p2=n=>String(n).padStart(2,"0");
   const ts=ms=>{ const d=new Date(ms); return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`; };
-  const head=["Zaman","Enlem","Boylam","GPS hızı (km/sa)","GPS doğruluğu (m)",...cols.map(g=>`${g.name} (${g.unit})`),"Olay"];
+  const head=["Zaman","Enlem","Boylam","GPS hızı (km/sa)","GPS doğruluğu (m)",...cols.map(g=>`${g.name} (${g.unit})`),...xcols.map(c=>c.head),"Olay"];
   const evAt=new Map(); t.events.forEach(e=>{ let b=smp[0]; for(const s of smp) if(Math.abs(s.t-e.t)<Math.abs(b.t-e.t)) b=s; if(b) evAt.set(b.t,[...(evAt.get(b.t)||[]),e.text]); });
   // Eklentilerin satıra işlediği olaylar (ör. sürüş puanı: row.ev="fren,hiz"); listede zaten yoksa ekle
   const lab=k=>(typeof SCORE!=="undefined" && SCORE.LABEL && SCORE.LABEL[k]) || k;
@@ -1704,7 +1705,7 @@ function exportCsv(){
   smp.forEach(s=>{ if(!s.ev) return; const cur=evAt.get(s.t)||[];
     s.ev.split(",").map(lab).forEach(x=>{ if(!t.events.some(e=>e.text.startsWith(x) && Math.abs(e.t-s.t)<5000)) cur.push(x); });
     if(cur.length) evAt.set(s.t,cur); });
-  const rows=smp.map(s=>[ts(s.t),num(s.lat),num(s.lon),num(s.gs),num(s.acc),...cols.map(g=>num(s.v[g.pid])),`"${(evAt.get(s.t)||[]).join(" | ").replace(/"/g,"'")}"`].join(";"));
+  const rows=smp.map(s=>[ts(s.t),num(s.lat),num(s.lon),num(s.gs),num(s.acc),...cols.map(g=>num(s.v[g.pid])),...xcols.map(c=>num(c.get(s))),`"${(evAt.get(s.t)||[]).join(" | ").replace(/"/g,"'")}"`].join(";"));
   const blob=new Blob(["﻿"+head.join(";")+"\r\n"+rows.join("\r\n")],{type:"text/csv;charset=utf-8"});
   const d=new Date(t.start), a=document.createElement("a");
   const name=`surus_${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}.csv`;
@@ -1846,5 +1847,6 @@ if(!navigator.bluetooth && !navigator.serial) showNotice("Bu tarayıcıda Blueto
 <script src="features/speedlimit.js"></script>
 <script src="features/usage.js"></script>
 <script src="features/background.js"></script>
+<script src="features/systems.js"></script>
 </body>
 </html>

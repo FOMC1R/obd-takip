@@ -42,7 +42,7 @@ const DIAGPACK = (()=>{
       const real=trips.find(t=>!t.demo);
       if(real){ const smp=await getSamples(real.id);
         // konum çıkarılır; yalnızca zaman, araç değerleri, GPS hızı ve doğruluğu kalır
-        lastTrip={start:new Date(real.start).toISOString(), satirlar:smp.map(s=>({t:s.t, v:s.v, gs:s.gs, acc:s.acc, ev:s.ev}))}; }
+        lastTrip={start:new Date(real.start).toISOString(), satirlar:smp.map(s=>({t:s.t, v:s.v, gs:s.gs, acc:s.acc, ev:s.ev, sis:s.s, vites:s.gr}))}; }
     }
     return {
       paket:"OBD Takip tanılama paketi", surum:1, olusturma:new Date(now).toISOString(),
@@ -59,6 +59,7 @@ const DIAGPACK = (()=>{
       suruslar:tripSum,
       sonGercekSurus:lastTrip,
       ayarlar:set,
+      sistemler:(typeof SYS!=="undefined") ? {liste:SYS.list(), vites:SYS.gear(), ogrenilen:SYS.peaks(), ogrenmeSayisi:(settings.gear||{}).n||0} : null,
       arkaPlan:(typeof BG!=="undefined" && BG.report) ? BG.report() : null,
     };
   }
