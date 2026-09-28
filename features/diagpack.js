@@ -59,6 +59,7 @@ const DIAGPACK = (()=>{
       suruslar:tripSum,
       sonGercekSurus:lastTrip,
       ayarlar:set,
+      arkaPlan:(typeof BG!=="undefined" && BG.report) ? BG.report() : null,
     };
   }
 

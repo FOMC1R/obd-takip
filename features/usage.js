@@ -89,6 +89,7 @@ const USAGE = (()=>{
 
   // ---- olaylar ----
   on("connect", info=>{
+    if(S.resuming) return;   // kopan bağlantının yeniden kurulması yeni kullanım sayılmaz
     const k=linkKind(); event("baglanti/"+k);
     if(k==="deneme") return;
     event("arac/yakit-"+(settings.fuel||"bilinmiyor"));

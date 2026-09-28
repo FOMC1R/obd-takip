@@ -737,7 +737,7 @@
   on("tick",update);
   on("dtc",(dtc,mil)=>{ H.mil=!!mil; update(); });
   on("disconnect",()=>{ H.mil=false; update(); });
-  on("connect",()=>startCheck());   // panel açıkken bağlanınca: kontak açılışı gibi
+  on("connect",()=>{ if(!S.resuming) startCheck(); });   // panel açıkken bağlanınca: kontak açılışı gibi
   window.addEventListener("popstate",()=>{ if(H.open){ H.pushed=false; close(true); } });
   document.addEventListener("keydown",e=>{ if(H.open && e.key==="Escape") close(); });
   document.addEventListener("fullscreenchange",()=>{

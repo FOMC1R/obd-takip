@@ -613,9 +613,10 @@ const BLE_SERVICES = [0xfff0,0xffe0,0x18f0,0xae00,0xff00,
   "49535343-fe7d-4ae5-8fa9-9fafd205e455"];  // Microchip UART
 
 class BleLink{
-  constructor(){ this.onData=()=>{}; this.onLost=()=>{}; this.dec=new TextDecoder(); }
+  constructor(device=null){ this.device=device; this.onData=()=>{}; this.onLost=()=>{}; this.dec=new TextDecoder(); }
   async open(){
-    this.device = await navigator.bluetooth.requestDevice({acceptAllDevices:true, optionalServices:BLE_SERVICES});
+    // Cihaz verildiyse (yeniden bağlanma) listeyi yeniden sorma
+    if(!this.device) this.device = await navigator.bluetooth.requestDevice({acceptAllDevices:true, optionalServices:BLE_SERVICES});
     this.device.addEventListener("gattserverdisconnected",()=>this.onLost());
     await this.attach();
     return this.device.name || "ELM327";
@@ -1361,7 +1362,8 @@ async function readGauge(g){
 }
 async function loop(){
   let errors=0, cycle=0;
-  while(S.active){
+  const me=S.link;   // yeniden bağlanınca eski döngü kendiliğinden bitsin; iki döngü aynı anda okumasın
+  while(S.active && S.link===me){
     while(S.paused && S.active) await wait(200);
     cycle++;
     const list=GAUGES.filter(g=>!g.virtual && (settings.lim[g.pid].show || FUEL_NEED.has(g.pid) || (settings.recAll && REC.trip)) && (g.read ? (!g.available || g.available()) : (!S.supported || S.supported.has(g.pid) || (g.pid==="42"&&S.useAtrv))) && S.g[g.pid].miss<5
@@ -1586,7 +1588,7 @@ async function openTrip(id){
   if(!t.events.length) ev.innerHTML='<li class="empty">Bu sürüşte uyarı olmadı.</li>';
   t.events.forEach(e=>{ const li=document.createElement("li");
     li.innerHTML=`<time>${new Date(e.t).toLocaleTimeString("tr-TR")}</time><span class="${e.level==="crit"?"c":"w"}"></span>`;
-    li.lastChild.textContent=e.text; li.lastChild.style.color=e.level==="crit"?"var(--crit)":"var(--warn)"; ev.appendChild(li); });
+    li.lastChild.textContent=e.text; li.lastChild.style.color=e.level==="crit"?"var(--crit)":e.level==="info"?"var(--muted)":"var(--warn)"; ev.appendChild(li); });
   drawChart(); drawMap();
   emit("tripOpen", t, V.samples);
   $("viewer").scrollIntoView({behavior:"smooth",block:"start"});
@@ -1843,5 +1845,6 @@ if(!navigator.bluetooth && !navigator.serial) showNotice("Bu tarayıcıda Blueto
 <script src="features/autoview.js"></script>
 <script src="features/speedlimit.js"></script>
 <script src="features/usage.js"></script>
+<script src="features/background.js"></script>
 </body>
 </html>
