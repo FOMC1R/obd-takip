@@ -120,7 +120,14 @@ const LOG=[];   // son komutlar ve ham yanıtlar (paylaşmak için)
 function logRaw(cmd, r){ LOG.push(`${cmd} → ${(r||"(yanıt yok)").replace(/[\r\n>]+/g," ").trim()}`); if(LOG.length>80) LOG.shift(); }
 // fc: bazı beyinler (ör. Stellantis e-CMP) uzun cevabın devamını ancak isteğin kendi adresinden gelen
 // "devam et" çerçevesiyle (flow control) gönderir; ELM327'nin kendiliğinden gönderdiği yetmez.
+// Aynı anda iki başlık bloğu çalışırsa (ör. batarya okuması + features/systems.js araması) ATSH/ATCRA komutları
+// birbirine karışır ve kapılar yanlış sırayla kalkar: bloklar sırayla çalışır.
+let hdrQueue=Promise.resolve();
 async function withHeader(tx, rx, fn, fc){
+  const before=hdrQueue; let done; hdrQueue=new Promise(r=>done=r);
+  try{ await before; return await withHeaderNow(tx, rx, fn, fc); } finally{ done(); }
+}
+async function withHeaderNow(tx, rx, fn, fc){
   const e=S.elm; if(!e) return null;
   // Blok bitene kadar başka okumalar (ör. araç bilgisi taraması) araya giremesin: sıraya alınır
   const own=Object.prototype.hasOwnProperty.call(e,"send"), prev=e.send, raw=Elm.prototype.send;
