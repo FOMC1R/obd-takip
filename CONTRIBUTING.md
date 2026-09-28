@@ -12,7 +12,7 @@ Uygulama `index.html` içindeki tek bir betikten oluşur. Yeni özellikler **ken
 
 | Ad | Ne |
 |---|---|
-| `on(ad, fn)` | Kanca: `connect({name,demo})`, `disconnect()`, `tick()` (her okuma turu sonu), `sample(row, trip)` (kayda satır yazılmadan önce; `row.v[pid]`, `row.lat/lon/gs`; satıra alan eklenebilir), `tripEnd(trip)` (sürüş kapanırken; `trip`'e alan eklenebilir, sonra kaydedilir), `tripOpen(trip, samples)` (sürüş ayrıntısı açıldı), `tripList(view)` (sürüş listesi çizilmeden önce; `view.trips` süzülebilir, `view.empty` boş liste yazısı), `tripItem(li, trip)` (listedeki her sürüş satırı), `alarm(key, level, text)`, `dtc(S.dtc, mil)`, `diag()`, `gaugesBuilt()` |
+| `on(ad, fn)` | Kanca: `connect({name,demo})`, `disconnect()`, `tick()` (her okuma turu sonu), `sample(row, trip)` (kayda satır yazılmadan önce; `row.v[pid]`, `row.lat/lon/gs`; satıra alan eklenebilir), `tripEnd(trip)` (sürüş kapanırken; `trip`'e alan eklenebilir, sonra kaydedilir), `tripOpen(trip, samples)` (sürüş ayrıntısı açıldı), `tripList(view)` (sürüş listesi çizilmeden önce; `view.trips` süzülebilir, `view.empty` boş liste yazısı), `tripItem(li, trip)` (listedeki her sürüş satırı), `alarm(key, level, text)`, `dtc(S.dtc, mil)`, `diag()`, `gaugesBuilt()`, `csvCols(cols, samples)` (CSV'ye sütun ekle: `cols.push({head, get:satır=>değer})`), `systems(liste)` (araç sistemleri arandı), `systemsPaint()` |
 | `S` | Canlı durum: `S.active`, `S.elm.send(cmd, timeoutMs)` (ELM327'ye komut; sıralı), `S.g[pid].v/.ts/.hist`, `S.supported` (Set), `S.isCan`, `S.proto`, `S.cra` (motor filtresi), `S.paused` (true yapınca canlı okuma durur), `S.dtc {stored,pending,perm}`, `S.diag {vehicle, ready, freeze, counters}`, `S.batt`, `S.vin`, `S.link` |
 | `GAUGES`, `GBY[pid]`, `addGauge(def)` | Gösterge tanımları. `addGauge({pid, name, unit, lo, hi, dec, min, max, every, hide, read: async()=>sayı, available: ()=>bool})` sonra `buildSettings(); buildGauges();` |
 | `cur(pid)` | Güncel değer ya da `null` |
@@ -25,9 +25,16 @@ Uygulama `index.html` içindeki tek bir betikten oluşur. Yeni özellikler **ken
 | `$`, `fmt(v, dec)`, `fmtDur(ms)`, `km(m)`, `fmtDate(ms)`, `kv(dlEl, rows)`, `showTab(ad)`, `wait(ms)` | Yardımcılar |
 | `DemoLink` | Deneme cihazı. Yeni komutları desteklemek için `const o=DemoLink.prototype.reply; DemoLink.prototype.reply=function(cmd){ … return o.call(this,cmd); }` |
 
+**Başka beyne komut:** `EVA.withHeader(tx, rx, async send=>{…})` isteği o adrese yollar, blok bitene kadar diğer okumaları bekletir ve motor ayarlarını geri yükler. Bloklar sırayla çalışır; `ATSH`/`ATCRA`'yı elle göndermeyin. Bulunan sistemler: `SYS.list()`, canlı değer `SYS.live[tx][pid]`, vites `SYS.gear()`.
+
+## Sürüm
+
+`index.html`'deki `APP_VERSION` ("1.N") ile `sw.js`'teki önbellek adı (`obd-takip-vN`) birlikte artar; her yayında ikisi de bir artırılır. `test/integrity.test.js` eşleşmeyi denetler. Ana sayfanın sağ alt köşesinde görünür.
+
 ## Arayüz alanları
 
 Kartınızı şu kaplara ekleyin: `#ext-canli`, `#ext-ariza`, `#ext-surus`, `#ext-viewer` (açık sürüşün içi), `#ext-ayar`.
+Yeni sekme: `<section class="tab" data-tab="ad">` ekleyin; `showTab("ad")` onu da yönetir. Ana sayfaya kutucuk için `features/home.js`'teki `tiles()` listesine ekleyin.
 
 ## Tasarım kuralları
 

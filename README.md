@@ -46,6 +46,20 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
 
 ## Ekranlar
 
+### Ana sayfa
+Uygulama bu sayfayla açılır. Telefon uygulamalarındaki gibi büyük kutucuklar var: **Motor, Şanzıman, Arızalar, Sürüşler, İstatistik, Gösterge paneli, Ön cam (HUD), Bakım ve masraf, Ayarlar**. Araçta başka bir sistem bulunursa (örneğin hibrit sistem) onun da kutucuğu çıkar.
+- Kutucukların altında o bölümün kısa özeti yazar: motor sıcaklığı ve akü voltajı, o anki vites, arıza kodu sayısı gibi.
+- Üstte bağlantı durumu ve süren uyarılar görünür.
+- Sağ alt köşede **sürüm numarası** yazar. Bir sorun bildirirken bu numarayı da söyle.
+
+### Şanzıman ve diğer sistemler
+Araca bağlanınca uygulama, motor dışında standart veri veren başka beyinler (araçtaki küçük bilgisayarlar) olup olmadığını arar. Bu arama her araç için bir kez yapılır; **Şanzıman → Sistemleri yeniden ara** ile tekrarlanabilir.
+- **Şanzıman beyni cevap verirse** (otomatik şanzımanlı araçların çoğu): "Otomatik şanzıman" yazar ve beynin verdiği değerler 10 saniyede bir okunur. Standart "dişli oranı" verisi varsa takılı vites oradan bulunur.
+- **Cevap vermezse:** manuel şanzıman olabilir ya da beyin bu veriyi paylaşmıyordur.
+- **Vites tahmini:** Motor devrinin hıza oranı her viteste başka bir değerde durur. Uygulama bu değerleri ilk sürüşlerde kendisi öğrenir. Sabit hızla birkaç farklı viteste yaklaşık 200 ölçüm yeterli. Vites değişirken ya da otomatikte kavrama kayarken "Geçişte" yazar.
+- Bulunan her sistemin değerleri ve tahmini vites **sürüş kaydına** yazılır. Sürüş ayrıntısında "Viteste geçen süre" ile her değerin en az, ortalama ve en çok hâli görünür. CSV dosyasına da ayrı sütun olarak girer.
+- Şanzıman yağı sıcaklığı gibi markaya özel veriler henüz yok. Fluence'ın otomatik şanzımanı (DP0) için bu komutlar açık kaynaklarda yayınlanmış değil.
+
 ### Canlı
 - Değerler kutucuklar hâlinde görünür. Kutunun altındaki küçük eğri **son 1-10 dakikayı** gösterir.
 - Bir kutuya **dokununca** tam genişliğe açılır ve grafik büyür.
@@ -175,7 +189,7 @@ Birkaç depo sonra gerçek tüketimle karşılaştırıp **Ayarlar → Yakıt �
 - **Ekran açık kalmalı.** Telefon kilitlenirse Android tarayıcıyı durdurur; takip ve kayıt da durur. Başka uygulamaya geçeceksen önce **Küçük pencere**yi aç (Ayarlar → Arka planda çalışma). Telefonu tutucuya tak ve şarjda tut.
 - Ucuz "v2.1" kopya cihazlar bazı komutları desteklemeyebilir. Bu durumda ilgili bölüm "Araç bu bilgiyi vermiyor" gösterir.
 - Her araç her değeri vermez. Vermediği değerler soluk görünür.
-- Üreticiye özel değerler (şanzıman sıcaklığı, DPF doluluğu…) ve ABS ya da hava yastığı arızaları henüz desteklenmiyor. Bunlar için marka bazlı komut tablosu gerekiyor. Elektrikli araçlar için bu tablolar kısmen eklendi.
+- Üreticiye özel değerler (şanzıman yağı sıcaklığı, DPF doluluğu…) ve ABS ya da hava yastığı arızaları henüz desteklenmiyor. Şanzıman ve hibrit gibi sistemlerin yalnızca **standart** verileri okunuyor. Bunlar için marka bazlı komut tablosu gerekiyor. Elektrikli araçlar için bu tablolar kısmen eklendi.
 
 ## Gizlilik
 
