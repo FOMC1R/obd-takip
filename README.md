@@ -134,8 +134,9 @@ Ayarlar bir başlık listesiyle açılır: Araçlarım, Uyarı sınırları, Yak
   - İlk bağlantıda "Yeni araç tanındı: … — doğru mu?" diye sorar ve araca uygun varsayılanları getirir; örneğin Fluence K4M için benzin, 1,6 L.
   - Gerekirse şase numarasının yalnızca ilk 11 karakteri bir araç tanıma servisine gönderilir; aracın seri numarası hiçbir yere gitmez.
   - Eski Renault'ların şase numarasında model yılı bulunmaz; uygulama bu yüzden yıl göstermez.
-- **Arka planda çalışma:** Telefon, arka plandaki sayfayı yavaşlatır ya da durdurur. Bunun için iki yardım var:
-  - **Küçük pencere:** Başka bir uygulamaya (örneğin haritaya) geçmeden önce Canlı sekmesindeki **Küçük pencere** düğmesine bas. Hız, devir, hararet ve en önemli uyarı ekranın köşesinde küçük bir pencerede kalır. Pencere açıkken okuma ve kayıt sürer. "Uygulamadan çıkınca kendiliğinden açmayı dene" seçeneği Chrome izin verirse pencereyi kendisi açar.
+- **Navigasyon ve küçük pencere:** Telefon, arka plandaki sayfayı yavaşlatır ya da durdurur. Bunun için iki yardım var:
+  - **Navigasyona geç:** Bağlıyken üst çubuktaki ok simgesi (ya da ana sayfadaki büyük düğme) önce küçük pencereyi açar, sonra seçtiğin haritaya geçer. Uygulama Ayarlar → Sürüş ve navigasyon'dan seçilir: Google Haritalar (varsayılan), Yandex Navigasyon, Waze ya da her seferinde sor.
+  - **Küçük pencere:** Başka bir uygulamaya geçmeden önce üst çubuktaki **küçük pencere** simgesine bas. Hız, devir, hararet ve en önemli uyarı ekranın köşesinde küçük bir pencerede kalır. Pencere açıkken okuma ve kayıt sürer. "Uygulamadan çıkınca kendiliğinden açmayı dene" seçeneği Chrome izin verirse pencereyi kendisi açar.
   - **Kendiliğinden yeniden bağlanma** (varsayılan açık): Bağlantı koparsa uygulama aynı cihaza 3 dakika boyunca yeniden bağlanmayı dener. Motor durduktan sonra gelen kopma kontağın kapatılması sayılır: sürüş kaydedilir, uyarı çıkmaz, yeniden bağlanma denenmez. Başarırsa sürüş kaydı bölünmez, kesinti süresi sürüşün olaylarına yazılır. "Durdur"a basınca deneme biter.
   - Uygulamanın ne zaman arka plana geçtiği ve okumanın ne kadar durduğu ölçülür. Kartta kısa özeti görünür, ayrıntısı tanılama paketine girer.
 - **Yedekle ve geri yükle:** Sürüşler, bakım, masraf ve ayarlar yalnızca bu telefonda durur. **Yedek al** hepsini tek sıkıştırılmış dosyada toplar; Drive'a ya da kendine WhatsApp'la gönder. Geri yüklerken **Birleştir** (eksikleri ekler) ya da **Tamamen geri yükle** (yeni telefon için) seçilir. API anahtarı yalnızca kutucuğunu işaretlersen yedeğe girer. 30 günden uzun süre yedek alınmazsa uygulama hatırlatır.
@@ -200,7 +201,7 @@ Birkaç depo sonra gerçek tüketimle karşılaştırıp **Ayarlar → Yakıt �
 
 ## Bilmen gereken sınırlar
 
-- **Ekran açık kalmalı.** Telefon kilitlenirse Android tarayıcıyı durdurur; takip ve kayıt da durur. Başka uygulamaya geçeceksen önce **Küçük pencere**yi aç (Ayarlar → Arka planda çalışma). Telefonu tutucuya tak ve şarjda tut.
+- **Ekran açık kalmalı.** Telefon kilitlenirse Android tarayıcıyı durdurur; takip ve kayıt da durur. Başka uygulamaya geçeceksen önce üst çubuktaki **navigasyon** ya da **küçük pencere** simgesine bas. Telefonu tutucuya tak ve şarjda tut.
 - Ucuz "v2.1" kopya cihazlar bazı komutları desteklemeyebilir. Bu durumda ilgili bölüm "Araç bu bilgiyi vermiyor" gösterir.
 - Her araç her değeri vermez. Vermediği değerler soluk görünür.
 - Üreticiye özel değerler (şanzıman yağı sıcaklığı, DPF doluluğu…) ve ABS ya da hava yastığı arızaları henüz desteklenmiyor. Şanzıman ve hibrit gibi sistemlerin yalnızca **standart** verileri okunuyor. Bunlar için marka bazlı komut tablosu gerekiyor. Elektrikli araçlar için bu tablolar kısmen eklendi.

@@ -124,6 +124,9 @@ yeniden hesaplanınca aynı (sert olay yok; GPS de doğruluyor).
 - [x] **2.5.7 Aracın vermediği değerler gösteriliyor** — ✅ 1.22 (bağlıyken desteklenmeyen gizli; bağlı değilken kalıcı liste: sonraya) — MAF (10), dış hava (46), yağ sıcaklığı (5C), yakıt seviyesi (2F)
   "göster" açık ama Fluence vermiyor; desteklenmeyenler kendiliğinden gizlensin (ayar silinmeden).
 
+- [x] **2.5.9 Navigasyonla kullanım tek dokunuş** — Chrome dokunuşsuz küçük pencereyi engelleyebilir; "Navigasyona geç" düğmesi (üst çubuk + ana sayfa) dokunuş izniyle küçük pencereyi açıp seçili haritaya (intent: paket, yoksa Play Store) geçer. — ✅ 1.23 (Google Haritalar varsayılan; Yandex, Waze, sor)
+- [x] **2.5.8 Arka plan izi kayboluyordu** — küçük pencere / navigasyon davranışı da yalnız bellekteydi. — ✅ 1.23 (son bağlantı özetine `arkaPlan`)
+
 Araç sağlığı gözlemleri (kullanıcıya bilgi, kesin teşhis değil):
 - Şarj voltajı 13,3–13,4 V (en çok 13,6); motor kapalı 12,5 V; soğuk marşta 10,7 V. Tipik 13,8–14,4 V'un altında.
   Beynin bildirdiği voltaj akü kutbundan 0,2–0,4 V düşük olabilir → akü testi / ölçü aletiyle doğrulanmalı.
@@ -132,7 +135,15 @@ Araç sağlığı gözlemleri (kullanıcıya bilgi, kesin teşhis değil):
   1 sn'lik örnekleme kaba; sıcak motorda Mode 06 tekrar okunmalı.
 - Tahmini tüketim 11,2 L/100 km (kısa şehir içi). Pompa verisi yok → Masraf'a litreli yakıt girişi ile düzeltme.
 
-## Bölüm 3 — Ekran kapalıyken çalışma (emek: büyük, sonra)
+## Bölüm 3 — Ekran kapalıyken çalışma (emek: büyük) — ⏸ ERTELENDİ (29.09.2026)
+
+> Karar: web (link ile dağıtım) ana ürün olarak kalır. Asıl ihtiyaç navigasyonla birlikte kullanım; bunu küçük pencere
+> (PiP) karşılıyor. Ekran kapalı kayıt şimdilik şart değil; web güncellemeleri oturunca yeniden bakılır.
+> Yapılırsa dağıtım: web uygulamasında "Android uygulamasını indir" linki (GitHub Releases), arayüz her açılışta
+> siteden yüklenir → web güncellemeleri APK'ya kendiliğinden gelir; yeniden kurulum yalnız yerel Bluetooth parçası
+> değişince. Play Store sonraya. Hazırlık: bilgisayarda Android Studio yok (yalnız Java 8), adaptör klasik Bluetooth.
+> Önce ölç: navigasyon açıkken küçük pencerede okuma sürüyor mu? (1.23: arka plan izi son bağlantı özetinde).
+
 
 - [ ] Web'de çözüm yok (Web Bluetooth arka plan kaydı açık: issuetracker 40244292; 2026'da deneme özelliği yok).
   TWA işe yaramaz (Chrome kısıtları aynı). Yol: Capacitor + kendi yazacağımız küçük Kotlin eklentisi
