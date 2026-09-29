@@ -476,13 +476,13 @@ function emit(name, ...args){ for(const f of HOOKS[name]||[]){ try{ f(...args); 
 // ---------- Göstergeler: OBD-II mod 01 PID tanımları (SAE J1979) ----------
 const GAUGES = [
   {pid:"0C", every:1, name:"Motor devri",           unit:"d/dk", f:(a,b)=>(a*256+b)/4,     lo:0,   hi:8000, dec:0, min:null, max:6200},
-  {pid:"0D", every:1, name:"Hız",                   unit:"km/sa",f:a=>a,                   lo:0,   hi:220,  dec:0, min:null, max:130},
+  {pid:"0D", every:1, name:"Hız",                   unit:"km/sa",f:a=>a,                   lo:0,   hi:220,  dec:0, min:null, max:130, lvl:"warn"},
   {pid:"05", every:5, name:"Soğutma suyu sıcaklığı",unit:"°C",   f:a=>a-40,                lo:-40, hi:130,  dec:0, min:null, max:110},
   {pid:"5C", every:5, name:"Motor yağı sıcaklığı",  unit:"°C",   f:a=>a-40,                lo:-40, hi:160,  dec:0, min:null, max:130},
   {pid:"42", every:3, name:"Akü / şarj voltajı",    unit:"V",    f:(a,b)=>(a*256+b)/1000,  lo:10,  hi:16,   dec:1, min:12.0, max:15.0},
   {pid:"04", every:1, name:"Motor yükü",            unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:null, max:null},
   {pid:"11", every:1, name:"Gaz kelebeği",          unit:"%",    f:a=>a*100/255,           lo:0,   hi:100,  dec:0, min:null, max:null},
-  {pid:"0F", every:8, name:"Emme havası sıcaklığı", unit:"°C",   f:a=>a-40,                lo:-40, hi:100,  dec:0, min:null, max:60},
+  {pid:"0F", every:8, name:"Emme havası sıcaklığı", unit:"°C",   f:a=>a-40,                lo:-40, hi:100,  dec:0, min:null, max:70, lvl:"warn"},
   {pid:"0B", every:2, name:"Emme manifold basıncı", unit:"kPa",  f:a=>a,                   lo:0,   hi:255,  dec:0, min:null, max:null},
   {pid:"10", every:2, name:"Hava akışı (MAF)",      unit:"g/sn", f:(a,b)=>(a*256+b)/100,   lo:0,   hi:200,  dec:1, min:null, max:null},
   {pid:"06", every:2, name:"Kısa süreli yakıt ayarı",unit:"%",   f:a=>(a-128)*100/128,     lo:-25, hi:25,   dec:1, min:-20,  max:20},
@@ -617,6 +617,12 @@ if((settings.v||1)<2){
   up("0C","max",6000,6200); up("0D","max",140,130); up("05","max",105,110);
   if(settings.price===45) settings.price=FUEL_PRICE[settings.fuel]||FUEL_PRICE.benzin;
   settings.v=2; save();
+}
+// v3: emme havası üst sınırı 60 → 70 °C. Sıcak motoru yeniden çalıştırınca (ısı birikmesi) 60'ı geçmesi olağan;
+// gerçek araç verisinde yanlış alarm verdi (YOL-HARITASI 2.5.4). Kullanıcı değiştirdiyse dokunulmaz.
+if(settings.v<3){
+  const L=settings.lim; if(L["0F"] && L["0F"].max===60) L["0F"].max=70;
+  settings.v=3; save();
 }
 function save(){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(settings)); }catch(e){} }
 
@@ -1099,7 +1105,9 @@ function checkLimits(g){
   if(out && st.out>=3 && !st.alarm){
     st.alarm=true;
     const side = (L.max!=null && st.v>L.max) ? `üst sınır ${fmt(L.max,g.dec)}` : `alt sınır ${fmt(L.min,g.dec)}`;
-    raise("g"+g.pid,"crit",`${g.name}: ${fmt(st.v,g.dec)} ${g.unit} (${side})`, `Dikkat. ${g.name} ${sayValue(g,st.v)}`);
+    // lvl: sınır aşımının seviyesi. Varsayılan kırmızı (crit, motor tehlikesi); hız ve emme havası sarı (warn):
+    // kırmızı uyarı motoru durdurmayı gerektiren durumlara kalsın (YOL-HARITASI 2.5.5).
+    raise("g"+g.pid, g.lvl||"crit", `${g.name}: ${fmt(st.v,g.dec)} ${g.unit} (${side})`, `Dikkat. ${g.name} ${sayValue(g,st.v)}`);
   }
   if(!out && st.alarm && st.inn>=3){ st.alarm=false; drop("g"+g.pid); addLog("warn",`${g.name} normale döndü: ${fmt(st.v,g.dec)} ${g.unit}`); }
 }
