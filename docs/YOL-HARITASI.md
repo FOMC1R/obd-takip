@@ -41,7 +41,7 @@ yaygın markalar, elektrikli araçlar) sonucudur. İş bittikçe kutu işaretlen
   - İleride: kullanıcının kendi Google Drive'ına (appDataFolder, yalnız bu uygulamanın gördüğü klasör)
     otomatik yedek — sunucu gerekmez, OAuth onay ekranı gerekir. Supabase ücretsiz planı 7 gün hareketsizlikte
     durduğu için uygun değil; kendi sunucumuzu kurmuyoruz.
-- [ ] **2.B OBDb çevirici + elektrikli araç batarya raporu** (emek: orta)
+- [x] **2.B OBDb çevirici + elektrikli araç batarya raporu** (emek: orta) — ✅ 1.20 (features/obdb.js 15 araç kataloğu + features/evreport.js batarya raporu; test/obdb, test/evreport. ABRP ve şarj oturumu günlüğü: sonraya. BYD / Togg: açık veri yok)
   - OBDb (github.com/OBDb, **CC-BY-SA 4.0**: kaynak gösterilir, türetilen veri dosyası aynı lisansla açık
     kalır; uygulama kodu ayrı eser). Dosya: `signalsets/v3/default.json` — `hdr` (kime), `cmd` (ne),
     `bix/len/div/add` (nasıl çözülür), `suggestedMetric` (stateOfCharge, stateOfHealth, starterBatteryVoltage…).
@@ -58,7 +58,7 @@ yaygın markalar, elektrikli araçlar) sonucudur. İş bittikçe kutu işaretlen
     12V akü, km, paylaşılabilir PDF). Aynı model/km'de SoH farkı %13,5'e kadar çıkabiliyor (otorapor.com,
     istanbulticaretgazetesi.com). Sonra: şarj oturumu kaydı, ABRP canlı veri
     (`POST https://api.iternio.com/1/tlm/send`, kullanıcı anahtarı).
-- [ ] **2.C ABS / hava yastığı / kaporta arıza kodu okuma — salt okuma** (emek: orta)
+- [x] **2.C ABS / hava yastığı / kaporta arıza kodu okuma — salt okuma** (emek: orta) — ✅ 1.20 (features/modules.js; Renault/Dacia, VW grubu, Hyundai/Kia, PSA, Ford, Toyota; yalnız okuma izin listesi; test/modules. Fiat 29 bit: sonraya)
   - Genel tarayıcı + marka adres tablosu. İzinli komutlar (kodda yalnız bunlar): `10 01`, `10 03`, `19`, `22`,
     `21`, `3E`, `09`, KWP `17FF00` / `18 02 FF 00`. **Asla:** `14` (silme), `2E/3B` (yazma), `31` (rutin),
     `27` (güvenlik), `11` (yeniden başlatma), `28/85`, `2F`, `34–37`.
@@ -84,7 +84,7 @@ yaygın markalar, elektrikli araçlar) sonucudur. İş bittikçe kutu işaretlen
 - [x] **2.D Aracın kendi test sonuçları — Mode 06** (emek: küçük) — ✅ 1.19 (features/monitors.js; test/monitors.test.js. IUPR: sonraya)
   - Standart, salt okunur. Katalizör, oksijen sensörü, tekleme testleri; sınırlar ve geçti/kaldı.
     Muayene hazırlığı ekranının yanına. İsteğe bağlı: IUPR (mod 09, testlerin çalışma sıklığı).
-- [ ] **2.E Markaya özel canlı veriler (deneysel)** (emek: orta)
+- [x] **2.E Markaya özel canlı veriler (deneysel)** (emek: orta) — ✅ 1.20 (features/brandlive.js; şanzıman yağı, DPF is/yakma, Renault yağ sıcaklığı; OBDb formülleri; test/brandlive. Hibrit batarya: sonraya)
   - Değer sırası: otomatik şanzıman yağ sıcaklığı, dizel DPF kurum/rejenerasyon, hibrit batarya doluluğu.
   - Aday komutlar (araştırmadan; **araçta doğrulanmadan "deneysel"**):
     - VW dizel: `7E0 22 114E` kurum kütlesi, `22 1153` kül, `22 1347` rejenerasyon; Golf `22 1044` DPF sıcaklığı.

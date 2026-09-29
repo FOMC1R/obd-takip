@@ -79,6 +79,7 @@ Araca bağlanınca uygulama, motor dışında standart veri veren başka beyinle
   - **Uyarı lambaları:** motor arıza (tekleme sürerken yanıp söner), şarj/akü (motor dururken akü zayıfsa sarı), motor sıcaklığı (soğukken mavi, hararette kırmızı), yağ sıcaklığı, düşük yakıt, servis (bekleyen arıza kodu ya da bakım zamanı), elektrikli araçta READY ve bağlantı. Sürüş kaydedilirken saatin yanında KAYIT yazar.
   - **Açılış testi:** panel açılınca ya da araca bağlanınca gerçek araçlardaki gibi tüm lambalar 2 saniye yanar, ibreler sona gidip geri döner. Kontrol çubuğundan kapatılabilir.
   - Panel telefonda, tablette ve bilgisayar ekranında orantılı büyür/küçülür.
+- **Markaya özel (deneysel):** Aracın kendi numaralarıyla okunan değerler: otomatik şanzıman yağı sıcaklığı, dizelde partikül filtresi (DPF) is miktarı ve yakma durumu, Renault'da motor yağı sıcaklığı. Bağlanınca bir kez sorulur; yalnızca aracın makul değerle cevap verdikleri görünür. Kaynak açık veritabanı OBDb; her araçta doğru olmayabilir.
 - **Performans ölçümü:** 0-100 km/sa ve 80-120 km/sa (sollama) süresini ölçer. **Yalnızca kapalı ve güvenli bir alanda dene.**
 
 ### Arıza
@@ -93,6 +94,8 @@ Araca bağlanınca uygulama, motor dışında standart veri veren başka beyinle
   - **Claude'da aç** ve **ChatGPT'de aç** metni sohbete hazır yazılmış olarak açar. Açılan kutu boş gelirse metin panoya da kopyalanmıştır; basılı tutup yapıştır.
   - Ayarlar'a Claude API anahtarı girersen yorum doğrudan uygulamada görünür. API anahtarı, Anthropic'in hizmetini programdan kullanmak için verdiği kişisel şifredir. Anahtar yalnızca bu telefonda saklanır; her yorum birkaç sent tutar.
   - Şase numarası yalnızca kutucuğunu işaretlersen metne eklenir. Konum hiçbir zaman eklenmez.
+- **Diğer beyinler:** ABS (fren), hava yastığı, gösterge paneli ve gövde beyinlerindeki arıza kodlarını okur. Marka şase numarasından anlaşılır, istersen elle seçilir (Renault/Dacia, VW grubu, Hyundai/Kia, Peugeot/Citroën/Opel, Ford, Toyota). **Yalnız okur:** kod silmez, ayar değiştirmez. Araç duruyorken, kontak açıkken tara.
+- **Aracın kendi test sonuçları:** Motor beyninin emisyon parçaları için yaptığı ölçümler ve sınırları (Mode 06). Sınıra yakın olan "yakın", aşan "kaldı" diye işaretlenir.
 - **Rapor oluştur (PDF):** Ustaya gösterilecek tek sayfalık rapor hazırlar. Açılan yazdırma ekranında "PDF olarak kaydet"i seç.
 
 ### Sürüşler
@@ -132,6 +135,7 @@ Araca bağlanınca uygulama, motor dışında standart veri veren başka beyinle
   - **Küçük pencere:** Başka bir uygulamaya (örneğin haritaya) geçmeden önce Canlı sekmesindeki **Küçük pencere** düğmesine bas. Hız, devir, hararet ve en önemli uyarı ekranın köşesinde küçük bir pencerede kalır. Pencere açıkken okuma ve kayıt sürer. "Uygulamadan çıkınca kendiliğinden açmayı dene" seçeneği Chrome izin verirse pencereyi kendisi açar.
   - **Kendiliğinden yeniden bağlanma** (varsayılan açık): Bağlantı koparsa uygulama aynı cihaza 3 dakika boyunca yeniden bağlanmayı dener. Başarırsa sürüş kaydı bölünmez, kesinti süresi sürüşün olaylarına yazılır. "Durdur"a basınca deneme biter.
   - Uygulamanın ne zaman arka plana geçtiği ve okumanın ne kadar durduğu ölçülür. Kartta kısa özeti görünür, ayrıntısı tanılama paketine girer.
+- **Yedekle ve geri yükle:** Sürüşler, bakım, masraf ve ayarlar yalnızca bu telefonda durur. **Yedek al** hepsini tek sıkıştırılmış dosyada toplar; Drive'a ya da kendine WhatsApp'la gönder. Geri yüklerken **Birleştir** (eksikleri ekler) ya da **Tamamen geri yükle** (yeni telefon için) seçilir. API anahtarı yalnızca kutucuğunu işaretlersen yedeğe girer. 30 günden uzun süre yedek alınmazsa uygulama hatırlatır.
 - **Tanılama paketi gönder:** Uygulamanın senin aracında nasıl çalıştığını tek bir dosyada toplar ve paylaşma menüsünü açar. Dosyada şunlar var: cihaz ve bağlantı bilgisi, aracın hangi değerleri verdiği, cihazla konuşmanın ham kaydı, arıza durumu, canlı değerler ve sürüş özetleri. Geliştirme için bu dosyayı göndermen yeterli. **API anahtarı, konum ve masraf notları dosyaya girmez.**
 
 ## Elektrikli araçlar (deneme aşamasında)
@@ -143,6 +147,9 @@ Ayarlar → Yakıt türü → **Elektrik** seç. Ardından **Araç profili** se�
 - **KGM Torres EVX:** Yalnızca gösterge doluluğu bir kaynakta doğrulanmış; diğer değerler tahmin.
 - **Anlık güç, kWh/100 km ve sürüş başına enerji maliyeti** hesaplanır. "Şarj oluyor" ve "Frenle geri kazanım" durumları gösterilir.
 - **Özel PID listesi yükle:** Car Scanner ya da Torque CSV biçimindeki komut listelerini içeri alabilirsin. Uygulama yalnızca okuma komutlarını kabul eder.
+
+- **Açık veritabanından profil (OBDb):** Hyundai IONIQ 5 / 6 / Kona, Kia EV6 / EV9 / EV3 / Niro, VW ID.3 / ID.4 (Skoda Enyaq, Cupra Born), Renault ZOE, MG4, MG ZS EV, Fiat 500e, MINI Cooper SE ve Nissan Leaf için profil internetten bir kez indirilip telefonda saklanır. BYD, Togg ve Tesla için açık veri henüz yok.
+- **İkinci el batarya raporu:** Batarya sekmesinde batarya sağlığı, hücreler arası fark, en zayıf hücre ve sıcaklığa bakıp "iyi / dikkat / kötü" değerlendirmesi yapar; rapor PDF olarak kaydedilebilir.
 
 Bu değerlerin hepsi **"denenmemiş"** olarak işaretli. Gerçek araçta denedikten sonra **Ham yanıtları paylaş** ile sonuçları gönderirsen doğrulayıp düzeltilir.
 
