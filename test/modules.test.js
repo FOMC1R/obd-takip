@@ -35,7 +35,9 @@ require("./harness")(String.raw`
   if(writes.length) throw new Error("yazan komut gönderildi: "+writes);
   if(!sent.includes("10C0")) throw new Error("Renault oturumu açılmadı");
   // motor okuması sürüyor (başlık geri alındı)
-  const ts=S.g["0C"].ts; await wait(1200); if(!(S.g["0C"].ts>ts)) throw new Error("taramadan sonra motor okuması durdu");
+  const ts0=Object.fromEntries(Object.entries(S.g).map(([k,g])=>[k,g.ts||0])); await wait(1500);
+  // motor değerleri sırayla okunur; o pencerede hangisi gelirse (devir, hız, sıcaklık…) okuma sürüyor demektir
+  if(!Object.entries(S.g).some(([k,g])=>(g.ts||0)>ts0[k])) throw new Error("taramadan sonra motor okuması durdu");
   stop(); await wait(400);
   settings.modBrand="fiat"; M.paint(); if(!/29 bit/.test($("modBox").innerHTML)) throw new Error("Fiat açıklaması yok");
   console.log("diğer beyinler: izin listesi, UDS/KWP çözümü, marka, 4 beyin tarama, yazma yok tamam ("+sent.length+" okuma komutu)");
