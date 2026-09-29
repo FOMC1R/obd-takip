@@ -50,10 +50,11 @@ HyperOS arka plandaki uygulamaları hızla durdurur. Kayıt kesilmesin diye:
 Uygulama açılırken yaklaşık 3 saniyelik bir animasyon oynar. Bir aracın kontak açılışı gibi: veri sinyali, uyarı lambalarının yanıp sönmesi, ibrenin sona gidip dönmesi ve "HAZIR". Ekrana dokununca atlanır. Telefonda "hareketi azalt" ayarı açıksa yalnızca kısa bir solma gösterilir. **Ayarlar → Açılış animasyonu** ile kapatılabilir ya da yeniden oynatılabilir.
 
 ### Ana sayfa
-Uygulama bu sayfayla açılır. Telefon uygulamalarındaki gibi büyük kutucuklar var: **Motor, Şanzıman, Arızalar, Sürüşler, İstatistik, Gösterge paneli, Ön cam (HUD), Bakım ve masraf, Ayarlar**. Araçta başka bir sistem bulunursa (örneğin hibrit sistem) onun da kutucuğu çıkar.
+Uygulama bu sayfayla açılır. Telefon uygulamalarındaki gibi büyük kutucuklar var: **Motor, Şanzıman, Arızalar, Sürüşler, İstatistik, Gösterge paneli, Ön cam (HUD), Bakım, Masraf, Ayarlar**. Araçta başka bir sistem bulunursa (örneğin hibrit sistem) onun da kutucuğu çıkar.
 - Kutucukların altında o bölümün kısa özeti yazar: motor sıcaklığı ve akü voltajı, o anki vites, arıza kodu sayısı gibi.
 - Üstte bağlantı durumu ve süren uyarılar görünür.
 - Sağ alt köşede **sürüm numarası** yazar. Bir sorun bildirirken bu numarayı da söyle.
+- Güncellemeden sonraki ilk açılışta **Yenilikler** penceresi o sürümde nelerin değiştiğini kısaca anlatır. Her sürümde bir kez çıkar; araç giderken çıkmaz. Sonradan Ayarlar → Yardım ve yenilikler'den okunur.
 - Yeni sürüm yayınlanınca üstte **"Yeni sürüm hazır — Yenile"** uyarısı çıkar. Araca bağlıyken yenilersen bağlantı kesilir, sürüş kaydı kaydedilir.
 
 ### Şanzıman ve diğer sistemler
@@ -120,7 +121,9 @@ Araca bağlanınca uygulama, motor dışında standart veri veren başka beyinle
 - Deneme kayıtları istatistiğe katılmaz.
 
 ### Ayarlar
-- Her değer için **alt/üst uyarı sınırı** belirlenebilir ve istenmeyen değerler gizlenebilir.
+Ayarlar bir başlık listesiyle açılır: Araçlarım, Uyarı sınırları, Yakıt ve fiyat, Elektrikli araç, Ses/kayıt/ekran, Sürüş ekranları, Yapay zekâ, Yedek ve tanılama, Gizlilik, Yardım ve yenilikler. Başlığa dokununca yalnız o bölüm açılır; **‹ Geri** ya da telefonun geri tuşu listeye döner. Arıza sayfası da aynı şekilde: arıza kodları üstte, altında Araç durumu, Diğer beyinler, Testler, Rapor ve yorum.
+
+- Her değer için **alt/üst uyarı sınırı** belirlenebilir ve istenmeyen değerler gizlenebilir. Üstteki süzgeç (Gösterilenler, Motor, Yakıt, Elektrik, Özel, Tümü) listeyi kısaltır.
 - **Yakıt:** yakıt türü, litre fiyatı, motor hacmi ve düzeltme oranı.
 - Sesli uyarı, titreşim, ekranı açık tutma, kayıt ve GPS tercihleri.
 - **Sürüşte otomatik aç:** Kapalı, Gösterge paneli ya da Ön cam (HUD). Araç 5 saniye boyunca 15 km/sa'yı geçince seçtiğin ekran kendiliğinden açılır. Elle kapatırsan aynı sürüşte yeniden açılmaz; araç 1 dakika durup tekrar kalkınca açılır. İstersen "Araç 2 dakika durunca kapat" da seçilebilir. Bunun için uygulama telefon ekranında açık olmalı.

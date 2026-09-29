@@ -36,10 +36,12 @@ Uygulama `index.html` içindeki tek bir betikten oluşur. Yeni özellikler **ken
 ## Sürüm
 
 `index.html`'deki `APP_VERSION` ("1.N") ile `sw.js`'teki önbellek adı (`obd-takip-vN`) birlikte artar; her yayında ikisi de bir artırılır. `test/integrity.test.js` eşleşmeyi denetler. Ana sayfanın sağ alt köşesinde görünür.
+Her yayında `features/whatsnew.js` → `CHANGES` listesinin başına o sürümün kullanıcıya görünen 3–5 maddesi yazılır; `test/whatsnew.test.js` liste güncel sürümle başlamıyorsa kalır. Tam yayın sırası: `CLAUDE.md`.
 
 ## Arayüz alanları
 
 Kartınızı şu kaplara ekleyin: `#ext-canli`, `#ext-ariza`, `#ext-surus`, `#ext-viewer` (açık sürüşün içi), `#ext-ayar`.
+`#ext-ayar` ve `#ext-ariza`'daki kartlar alt menüye başlıklarına (ilk `h2`) göre atanır: `features/menus.js` → `DEF`. Yeni kartın başlığını oraya eklemezseniz kart "Diğer" bölümüne düşer (kaybolmaz ama dağınık görünür); `test/menus.test.js`'teki listeye de ekleyin.
 Yeni sekme: `<section class="tab" data-tab="ad">` ekleyin; `showTab("ad")` onu da yönetir. Ana sayfaya kutucuk için `features/home.js`'teki `tiles()` listesine ekleyin.
 
 ## Tasarım kuralları
