@@ -331,7 +331,8 @@ async function readItems(items){
         if(r===undefined){ r=await send(it.cmd, 1500); seen.set(it.cmd,r); logRaw((tx?`[${tx}] `:"")+it.cmd, r); }
         const b=r && !failed(r) ? respBytes(r, it.cmd) : null;
         let v=null;
-        try{ if(b) v=evalExpr(it.eq,b); }catch(x){ v=null; }
+        // decode: öğe kendi çözücüsünü getirebilir (features/obdb.js — bit konumlu açık veritabanı tanımları)
+        try{ if(b) v = it.decode ? it.decode(b) : evalExpr(it.eq,b); }catch(x){ v=null; }
         st.cache[it.key]={v, ts:Date.now()};
         // aynı turda okunan kardeş değer göstergesine de yazılsın (yavaş değerler ilk turu beklemesin)
         const g=it.pid && GBY[it.pid], sg=g && S.g[it.pid];
