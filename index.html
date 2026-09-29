@@ -1491,7 +1491,8 @@ async function startRec(device, demo){
   if(demo && !settings.recordDemo) return;
   try{
     if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
-    const t={start:Date.now(), end:Date.now(), device, demo, samples:0, distance:0, stats:{}, events:[], dtcs:[]};
+    // open: sürüş düzgün kapanınca silinir; açılışta hâlâ duruyorsa uygulama çökmüştür (recoverTrips)
+    const t={start:Date.now(), end:Date.now(), device, demo, samples:0, distance:0, stats:{}, events:[], dtcs:[], open:true};
     t.id=await putTrip(t);
     REC.trip=t; REC.buf=[]; REC.lastFlush=Date.now(); REC.lastT=0; REC.gpsWarned=false;
     startGps(); $("recBadge").hidden=false; renderTrips();
@@ -1524,12 +1525,38 @@ function sample(){
 }
 async function flush(t){
   const arr=REC.buf; REC.buf=[]; REC.lastFlush=Date.now();
-  try{ await addSamples(arr); await putTrip(t); }catch(e){ addLog("warn","Kayıt yazılamadı: "+e.message); }
+  try{ await addSamples(arr); await putTrip(t); REC.writeErr=0; }
+  catch(e){
+    // Yazılamayan satırlar atılmaz; sonraki denemede yeniden yazılır (en fazla ~1 saatlik)
+    REC.buf=arr.concat(REC.buf).slice(-3600);
+    if(!REC.writeErr++) addLog("warn","Kayıt yazılamadı, yeniden denenecek: "+e.message);
+  }
 }
+// Uygulama gizlenince / kapanırken bekleyen satırları hemen yaz (telefon sayfayı her an durdurabilir)
+function persistNow(){ if(REC.trip && REC.buf.length) return flush(REC.trip); }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") persistNow(); });
+window.addEventListener("pagehide",persistNow);
+// Çökme ya da öldürülme sonrası: sonu kapanmamış sürüşleri özetleriyle kapat (tripEnd eklentileri çalışır)
+async function recoverTrips(){
+  let n=0;
+  try{
+    for(const t of await getTrips()){
+      if(!t.open || (REC.trip && REC.trip.id===t.id)) continue;
+      delete t.open;
+      if(!t.samples){ await deleteTrip(t.id); continue; }
+      t.recovered=true; (t.events=t.events||[]).push({t:t.end, level:"warn", text:"Uygulama beklenmedik şekilde kapandı; sürüş buraya kadar kurtarıldı"});
+      emit("tripEnd", t); await putTrip(t); n++;
+    }
+  }catch(e){}
+  if(n){ addLog("warn", `${n} sürüş, uygulama beklenmedik şekilde kapandığı için kurtarıldı.`); renderTrips(); }
+  return n;
+}
+setTimeout(recoverTrips, 1500);   // eklentiler (tripEnd dinleyenleri) yüklendikten sonra
 function recEvent(level,text){ if(REC.trip) REC.trip.events.push({t:Date.now(),level,text}); }
 async function endRec(){
   const t=REC.trip; if(!t) return;
   REC.trip=null; stopGps(); $("recBadge").hidden=true;
+  delete t.open;
   await flush(t);
   if(!t.samples) await deleteTrip(t.id); else { emit("tripEnd", t); await putTrip(t); }
   renderTrips();

@@ -156,6 +156,7 @@ const BG = (()=>{
     old.onLost=()=>{};   // eski bağlantının geç gelen kopma haberi yeni bağlantıyı düşürmesin
     try{ old.close(); }catch(e){}
     R={old, since:Date.now(), tries:0, busy:false, trip:REC.trip, timer:null};
+    if(REC.trip) flush(REC.trip);   // bekleyen satırlar kopma sırasında kaybolmasın
     trace("baglanti-koptu",{tur:old.constructor.name});
     setStatus("busy","Bağlantı koptu · yeniden bağlanıyor…");
     raise("link","warn","OBD bağlantısı koptu, yeniden bağlanılıyor");
@@ -213,7 +214,7 @@ const BG = (()=>{
   const origStartRec = startRec;
   startRec = async function(device, demo){
     if(R && R.trip && REC.trip===R.trip){
-      REC.buf=[]; REC.lastFlush=Date.now(); REC.lastT=0;
+      REC.lastFlush=Date.now(); REC.lastT=0;   // bekleyen satırlar (varsa) korunur, sonraki yazmada gider
       if(REC.gpsWatch==null && !REC.demo) startGps();
       $("recBadge").hidden=false;
       return;
