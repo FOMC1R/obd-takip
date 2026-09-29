@@ -100,6 +100,38 @@ yaygın markalar, elektrikli araçlar) sonucudur. İş bittikçe kutu işaretlen
   - `STI` ile algıla; varsa `STPX` (başlık + veri tek satırda) — çok beyinli taramada hızlı. Yoksa ATSH/ATCRA.
   - Öneri cihaz: OBDLink MX+ (klasik Bluetooth), CX (BLE). Ucuz "v2.1" klonlarda BUFFER FULL ve CR/LF sorunları.
 
+## Bölüm 2.5 — Gerçek araç verisinden düzeltmeler (Renault Fluence 1.6 K4M, 23–29.09.2026)
+
+Kaynak: 12 gerçek sürüş, 95 km, 11.807 ölçüm satırı + tanılama paketi (dosyalar repo dışında, `D:\FO-YEDEK\OBD-Veri`;
+konum ve şase no içerdiği için GitHub'a konmaz). Doğrulananlar: okuma ~1 satır/sn (p95 1,5 sn, 3 sn üstü boşluk 2),
+araç hızı / GPS = 1,008, ısınma 5–6 dk, yakıt ayarları normal (uzun −4…−5,5 %), kod yok, sürüş puanı kayıtlardan
+yeniden hesaplanınca aynı (sert olay yok; GPS de doğruluyor).
+
+- [ ] **2.5.1 Motor durdu ama kontak açık** — K4M beyni motor dururken devri 0 değil **~232** bildiriyor; MAP ~100 kPa.
+  Uygulama bunu "çalışıyor" sanıyor: 569 satırda 0,156 L sahte yakıt, rölanti yüzdesi şişiyor. Ölçüt: devir < 400
+  ve hız 0 (ve MAP ≈ hava basıncı) → motor durdu: anlık yakıt 0, rölanti sayılmaz.
+- [ ] **2.5.2 Kontak kapatma "kopma" sayılıyor** — 5 sürüşün sonundaki "bağlantı koptu" olaylarının hepsinde motor
+  zaten durmuştu (devir ~232, hız 0). Motor durduktan sonraki kopma → "Kontak kapatıldı, sürüş bitti" (bilgi),
+  kırmızı uyarı değil; 3 dakikalık yeniden bağlanma denenmez.
+- [ ] **2.5.3 Kırıntı sürüş** — 30 sn / 3 satır / 0 km'lik sürüş (#6) hemen ardından gelen sürüşten ayrı kaydedildi.
+  1 dakikadan kısa ve hareketsiz sürüş atılır ya da 2 dk içinde başlayan sonrakiyle birleştirilir.
+- [ ] **2.5.4 Emme havası sınırı yanlış alarm** — sıcak motoru yeniden çalıştırınca (ısı birikmesi) 61 °C > 60 sınırı.
+  Varsayılan 70 °C ya da ilk 5 dakika / araç dururken uyarma.
+- [ ] **2.5.5 Hız aşımı "kritik" seviyede** — 51–56 km/sa için 14 kırmızı uyarı (tolerans 0 seçili). Hız uyarıları
+  sarı (warn) olsun; kırmızı motor tehlikesine kalsın. Ayarlardaki tolerans seçeneği görünür yerde önerilsin.
+- [ ] **2.5.6 Tanılama paketi bağlı değilken boş** — cihaz konuşması, desteklenen değerler, Mode 06 sonucu yok.
+  Son bağlantının özeti saklanıp pakete girsin.
+- [ ] **2.5.7 Aracın vermediği değerler gösteriliyor** — MAF (10), dış hava (46), yağ sıcaklığı (5C), yakıt seviyesi (2F)
+  "göster" açık ama Fluence vermiyor; desteklenmeyenler kendiliğinden gizlensin (ayar silinmeden).
+
+Araç sağlığı gözlemleri (kullanıcıya bilgi, kesin teşhis değil):
+- Şarj voltajı 13,3–13,4 V (en çok 13,6); motor kapalı 12,5 V; soğuk marşta 10,7 V. Tipik 13,8–14,4 V'un altında.
+  Beynin bildirdiği voltaj akü kutbundan 0,2–0,4 V düşük olabilir → akü testi / ölçü aletiyle doğrulanmalı.
+- Katalizör: Mode 06 katalizör testi 1 sonuç sınır dışı; arka oksijen sensörü dalgalı (sapma 0,26 V, ön sensörün
+  geçişlerinin %27'si). Sağlam katalizörde arka sensör sabite yakın durur → verim düşüyor olabilir (henüz P0420 yok).
+  1 sn'lik örnekleme kaba; sıcak motorda Mode 06 tekrar okunmalı.
+- Tahmini tüketim 11,2 L/100 km (kısa şehir içi). Pompa verisi yok → Masraf'a litreli yakıt girişi ile düzeltme.
+
 ## Bölüm 3 — Ekran kapalıyken çalışma (emek: büyük, sonra)
 
 - [ ] Web'de çözüm yok (Web Bluetooth arka plan kaydı açık: issuetracker 40244292; 2026'da deneme özelliği yok).
