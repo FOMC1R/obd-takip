@@ -11,22 +11,22 @@ yaygın markalar, elektrikli araçlar) sonucudur. İş bittikçe kutu işaretlen
 
 ## Bölüm 1 — Önce kapatılacaklar (güvenlik ve veri kaybı)
 
-- [ ] **1.1 İçe aktarılan PID listesiyle zararlı kod (XSS)**
+- [x] **1.1 İçe aktarılan PID listesiyle zararlı kod (XSS)** — ✅ 1.18 (CSV/addGauge ayıklama + escHtml + CSP + Leaflet SRI; test/security.test.js)
   - Kanıt: `features/ev.js` CSV adını yalnızca 40 karaktere kırpıyor; ad `addGauge` ile gösterge adı olup
     `index.html` (gösterge kutusu, ayar tablosu) ve `features/layout.js`'te `innerHTML` ile yazılıyor.
     Kötü bir liste `settings.aiKey`'i (Claude API anahtarı) okuyup dışarı yollayabilir.
   - Yapılacak: çekirdeğe tek `esc()`; gösterge adı/birimi her yerde kaçışlı. CSV içe aktarırken ad/birim
     güvenli karakterlere sınırlanır. Sayfaya Content-Security-Policy; Leaflet'e `integrity` (SRI).
-- [ ] **1.2 Güncelleme kontrolü önbelleği şişiriyor**
+- [x] **1.2 Güncelleme kontrolü önbelleği şişiriyor** — ✅ 1.18 (sorgusuz tek adres; test/sw.test.js (20 kontrol → 1 kayıt))
   - Kanıt: `features/update.js` her kontrolde `index.html?surum=<zaman>` istiyor; `sw.js` her cevabı adresiyle
     önbelleğe koyuyor → her kontrol ~125 KB yeni kayıt.
   - Yapılacak: sorgu (`?…`) içeren istekler önbelleğe yazılmaz; sayfa istekleri tek adrese yazılır.
-- [ ] **1.3 Kopma / arka plan / çökmede kaydın sonu kayboluyor**
+- [x] **1.3 Kopma / arka plan / çökmede kaydın sonu kayboluyor** — ✅ 1.18 (gizlenince/kapanırken yaz, hata tamponu, kopmada koru, çökme kurtarma; test/recovery.test.js)
   - Kanıt: satırlar 5 sn'de bir yazılıyor; `visibilitychange`/`pagehide`'da yazma yok; yeniden bağlanmada
     `features/background.js` bekleyen satırları siliyor (`REC.buf=[]`); çökmede `tripEnd` hiç çalışmıyor.
   - Yapılacak: gizlenince ve kapanırken hemen yaz; yeniden bağlanmada silme, yaz; açılışta sonu kapanmamış
     sürüşü bul ve kapat. Yazma hatası görünür uyarı olsun.
-- [ ] **1.4 Arıza taraması ile başka beyin okuması çakışıyor**
+- [x] **1.4 Arıza taraması ile başka beyin okuması çakışıyor** — ✅ 1.18 (çekirdek kilit Elm.prototype.exclusive; test/lock.test.js eski kodda çakışmayı yakalıyor)
   - Kanıt: `scanDtc` ATAR/ATCRA'yı `EVA.withHeader` sırasına girmeden değiştiriyor; `features/systems.js`
     okuması araya girerse 07/0A yalnızca motordan cevap alır, kaybolan kod `S.known`'da kaldığı için
     uyarı bir daha gelmez.
