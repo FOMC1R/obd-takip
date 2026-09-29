@@ -145,7 +145,8 @@ button.icon svg{width:22px;height:22px}
 .g.warn{border-color:var(--warn)} .g.warn .fill{background:var(--warn)}
 .g.crit{border-color:var(--crit);background:var(--crit-bg)} .g.crit .fill{background:var(--crit)} .g.crit .val{color:var(--crit)}
 .g.stale{opacity:.5}
-.g.unsup{opacity:.4}
+/* aracın vermediği değer: gizli (ayar silinmez; başka araçta görünür) — YOL-HARITASI 2.5.7 */
+.g.unsup{display:none}
 .g{cursor:pointer}
 .g:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .g canvas.spark{display:block;width:100%;max-width:100%;height:34px}
