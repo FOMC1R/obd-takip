@@ -49,7 +49,7 @@ const DIAGPACK = (()=>{
       cihaz:{tarayici:navigator.userAgent||null, ekran:(typeof screen!=="undefined"?`${screen.width}x${screen.height}`:null), dpr:window.devicePixelRatio||null,
         dil:navigator.language||null, webSerial:!!navigator.serial, webBluetooth:!!navigator.bluetooth},
       baglanti:{aktif:!!S.active, tur:linkType(), durum:(document.getElementById("statusText")||{}).textContent||null,
-        protokol:S.proto||null, can:!!S.isCan, motorFiltresi:S.cra||null, voltajATRV:!!S.useAtrv, oturum:LOG.session, baglanma:LOG.connect||null},
+        protokol:S.proto||null, cihaz:S.adapter||null, can:!!S.isCan, motorFiltresi:S.cra||null, voltajATRV:!!S.useAtrv, oturum:LOG.session, baglanma:LOG.connect||null},
       destekleyenPIDler:S.supported ? [...S.supported].sort() : null,
       aracDurumu:{kodlar:S.dtc||null, diag:S.diag||null, aku:S.batt||null, vin:opts.withVin ? (S.vin||null) : (S.vin ? S.vin.slice(0,3)+"…(gizlendi)" : null)},
       canliDegerler:live,

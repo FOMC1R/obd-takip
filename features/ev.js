@@ -126,18 +126,27 @@ function logRaw(cmd, r){ LOG.push(`${cmd} → ${(r||"(yanıt yok)").replace(/[\r
 async function withHeader(tx, rx, fn, fc){
   const e=S.elm; if(!e) return null;
   return e.exclusive(async raw=>{
-  const send=async(c,t)=>{ try{ return await raw(c,t); }catch(x){ return null; } };
+  const send0=async(c,t)=>{ try{ return await raw(c,t); }catch(x){ return null; } };
+  // OBDLink (STN çipi): "STPX h:<adres>, d:<komut>, r:1" başlığı her mesajda taşır ve ilk cevapta döner;
+  // ATSH değiştirip geri almaya gerek kalmaz. Cihaz anlamazsa ("?") bir kez eski yola (ATSH) dönülür.
+  let viaHdr=!(S.stn && S.stn.stpx!==false && tx.length===3 && !fc);
+  const send=async(c,t)=>{
+    if(viaHdr || !/^[0-9A-F]+$/.test(c)) return send0(c,t);
+    const r=await send0(`STPX h:${tx}, d:${c}, r:1`,t);
+    if(r!=null && !/^\s*\?/.test(r)) return r;
+    S.stn.stpx=false; viaHdr=true; await send0("ATSH"+tx);   // bu cihazda STPX yok: eski yola dön
+    return send0(c,t);
+  };
   try{
-    if(tx.length===8){ await send("ATCP"+tx.slice(0,2)); await send("ATSH"+tx.slice(2)); }
-    else await send("ATSH"+tx);
-    await send(rx ? "ATCRA"+rx : "ATAR");
-    if(fc){ await send("ATFCSH"+tx); await send("ATFCSD300000"); await send("ATFCSM1"); }
+    if(viaHdr){ if(tx.length===8){ await send0("ATCP"+tx.slice(0,2)); await send0("ATSH"+tx.slice(2)); } else await send0("ATSH"+tx); }
+    await send0(rx ? "ATCRA"+rx : "ATAR");
+    if(fc){ await send0("ATFCSH"+tx); await send0("ATFCSD300000"); await send0("ATFCSM1"); }
     return await fn(send);
   }finally{
-    if(fc) await send("ATFCSM0");
-    if(tx.length===8) await send("ATCP18");
-    await send("ATSH"+defaultHdr());
-    await send(S.cra ? "ATCRA"+S.cra : "ATAR");
+    if(fc) await send0("ATFCSM0");
+    if(tx.length===8) await send0("ATCP18");
+    if(viaHdr) await send0("ATSH"+defaultHdr());
+    await send0(S.cra ? "ATCRA"+S.cra : "ATAR");
   }
   });
 }
