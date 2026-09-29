@@ -608,7 +608,9 @@ function defaults(){
   return {lim, fuel:"benzin", disp:1.6, ve:85, price:FUEL_PRICE.benzin, calib:100, dtcEvery:30, trendMin:2, recAll:true, voice:true, vibrate:true, wake:true, mute:false, record:true, gps:true};
 }
 let settings = defaults();
-try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)||"null"); if(s){ settings={...settings,...s,lim:{...settings.lim,...(s.lim||{})}}; } }catch(e){}
+// FIRST_RUN: bu telefonda daha önce hiç ayar kaydı yok (ilk kurulum) — features/whatsnew.js yenilikleri göstermez
+let FIRST_RUN=false;
+try{ const raw=localStorage.getItem(STORE_KEY); FIRST_RUN=!raw; const s=JSON.parse(raw||"null"); if(s){ settings={...settings,...s,lim:{...settings.lim,...(s.lim||{})}}; } }catch(e){}
 // Eski sürümün varsayılanında duran değerleri yenile; kullanıcının değiştirdiklerine dokunma
 if((settings.v||1)<2){
   const L=settings.lim, up=(pid,k,from,to)=>{ if(L[pid] && L[pid][k]===from) L[pid][k]=to; };
@@ -1917,6 +1919,7 @@ if(!navigator.bluetooth && !navigator.serial) showNotice("Bu tarayıcıda Blueto
 <script src="features/home.js"></script>
 <script src="features/update.js"></script>
 <script src="features/splash.js"></script>
+<script src="features/whatsnew.js"></script>
 <script src="features/menus.js"></script>
 </body>
 </html>
