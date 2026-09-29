@@ -171,7 +171,9 @@ function parseCsv(text){
   ls.forEach((l,n)=>{
     const c=splitCsvLine(l,sep);
     if(n===0 && /name|modeandpid|equation/i.test(l)) return;   // başlık satırı
-    const [name,short,mp,eq,mn,mx,unit,hdrc]=c;
+    // Ad/birim sayfaya yazılır: işaretleme karakterleri (<, >, &, tırnaklar) ve kontrol karakterleri atılır
+    const clean=v=>String(v||"").replace(/[<>&"'`\u0000-\u001f]/g,"").trim();
+    const [name,short,mp,eq,mn,mx,unit,hdrc]=c.map((v,i)=>i===0||i===1||i===6 ? clean(v) : v);
     const line=n+1;
     const cmd=String(mp||"").replace(/^0x/i,"").replace(/\s/g,"").toUpperCase();
     if(!name){ errors.push(`${line}. satır: ad yok`); return; }

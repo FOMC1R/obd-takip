@@ -66,10 +66,10 @@
     if(el._layCtl) return; el._layCtl=true;
     const g=GBY[pid], wide=LAY().size[pid]==="wide";
     const d=document.createElement("div"); d.className="lay-ctl";
-    d.innerHTML=`<button type="button" data-act="up" data-pid="${pid}" aria-label="${g.name}: yukarı taşı" ${i===0?"disabled":""}>▲ Yukarı</button>`+
-      `<button type="button" data-act="down" data-pid="${pid}" aria-label="${g.name}: aşağı taşı" ${i===n-1?"disabled":""}>▼ Aşağı</button>`+
-      `<button type="button" data-act="size" data-pid="${pid}" aria-label="${g.name}: boyu ${wide?"normal":"geniş"} yap">${wide?"Normal":"Geniş"}</button>`+
-      `<button type="button" data-act="hide" data-pid="${pid}" aria-label="${g.name}: gizle">Gizle</button>`;
+    d.innerHTML=`<button type="button" data-act="up" data-pid="${pid}" aria-label="${escHtml(g.name)}: yukarı taşı" ${i===0?"disabled":""}>▲ Yukarı</button>`+
+      `<button type="button" data-act="down" data-pid="${pid}" aria-label="${escHtml(g.name)}: aşağı taşı" ${i===n-1?"disabled":""}>▼ Aşağı</button>`+
+      `<button type="button" data-act="size" data-pid="${pid}" aria-label="${escHtml(g.name)}: boyu ${wide?"normal":"geniş"} yap">${wide?"Normal":"Geniş"}</button>`+
+      `<button type="button" data-act="hide" data-pid="${pid}" aria-label="${escHtml(g.name)}: gizle">Gizle</button>`;
     el.appendChild(d);
   }
 
@@ -120,7 +120,7 @@
       <div class="label">Hazır düzen</div>
       <div class="actions">${Object.entries(PRESETS).map(([k,p])=>`<button type="button" data-preset="${k}">${p.name}</button>`).join("")}</div>
       ${hid.length?`<details><summary class="label" style="cursor:pointer;min-height:44px;display:flex;align-items:center">Gizli göstergeler (${hid.length}) — dokun, geri ekle</summary>
-      <div class="lay-hidden">${hid.map(g=>`<button type="button" data-show="${g.pid}">+ ${g.name}</button>`).join("")}</div></details>`:""}`;
+      <div class="lay-hidden">${hid.map(g=>`<button type="button" data-show="${g.pid}">+ ${escHtml(g.name)}</button>`).join("")}</div></details>`:""}`;
   }
 
   // Arayüz: "Düzenle" düğmesi başlık satırının altındaki araç satırında

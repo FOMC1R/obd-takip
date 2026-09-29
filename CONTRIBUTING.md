@@ -27,6 +27,12 @@ Uygulama `index.html` içindeki tek bir betikten oluşur. Yeni özellikler **ken
 
 **Başka beyne komut:** `EVA.withHeader(tx, rx, async send=>{…})` isteği o adrese yollar, blok bitene kadar diğer okumaları bekletir ve motor ayarlarını geri yükler. Bloklar sırayla çalışır; `ATSH`/`ATCRA`'yı elle göndermeyin. Bulunan sistemler: `SYS.list()`, canlı değer `SYS.live[tx][pid]`, vites `SYS.gear()`.
 
+## Güvenlik
+
+- Araçtan, içe aktarılan dosyadan ya da kullanıcıdan gelen metni `innerHTML`'e yazmadan önce `escHtml()` kullanın (ya da `textContent`).
+- Yeni bir dış adrese bağlanacaksanız `index.html`'deki Content-Security-Policy satırına ekleyin; `test/security.test.js` kodda geçen her adresi denetler.
+- Dışarıdan yüklenen betik/stil `integrity` (SRI) ve `crossorigin="anonymous"` taşımalı.
+
 ## Sürüm
 
 `index.html`'deki `APP_VERSION` ("1.N") ile `sw.js`'teki önbellek adı (`obd-takip-vN`) birlikte artar; her yayında ikisi de bir artırılır. `test/integrity.test.js` eşleşmeyi denetler. Ana sayfanın sağ alt köşesinde görünür.

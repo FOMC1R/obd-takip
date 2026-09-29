@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e1413">
 <title>OBD Takip</title>
+<!-- Güvenlik: sayfa yalnızca bu adreslerle konuşur. Bir açık kalsa bile veri (ör. API anahtarı) yabancı bir sunucuya gönderilemez.
+     Yeni bir dış adres eklerken buraya da ekle (test/integrity.test.js denetler). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com https://obd-takip.goatcounter.com; connect-src 'self' https://raw.githubusercontent.com https://api.anthropic.com https://vpic.nhtsa.dot.gov https://overpass-api.de; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -13,8 +16,8 @@
 <script id="boot">try{var o=JSON.parse(localStorage.getItem("obdTakip.v1")||"{}");if(o.splash!==false&&document.visibilityState!=="hidden"){document.documentElement.classList.add("sp-boot");setTimeout(function(){document.documentElement.classList.remove("sp-boot")},4000);}}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 :root{
   --bg:#eef2f1; --panel:#ffffff; --panel-2:#f5f8f7; --line:#d5dfdc;
@@ -511,8 +514,12 @@ const GAUGES = [
 const GBY = Object.fromEntries(GAUGES.map(g=>[g.pid,g]));
 // Eklentiler yeni gösterge ekleyebilir. g.read: async ()=>sayı|null (özel komut, ör. mod 22),
 // g.available: ()=>bool (okunsun mu). Ekledikten sonra buildSettings(); buildGauges(); çağır.
+// Sayfaya HTML olarak yazılacak metin için (ad, birim, araçtan ya da içe aktarılan dosyadan gelen her şey)
+const escHtml = s=>String(s??"").replace(/[&<>"'`]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;","`":"&#96;"}[c]));
 function addGauge(g){
   if(GBY[g.pid]) return GBY[g.pid];
+  // Ad ve birim birçok yerde HTML'e yazılır: işaretleme karakterleri baştan ayıklanır (içe aktarılan listeler)
+  g.name=String(g.name??"").replace(/[<>&"'`]/g,"").slice(0,60); g.unit=String(g.unit??"").replace(/[<>&"'`]/g,"").slice(0,16);
   GAUGES.push(g); GBY[g.pid]=g;
   if(typeof S!=="undefined") S.g[g.pid]={v:null,out:0,inn:0,alarm:false,ts:0,miss:0,hist:[]};
   if(!settings.lim[g.pid]) settings.lim[g.pid]={show:!g.hide,min:g.min??null,max:g.max??null};
@@ -852,7 +859,7 @@ function buildGauges(){
     if(!settings.lim[g.pid].show) continue;
     const el=document.createElement("div"); el.className="g"; el.id="g"+g.pid;
     el.tabIndex=0; el.setAttribute("role","button"); el.setAttribute("aria-label",g.name+" — trend grafiğini büyüt");
-    el.innerHTML=`<div class="name">${g.name}</div><div class="val"><span class="n">—</span><small>${g.unit}</small></div>
+    el.innerHTML=`<div class="name">${escHtml(g.name)}</div><div class="val"><span class="n">—</span><small>${escHtml(g.unit)}</small></div>
       <div class="bar"><div class="fill"></div></div><canvas class="spark" aria-hidden="true"></canvas>
       <div class="sparkinfo"></div><div class="range"></div>`;
     const toggle=()=>{ S.big.has(g.pid)?S.big.delete(g.pid):S.big.add(g.pid); paintGauge(g); };
@@ -1743,7 +1750,7 @@ function buildSettings(){
   const tb=$("setBody"); tb.innerHTML="";
   for(const g of GAUGES){
     const L=settings.lim[g.pid], tr=document.createElement("tr");
-    tr.innerHTML=`<td><input type="checkbox" id="s_show_${g.pid}" ${L.show?"checked":""}></td><td>${g.name} <span style="color:var(--muted)">(${g.unit})</span></td>
+    tr.innerHTML=`<td><input type="checkbox" id="s_show_${g.pid}" ${L.show?"checked":""}></td><td>${escHtml(g.name)} <span style="color:var(--muted)">(${escHtml(g.unit)})</span></td>
       <td><input type="number" step="any" id="s_min_${g.pid}" value="${L.min??""}"></td><td><input type="number" step="any" id="s_max_${g.pid}" value="${L.max??""}"></td>`;
     tb.appendChild(tr);
     tr.querySelector(`#s_show_${g.pid}`).addEventListener("change",e=>{ L.show=e.target.checked; save(); buildGauges(); GAUGES.forEach(paintGauge); });
