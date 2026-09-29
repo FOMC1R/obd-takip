@@ -46,7 +46,7 @@ const HOME = (()=>{
   const main=document.querySelector("main")||document.body;
   if(main.firstChild && main.insertBefore) main.insertBefore(sec, main.firstChild); else main.appendChild(sec);
   sec.innerHTML=`<div class="card home-head"><b id="homeVeh">OBD Takip</b><span class="sub" id="homeState"></span><div class="chips" id="homeChips"></div>
-    <button class="primary home-nav" id="homeNav" hidden>Navigasyona geç</button></div>
+    <button class="primary home-nav" id="homeNav">Navigasyona geç</button></div>
     <nav class="home-grid" id="homeGrid" aria-label="Bölümler"></nav>
     <p class="home-ver" id="homeVer"></p>`;
   const bar=$("tabbar");
@@ -131,7 +131,7 @@ const HOME = (()=>{
     const v=settings.vehicles && settings.activeVehicle ? settings.vehicles[settings.activeVehicle] : null;
     $("homeVeh").textContent = v ? (v.ad || [v.marka,v.model].filter(Boolean).join(" ") || "Aracım") : "OBD Takip";
     $("homeState").textContent = ($("statusText")||{}).textContent || "";
-    $("homeNav").hidden = !(S.active && typeof BG!=="undefined" && BG.goNav);
+    $("homeNav").hidden = !(typeof BG!=="undefined" && BG.goNav);   // bağlı değilken yalnız haritayı açar
     const al=[...(S.alarms||new Map()).values()], crit=al.filter(a=>a.level==="crit").length;
     $("homeChips").innerHTML = (crit?`<span class="chip crit">${crit} kritik uyarı</span>`:"")
       + (al.length-crit?`<span class="chip warn">${al.length-crit} uyarı</span>`:"")

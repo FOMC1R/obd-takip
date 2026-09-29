@@ -276,7 +276,7 @@ const BG = (()=>{
   const SVG=d=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const mk=(id,label,icon)=>{ const b=document.createElement("button"); b.className="icon"; b.id=id; b.hidden=true;
     b.setAttribute("aria-label",label); b.title=label; b.innerHTML=SVG(icon); return b; };
-  const bNav=mk("bgNavTop","Navigasyona geç (küçük pencereyle)",'<path d="M3 11l18-8-8 18-2-8z"/>');
+  const bNav=mk("bgNavTop","Navigasyona geç",'<path d="M3 11l18-8-8 18-2-8z"/>'); bNav.hidden=false;   // her zaman görünür; bağlı değilken yalnız haritayı açar
   const bPip=mk("bgPipTop","Küçük pencere",'<rect x="3" y="5" width="18" height="14" rx="2"/><rect x="12" y="12" width="7" height="5" rx="1" fill="currentColor"/>');
   { const mute=$("btnMute"), top=mute && mute.parentNode; if(top && top.insertBefore){ top.insertBefore(bNav, mute); top.insertBefore(bPip, mute); } }
   bPip.addEventListener("click",()=>{ document.pictureInPictureElement ? closePip() : openPip("dugme"); });
@@ -288,7 +288,8 @@ const BG = (()=>{
     $("bgPip").textContent = inPip ? "Küçük pencereyi kapat" : "Küçük pencereyi aç";
     $("bgPip").disabled = !pipSupported;
     bPip.hidden = !pipSupported || !(S.active || R); bPip.setAttribute("aria-pressed", String(inPip));
-    bNav.hidden = !(S.active || R);
+    const withPip = pipSupported && (S.active || R);
+    bNav.setAttribute("aria-label", withPip ? "Navigasyona geç (küçük pencereyle)" : "Navigasyonu aç"); bNav.title=bNav.getAttribute("aria-label");
     const m=[];
     if(!pipSupported) m.push("Bu tarayıcı küçük pencereyi desteklemiyor.");
     if(R) m.push("Bağlantı koptu, yeniden bağlanılıyor…");
