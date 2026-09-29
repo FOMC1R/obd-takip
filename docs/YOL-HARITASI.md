@@ -35,7 +35,7 @@ yaygın markalar, elektrikli araçlar) sonucudur. İş bittikçe kutu işaretlen
 
 ## Bölüm 2 — Büyük fırsatlar (değer / emek sırasıyla)
 
-- [ ] **2.A Tam yedek ve geri yükleme** (emek: küçük)
+- [x] **2.A Tam yedek ve geri yükleme** (emek: küçük) — ✅ 1.19 (gzip JSON, birleştir / tamamen geri yükle, 30 gün hatırlatma; test/backup.test.js. Drive otomatik yedek: sonraya)
   - Tüm ayarlar + araçlar + bakım + masraf + sürüşler + ölçüm satırları tek JSON dosyası; paylaş menüsü
     (Drive/WhatsApp) ya da indir. Geri yükleme: birleştir ya da değiştir. "Son yedek X gün önce" hatırlatması.
   - İleride: kullanıcının kendi Google Drive'ına (appDataFolder, yalnız bu uygulamanın gördüğü klasör)
@@ -81,7 +81,7 @@ yaygın markalar, elektrikli araçlar) sonucudur. İş bittikçe kutu işaretlen
   - Sıra: Renault/Dacia → VW → Hyundai/Kia → Stellantis → Ford → Toyota → Fiat.
   - Türkiye trafiği (2024, ikinciyeni.com): Renault 1., Fiat 2. (~2,37 M), VW 3. (~1,30 M), Opel 4. (~1,0 M),
     Hyundai 5. (~0,9 M), Ford 6. (~0,9 M), Toyota 7. (~0,86 M), Peugeot 8. (~0,54 M), Dacia 10. (~0,44 M).
-- [ ] **2.D Aracın kendi test sonuçları — Mode 06** (emek: küçük)
+- [x] **2.D Aracın kendi test sonuçları — Mode 06** (emek: küçük) — ✅ 1.19 (features/monitors.js; test/monitors.test.js. IUPR: sonraya)
   - Standart, salt okunur. Katalizör, oksijen sensörü, tekleme testleri; sınırlar ve geçti/kaldı.
     Muayene hazırlığı ekranının yanına. İsteğe bağlı: IUPR (mod 09, testlerin çalışma sıklığı).
 - [ ] **2.E Markaya özel canlı veriler (deneysel)** (emek: orta)
@@ -96,7 +96,7 @@ yaygın markalar, elektrikli araçlar) sonucudur. İş bittikçe kutu işaretlen
     - Renault: tahmini yağ sıcaklığı `22 2007`. DP0 şanzıman ve K4M özel verileri doğrulanmış kaynakta **yok**
       (başka araca ait "2182 @7E1" formülü kullanılmamalı).
   - Her değer yalnız araç cevap verirse gösterilir.
-- [ ] **2.F Kaliteli adaptör (STN çipi) desteği** (emek: küçük)
+- [x] **2.F Kaliteli adaptör (STN çipi) desteği** (emek: küçük) — ✅ 1.19 (features/adapter.js, STPX + geri dönüş; test/adapter.test.js. Gerçek OBDLink'te doğrulanmadı)
   - `STI` ile algıla; varsa `STPX` (başlık + veri tek satırda) — çok beyinli taramada hızlı. Yoksa ATSH/ATCRA.
   - Öneri cihaz: OBDLink MX+ (klasik Bluetooth), CX (BLE). Ucuz "v2.1" klonlarda BUFFER FULL ve CR/LF sorunları.
 
