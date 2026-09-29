@@ -16,6 +16,7 @@ const HOME = (()=>{
     hud: I('<path d="M3 5h18l-2 10H5z"/><path d="M9 19h6M12 15v4"/>'),
     batt: I('<rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 10v4"/><path d="M7 10v4M10.5 10v4M14 10v4"/>'),
     bakim: I('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>'),
+    masraf: I('<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/>'),
     ayar: I('<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'),
   };
 
@@ -68,7 +69,8 @@ const HOME = (()=>{
       {k:"istatistik", icon:ICON.stat, name:"İstatistik", go:()=>showTab("istatistik"), sub:()=>["Tüketim, eğilimler",""], show:()=>has("istatistik")},
       {k:"panel", icon:ICON.panel, name:"Gösterge paneli", go:()=>window.CLUSTER && CLUSTER.open(), sub:()=>["Tam ekran kadran",""], show:()=>!!window.CLUSTER},
       {k:"hud", icon:ICON.hud, name:"Ön cam (HUD)", go:()=>window.HUD && HUD.open(), sub:()=>["Cama yansıyan hız",""], show:()=>!!window.HUD},
-      {k:"bakim", icon:ICON.bakim, name:"Bakım ve masraf", go:toMaint, sub:()=>["Hatırlatıcı, harcamalar",""]},
+      {k:"bakim", icon:ICON.bakim, name:"Bakım", go:()=>has("bakim") ? showTab("bakim") : toMaint(), sub:subMaint},
+      {k:"masraf", icon:ICON.masraf, name:"Masraf", go:()=>showTab("masraf"), sub:()=>["Yakıt, bakım, sigorta harcamaları",""], show:()=>has("masraf")},
       {k:"ayar", icon:ICON.ayar, name:"Ayarlar", go:()=>showTab("ayar"), sub:()=>["Sınırlar, yakıt, araçlar",""]},
     );
     return T.filter(t=>!t.show || t.show());
@@ -94,6 +96,13 @@ const HOME = (()=>{
   function subBatt(){
     const r=(settings.evReports||[]).slice(-1)[0];
     return r && r.soh!=null ? [`Son ölçüm: sağlık %${fmt(r.soh,0)}`, r.soh<70?"alert":r.soh<80?"warn":""] : ["İkinci el batarya raporu",""];
+  }
+  // yaklaşan bakım (features/maintenance.js kartındaki durum yazısından)
+  function subMaint(){
+    const c=document.getElementById("maintCard"), t=c && c.querySelector ? c.querySelector(".chip.crit, .chip.warn") : null;
+    if(!t || !t.textContent) return ["Hatırlatıcı, yağ, filtre",""];
+    const n=t.parentElement && t.parentElement.querySelector ? t.parentElement.querySelector("b") : null;
+    return [(n && n.textContent ? n.textContent.trim()+": " : "")+t.textContent.trim(), /crit/.test(t.className)?"alert":"warn"];
   }
   function subDtc(){
     const d=S.dtc||{}, n=(d.stored||[]).length+(d.pending||[]).length+(d.perm||[]).length;
@@ -133,7 +142,7 @@ const HOME = (()=>{
   // Açılış: adres bir sekme istemiyorsa ana sayfa
   const h=location.hash.slice(1).split("-");
   if(h.includes("sanziman")) showTab("sanziman");   // çekirdek bu sekmeyi bilmiyor
-  else if(!h.some(x=>["canli","ariza","surus","ayar","istatistik"].includes(x))) showTab("ana");
+  else if(!h.some(x=>["canli","ariza","surus","ayar","istatistik","bakim","masraf"].includes(x))) showTab("ana");
   render();
   return {render, tiles, section:sec};
 })();

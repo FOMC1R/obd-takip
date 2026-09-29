@@ -5,7 +5,7 @@ require("./harness")(String.raw`
   if(settings.tab!=="ana") throw new Error("açılış sekmesi ana sayfa değil: "+settings.tab);
   if($("homeVer").textContent!=="Sürüm "+APP_VERSION) throw new Error("sürüm yazısı yok: "+$("homeVer").textContent);
   const names=()=>HOME.tiles().map(t=>t.name);
-  for(const n of ["Motor","Şanzıman","Arızalar","Sürüşler","İstatistik","Gösterge paneli","Ön cam (HUD)","Bakım ve masraf","Ayarlar"])
+  for(const n of ["Motor","Şanzıman","Arızalar","Sürüşler","İstatistik","Gösterge paneli","Ön cam (HUD)","Bakım","Masraf","Ayarlar"])
     if(!names().includes(n)) throw new Error("kutucuk yok: "+n+" | "+names());
   const tile=n=>HOME.tiles().find(t=>t.name===n);
   tile("Arızalar").go(); if(settings.tab!=="ariza") throw new Error("Arızalar sekmesi açılmadı");
