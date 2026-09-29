@@ -14,6 +14,7 @@ const HOME = (()=>{
     stat: I('<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>'),
     panel: I('<path d="M3 17a9 9 0 1 1 18 0"/><path d="M12 17l4-5"/><path d="M6 17h.01M18 17h.01"/>'),
     hud: I('<path d="M3 5h18l-2 10H5z"/><path d="M9 19h6M12 15v4"/>'),
+    batt: I('<rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 10v4"/><path d="M7 10v4M10.5 10v4M14 10v4"/>'),
     bakim: I('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>'),
     ayar: I('<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'),
   };
@@ -61,6 +62,7 @@ const HOME = (()=>{
     if(typeof SYS!=="undefined") for(const s of SYS.list()) if(s.tx!=="7E1")
       T.push({k:"sys-"+s.tx, icon:ICON.sys, name:s.name, go:()=>showTab("sys-"+s.tx), sub:()=>subSys(s)});
     T.push(
+      {k:"batarya", icon:ICON.batt, name:"Batarya sağlığı", go:()=>showTab("batarya"), sub:subBatt, show:()=>has("batarya") && (settings.fuel==="elektrik" || !!(typeof EVA!=="undefined" && EVA.st && EVA.st.demoEv))},
       {k:"ariza", icon:ICON.ariza, name:"Arızalar", go:()=>showTab("ariza"), sub:subDtc},
       {k:"surus", icon:ICON.surus, name:"Sürüşler", go:()=>showTab("surus"), sub:()=>REC.trip ? ["Kayıt sürüyor",""] : ["Kayıtlar, harita, grafik",""]},
       {k:"istatistik", icon:ICON.stat, name:"İstatistik", go:()=>showTab("istatistik"), sub:()=>["Tüketim, eğilimler",""], show:()=>has("istatistik")},
@@ -88,6 +90,10 @@ const HOME = (()=>{
   function subSys(s){
     const n=SYS.list().find(x=>x.tx===s.tx);
     return [S.active ? "Canlı okunuyor" : `${(n && n.pids || []).length} değer`, ""];
+  }
+  function subBatt(){
+    const r=(settings.evReports||[]).slice(-1)[0];
+    return r && r.soh!=null ? [`Son ölçüm: sağlık %${fmt(r.soh,0)}`, r.soh<70?"alert":r.soh<80?"warn":""] : ["İkinci el batarya raporu",""];
   }
   function subDtc(){
     const d=S.dtc||{}, n=(d.stored||[]).length+(d.pending||[]).length+(d.perm||[]).length;

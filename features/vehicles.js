@@ -8,7 +8,7 @@ const VEH = (()=>{
 const D = typeof VEHICLE_DATA!=="undefined" ? VEHICLE_DATA : {wmi:{}, presets:{}, models:[]};
 // Araca özel ayar anahtarları. Geri kalanlar (sekme, ses, ön cam, yakıt fiyatı yeri, yapay zekâ anahtarı…) ortaktır.
 // customPids (içe aktarılan özel değerler) ortak kaldı: göstergeleri uygulama açılırken bir kez kuruluyor.
-const PER = ["lim","fuel","disp","ve","calib","carModel","maint","expenses","evProfile","evPrev","layout","perf","systems","systemsChecked","gear"];
+const PER = ["lim","fuel","disp","ve","calib","carModel","maint","expenses","evProfile","evPrev","layout","perf","systems","systemsChecked","gear","evReports"];
 const FUELS = {benzin:"Benzin", dizel:"Dizel", lpg:"LPG", elektrik:"Elektrik"};
 if(!settings.vehicles || typeof settings.vehicles!=="object") settings.vehicles={};
 if(settings.activeVehicle===undefined) settings.activeVehicle=null;
@@ -50,7 +50,7 @@ function freshCfg(){
   GAUGES.forEach(g=>{ if(!d.lim[g.pid]) d.lim[g.pid]={show:!g.hide,min:g.min??null,max:g.max??null}; });
   return {lim:d.lim, fuel:d.fuel, disp:d.disp, ve:d.ve, calib:d.calib, carModel:"",
     maint:{odo:null, odoSrc:null, odoAt:null, items:{}, warnDay:null}, expenses:[], evProfile:"auto", evPrev:null,
-    layout:{order:[], size:{}}, perf:{}, systems:{}, systemsChecked:false, gear:{h:{}, n:0, a4:[]}};
+    layout:{order:[], size:{}}, perf:{}, systems:{}, systemsChecked:false, gear:{h:{}, n:0, a4:[]}, evReports:[]};
 }
 // Hazır seçimin (ör. Fluence K4M) önerdiği ayarlar. onlyDefault: yalnızca hâlâ varsayılanda duran alanlar değişir
 function applyPreset(cfg, preset, onlyDefault){
