@@ -122,18 +122,11 @@ function logRaw(cmd, r){ LOG.push(`${cmd} → ${(r||"(yanıt yok)").replace(/[\r
 // "devam et" çerçevesiyle (flow control) gönderir; ELM327'nin kendiliğinden gönderdiği yetmez.
 // Aynı anda iki başlık bloğu çalışırsa (ör. batarya okuması + features/systems.js araması) ATSH/ATCRA komutları
 // birbirine karışır ve kapılar yanlış sırayla kalkar: bloklar sırayla çalışır.
-let hdrQueue=Promise.resolve();
+// Kilit çekirdekte: Elm.prototype.exclusive (arıza taraması da aynı kilidi kullanır).
 async function withHeader(tx, rx, fn, fc){
-  const before=hdrQueue; let done; hdrQueue=new Promise(r=>done=r);
-  try{ await before; return await withHeaderNow(tx, rx, fn, fc); } finally{ done(); }
-}
-async function withHeaderNow(tx, rx, fn, fc){
   const e=S.elm; if(!e) return null;
-  // Blok bitene kadar başka okumalar (ör. araç bilgisi taraması) araya giremesin: sıraya alınır
-  const own=Object.prototype.hasOwnProperty.call(e,"send"), prev=e.send, raw=Elm.prototype.send;
-  let release; const gate=new Promise(r=>release=r);
-  e.send=(c,t)=>gate.then(()=>prev.call(e,c,t));
-  const send=async(c,t)=>{ try{ return await raw.call(e,c,t); }catch(x){ return null; } };
+  return e.exclusive(async raw=>{
+  const send=async(c,t)=>{ try{ return await raw(c,t); }catch(x){ return null; } };
   try{
     if(tx.length===8){ await send("ATCP"+tx.slice(0,2)); await send("ATSH"+tx.slice(2)); }
     else await send("ATSH"+tx);
@@ -145,9 +138,8 @@ async function withHeaderNow(tx, rx, fn, fc){
     if(tx.length===8) await send("ATCP18");
     await send("ATSH"+defaultHdr());
     await send(S.cra ? "ATCRA"+S.cra : "ATAR");
-    if(own) e.send=prev; else delete e.send;
-    release();
   }
+  });
 }
 
 // ================= 4) CSV (Car Scanner / Torque) =================

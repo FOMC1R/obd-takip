@@ -715,6 +715,21 @@ class Elm{
   }
 }
 
+// Özel blok: başlık/süzgeç (ATSH/ATCRA/ATAR) değiştiren işler için. Blok sürerken başka yerden gelen komutlar
+// bekler (araya girip yanlış beyne gitmesin); bloklar da birbirini sırayla bekler. fn(send) içindeki komutlar
+// yalnız verilen send ile gönderilmeli (S.elm.send blok bitene kadar bekler).
+Elm.prototype.exclusive = function(fn){
+  const e=this, before=e._excl||Promise.resolve(); let done; e._excl=new Promise(r=>done=r);
+  return (async()=>{
+    await before;
+    const own=Object.prototype.hasOwnProperty.call(e,"send"), prev=e.send, raw=Elm.prototype.send;
+    let release; const gate=new Promise(r=>release=r);
+    e.send=(c,t)=>gate.then(()=>prev.call(e,c,t));
+    try{ return await fn((c,t)=>raw.call(e,c,t)); }
+    finally{ if(own) e.send=prev; else delete e.send; release(); done(); }
+  })();
+};
+
 // ---------- Yanıt çözümleme ----------
 const lines = r => r.split(/[\r\n]+/).map(l=>l.replace(/\s/g,"").toUpperCase()).filter(Boolean);
 const failed = r => /NODATA|UNABLETOCONNECT|CANERROR|BUSERROR|STOPPED|ERROR|^\?$/.test(r.replace(/\s/g,"").toUpperCase());
@@ -1112,10 +1127,13 @@ async function scanDtc(){
   const e=S.elm; if(!e) return;
   let mil=false,count=0;
   try{ const b=pidBytes(await e.send("0101"),"01"); if(b){ mil=!!(b[0]&0x80); count=b[0]&0x7f; } }catch(x){}
-  const get=async(cmd,head)=>{ try{ const r=await e.send(cmd,6000); return failed(r)?[]:parseDtcs(r,head,S.isCan); }catch(x){ return []; } };
-  if(S.cra) await e.send("ATAR").catch(()=>{});   // arıza kodları: şanzıman, ABS… dahil tüm beyinler
-  S.dtc.stored=await get("03","43"); S.dtc.pending=await get("07","47"); S.dtc.perm=await get("0A","4A");
-  if(S.cra) await e.send("ATCRA"+S.cra).catch(()=>{});
+  // Süzgeç kaldırılıp geri takılana dek başka okuma (ör. şanzıman) araya girmesin: özel blok
+  await e.exclusive(async send=>{
+    const get=async(cmd,head)=>{ try{ const r=await send(cmd,6000); return failed(r)?[]:parseDtcs(r,head,S.isCan); }catch(x){ return []; } };
+    if(S.cra) await send("ATAR").catch(()=>{});   // arıza kodları: şanzıman, ABS… dahil tüm beyinler
+    S.dtc.stored=await get("03","43"); S.dtc.pending=await get("07","47"); S.dtc.perm=await get("0A","4A");
+    if(S.cra) await send("ATCRA"+S.cra).catch(()=>{});
+  });
   S.lastDtc=Date.now();
   const all=[...S.dtc.stored.map(c=>[c,"stored"]),...S.dtc.pending.map(c=>[c,"pending"]),...S.dtc.perm.map(c=>[c,"perm"])];
   for(const [c,kind] of all){
@@ -1128,6 +1146,8 @@ async function scanDtc(){
   if(REC.trip) all.forEach(([c])=>{ if(!REC.trip.dtcs.includes(c)) REC.trip.dtcs.push(c); });
   const now=new Set(all.map(([c])=>c));
   [...S.alarms.keys()].filter(k=>k.startsWith("dtc")&&!now.has(k.slice(3))).forEach(drop);
+  // Artık görünmeyen kod "bildirildi" listesinden de çıkar: geri gelirse yeniden uyarılır
+  [...S.known].filter(k=>!now.has(k.replace(/^(stored|pending|perm)/,""))).forEach(k=>S.known.delete(k));
   if(mil) raise("mil","crit","Motor arıza lambası yandı"); else drop("mil");
   paintDtc(mil,count);
   emit("dtc", S.dtc, mil);
