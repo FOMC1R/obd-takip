@@ -32,7 +32,8 @@ self.addEventListener("fetch", e => {
     // Önce ağ, olmazsa önbellek. GitHub Pages dosyaları 10 dk tarayıcıda sakla diyor (max-age=600);
     // "no-cache" ile tarayıcı her seferinde sunucuya değişti mi diye sorar, yeni sürüm hemen gelir.
     e.respondWith(fetch(req.url, {cache: "no-cache", credentials: "same-origin"}).then(r => {
-      if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+      // Adresin "?…" kısmı atılarak yazılır: index.html?surum=… gibi istekler her seferinde yeni kayıt açmasın
+      if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(url.origin + url.pathname, copy)); }
       return r;
     }).catch(() => caches.match(req, {ignoreSearch: true}).then(r => r || (req.mode === "navigate" ? caches.match("./index.html") : undefined))));
     return;
