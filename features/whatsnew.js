@@ -5,6 +5,9 @@
 // Kalıcı: settings.seenVersion. CHANGES'in ilk öğesi her zaman APP_VERSION olmalı (test/whatsnew.test.js denetler).
 const WHATSNEW = (()=>{
   const CHANGES=[
+    {v:"1.24", items:[
+      "Navigasyona geç düğmesi artık bağlı değilken de görünüyor (üst çubukta ok simgesi, ana sayfada büyük düğme). Bağlı değilken yalnızca haritayı açar; bağlıyken küçük pencereyi de açar.",
+    ]},
     {v:"1.23", items:[
       "Navigasyona geç: üst çubuktaki ok simgesi ya da ana sayfadaki düğme, küçük pencereyi açıp haritaya geçer — tek dokunuş.",
       "Navigasyon uygulaması seçilebilir: Google Haritalar (varsayılan), Yandex Navigasyon, Waze. Ayarlar → Sürüş ve navigasyon.",

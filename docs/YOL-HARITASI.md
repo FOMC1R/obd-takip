@@ -124,7 +124,7 @@ yeniden hesaplanınca aynı (sert olay yok; GPS de doğruluyor).
 - [x] **2.5.7 Aracın vermediği değerler gösteriliyor** — ✅ 1.22 (bağlıyken desteklenmeyen gizli; bağlı değilken kalıcı liste: sonraya) — MAF (10), dış hava (46), yağ sıcaklığı (5C), yakıt seviyesi (2F)
   "göster" açık ama Fluence vermiyor; desteklenmeyenler kendiliğinden gizlensin (ayar silinmeden).
 
-- [x] **2.5.9 Navigasyonla kullanım tek dokunuş** — Chrome dokunuşsuz küçük pencereyi engelleyebilir; "Navigasyona geç" düğmesi (üst çubuk + ana sayfa) dokunuş izniyle küçük pencereyi açıp seçili haritaya (intent: paket, yoksa Play Store) geçer. — ✅ 1.23 (Google Haritalar varsayılan; Yandex, Waze, sor)
+- [x] **2.5.9 Navigasyonla kullanım tek dokunuş** — Chrome dokunuşsuz küçük pencereyi engelleyebilir; "Navigasyona geç" düğmesi (üst çubuk + ana sayfa) dokunuş izniyle küçük pencereyi açıp seçili haritaya (intent: paket, yoksa Play Store) geçer. — ✅ 1.23 (Google Haritalar varsayılan; Yandex, Waze, sor); 1.24: düğme bağlı değilken de görünür (yalnız harita)
 - [x] **2.5.8 Arka plan izi kayboluyordu** — küçük pencere / navigasyon davranışı da yalnız bellekteydi. — ✅ 1.23 (son bağlantı özetine `arkaPlan`)
 
 Araç sağlığı gözlemleri (kullanıcıya bilgi, kesin teşhis değil):
