@@ -1323,11 +1323,21 @@ function fuelPossible(){
   if(settings.fuel==="dizel") return false;               // dizel fakir yanar; hava akışından hesap yanıltır
   return has("10") || (has("0B") && has("0C") && has("0F") && settings.disp>0);
 }
+// Motor durdu sayılan devir. Bazı beyinler (ör. Renault K4M) kontak açık, motor dururken 0 değil ~230 d/dk bildirir;
+// marş anı da bu aralıktadır. Gerçek araç verisi: docs/YOL-HARITASI.md 2.5.1.
+const ENGINE_OFF_RPM = 400;
+const engineStopped = ()=>{ const r=cur("0C"), sp=cur("0D"); return r!=null && r<ENGINE_OFF_RPM && !(sp>0); };
+// Son taze okumada motor durmuş muydu? Kontak kapanınca okuma kopmadan birkaç saniye önce eskir (cur() boş döner);
+// bu yüzden durum ayrıca tutulur: S.engineOffAt = motorun durduğu an, çalışınca null. lost() buna bakar.
+function trackEngine(){
+  const r=cur("0C"); if(r==null) return;
+  if(engineStopped()){ if(S.engineOffAt==null) S.engineOffAt=Date.now(); } else if(r>=ENGINE_OFF_RPM) S.engineOffAt=null;
+}
 function fuelLH(){
   const k=settings.calib/100;
   const r=cur("5E"); if(r!=null) return r*k;
   if(settings.fuel==="dizel") return null;
-  const rpm=cur("0C"); if(rpm===0) return 0;
+  const rpm=cur("0C"); if(rpm!=null && rpm<ENGINE_OFF_RPM) return 0;   // motor durmuş (bkz. ENGINE_OFF_RPM)
   let maf=cur("10");
   if(maf==null){   // MAF sensörü yok: emme basıncı + devir + hava sıcaklığından (hız-yoğunluk yöntemi)
     const map=cur("0B"), iat=cur("0F"); if(map==null||rpm==null||iat==null||!settings.disp) return null;
@@ -1408,16 +1418,22 @@ async function loop(){
       try{ await readGauge(g); errors=0; }catch(x){ if(++errors>=6){ lost(); return; } }
     }
     computeFuel();
+    trackEngine();
     emit("tick");
     sample();
     if(Date.now()-S.lastDtc > settings.dtcEvery*1000) await scanDtc();
     if(!list.length) await wait(1000);
   }
 }
+// Motor durduktan sonra gelen kopma çoğu araçta kontağın kapanmasıdır (OBD soketi elektriği keser): sürüşün
+// olağan sonu. Kırmızı uyarı verilmez, yeniden bağlanma denenmez (features/background.js). Bkz. YOL-HARITASI 2.5.2.
+const ignitionOff = ()=>S.engineOffAt!=null;
 function lost(){
   if(!S.active) return;
-  S.active=false; setStatus("err","Bağlantı koptu"); try{ S.link && S.link.close(); }catch(e){}
-  raise("link","crit","OBD cihazıyla bağlantı koptu");
+  const off=ignitionOff();
+  S.active=false; setStatus(off?"":"err", off?"Kontak kapatıldı · sürüş kaydedildi":"Bağlantı koptu"); try{ S.link && S.link.close(); }catch(e){}
+  if(off){ drop("link"); recEvent("info","Kontak kapatıldı"); addLog("info","Kontak kapatıldı; sürüş kaydedildi"); }
+  else raise("link","crit","OBD cihazıyla bağlantı koptu");
   endRec(); uiIdle(); emit("disconnect");
 }
 async function start(link){
@@ -1425,7 +1441,7 @@ async function start(link){
   try{ if(!S.audio) S.audio=new (window.AudioContext||window.webkitAudioContext)(); S.audio.resume(); }catch(e){}
   // Konuşmanın kilidini dokunuş anında aç; sonraki uyarılar kendiliğinden konuşabilsin
   try{ const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); }catch(e){}
-  S.link=link; S.elm=new Elm(link); link.onLost=lost;
+  S.link=link; S.elm=new Elm(link); link.onLost=lost; S.engineOffAt=null;
   $("btnConnect").disabled=$("btnDemo").disabled=true;
   setStatus("busy","Bağlanıyor…");
   try{

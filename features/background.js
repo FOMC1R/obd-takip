@@ -152,6 +152,7 @@ const BG = (()=>{
     if(!S.active) return;
     const old=S.link;
     if(!settings.autoReconnect || !reusable(old)) return origLost();
+    if(ignitionOff()){ trace("kontak-kapandi",{}); return origLost(); }   // motor durmuştu: kopma değil, sürüşün sonu
     S.active=false;
     old.onLost=()=>{};   // eski bağlantının geç gelen kopma haberi yeni bağlantıyı düşürmesin
     try{ old.close(); }catch(e){}
