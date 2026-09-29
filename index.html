@@ -1596,7 +1596,10 @@ async function endRec(){
   REC.trip=null; stopGps(); $("recBadge").hidden=true;
   delete t.open;
   await flush(t);
-  if(!t.samples) await deleteTrip(t.id); else { emit("tripEnd", t); await putTrip(t); }
+  // Kırıntı sürüş: kontak açılıp hemen kapanınca (ör. 30 sn, 0 km) ayrı kayıt oluşmasın (YOL-HARITASI 2.5.3).
+  // Arıza kodu yakalandıysa ya da deneme kaydıysa (testler) tutulur.
+  const crumb = !t.demo && (t.end-t.start)<60000 && (t.distance||0)<50 && !(t.dtcs&&t.dtcs.length);
+  if(!t.samples || crumb) await deleteTrip(t.id); else { emit("tripEnd", t); await putTrip(t); }
   renderTrips();
 }
 
