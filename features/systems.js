@@ -98,10 +98,11 @@ const SYS = (()=>{
     st.reading=true; st.lastRead=Date.now();
     try{
       for(const s of sys){
-        if(!S.active) break;
+        if(!S.active || S.paused) break;
         await EVA.withHeader(s.tx, s.rx, async send=>{
           const L=st.live[s.tx]||(st.live[s.tx]={});
           for(const p of readable(s)){
+            if(S.paused) break;   // ölçüm (0-100, akü testi) başladı: kilidi hemen bırak
             const r=await send("01"+p,1500); const v=decode(p, r && pidBytes(r,p));
             if(v!=null) L[p]={v, ts:Date.now()};
           }

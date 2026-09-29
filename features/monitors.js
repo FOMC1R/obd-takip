@@ -70,6 +70,7 @@ const MONITORS = (()=>{
 
   async function read(){
     if(!S.elm || !S.active || st.busy) return;
+    if(S.paused){ setTimeout(read, 3000); return; }   // ölçüm (0-100, akü testi) sürüyor: araya girme, sonra dene
     st.busy=true; st.status="busy"; paint();
     try{
       if(!S.isCan){ st.status="nocan"; st.groups=null; return; }
@@ -82,6 +83,7 @@ const MONITORS = (()=>{
       const mids=[...sup].filter(m=>m%0x20!==0 && !(m>=0xA1 && m<=0xAD)).sort((a,b)=>a-b);   // tekleme ayrı kartta
       const groups=[];
       for(const mid of mids){
+        while(S.paused && S.active) await wait(300);   // ölçüm başladıysa bitmesini bekle
         const r=await q("06"+h2(mid),4000); if(!r) continue;
         const tests=m6Records(r).filter(x=>x.mid===mid).map(x=>({...x, name:tidName(x.tid), unit:(U[x.uas]||[0,""])[1], dec:decOf(x.uas), ...judge(x)}));
         if(tests.length) groups.push({mid, name:midName(mid), tests});
