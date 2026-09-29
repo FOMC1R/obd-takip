@@ -1,6 +1,6 @@
 // Tanılama paketi: bağlantı, desteklenen değerler, ham konuşma, araç durumu, sürüşler; gizli alanlar dışarıda
 require("./harness")(String.raw`
-  settings.aiKey="sk-ant-GIZLI"; settings.expenses=[{id:1,date:"2026-09-01",type:"Diğer",amount:100,km:null,liters:null,full:false,note:"özel"}];
+  settings.aiKey="sk-ant-GIZLI"; settings.expenses=[{id:1,date:"2026-09-01",type:"Diğer",amount:100,km:null,liters:null,full:false,note:"GIZLI-MASRAF-NOTU"}];
   const d=new DemoLink(); d.t0=Date.now()-44000;
   await start(d); await wait(6000); stop(); await wait(600);
   // gerçek sürüş gibi bir kayıt (deneme olmayan) ekle
@@ -14,7 +14,7 @@ require("./harness")(String.raw`
   if(!p.destekleyenPIDler || !p.destekleyenPIDler.includes("0C")) throw new Error("desteklenen PID yok");
   if(!p.elmKonusma.ilk.some(e=>e.cmd==="ATZ")) throw new Error("ham konuşma kaydedilmedi");
   if(txt.includes("sk-ant-GIZLI")) throw new Error("API anahtarı pakette");
-  if(txt.includes("özel")) throw new Error("masraf notu pakette");
+  if(txt.includes("GIZLI-MASRAF-NOTU")) throw new Error("masraf notu pakette");
   if(/"lat"|"lon"/.test(txt)) throw new Error("konum pakette");
   if(!p.sonGercekSurus || p.sonGercekSurus.satirlar.length!==2) throw new Error("son gerçek sürüş eksik");
   if(p.aracDurumu.vin && !p.aracDurumu.vin.includes("gizlendi")) throw new Error("VIN varsayılan olarak açık");
