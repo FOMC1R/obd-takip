@@ -107,21 +107,21 @@ konum ve şase no içerdiği için GitHub'a konmaz). Doğrulananlar: okuma ~1 sa
 araç hızı / GPS = 1,008, ısınma 5–6 dk, yakıt ayarları normal (uzun −4…−5,5 %), kod yok, sürüş puanı kayıtlardan
 yeniden hesaplanınca aynı (sert olay yok; GPS de doğruluyor).
 
-- [ ] **2.5.1 Motor durdu ama kontak açık** — K4M beyni motor dururken devri 0 değil **~232** bildiriyor; MAP ~100 kPa.
+- [x] **2.5.1 Motor durdu ama kontak açık** — ✅ 1.22 (ENGINE_OFF_RPM 400; eski kod dururken 0,92 L/sa sayıyordu) — K4M beyni motor dururken devri 0 değil **~232** bildiriyor; MAP ~100 kPa.
   Uygulama bunu "çalışıyor" sanıyor: 569 satırda 0,156 L sahte yakıt, rölanti yüzdesi şişiyor. Ölçüt: devir < 400
   ve hız 0 (ve MAP ≈ hava basıncı) → motor durdu: anlık yakıt 0, rölanti sayılmaz.
-- [ ] **2.5.2 Kontak kapatma "kopma" sayılıyor** — 5 sürüşün sonundaki "bağlantı koptu" olaylarının hepsinde motor
+- [x] **2.5.2 Kontak kapatma "kopma" sayılıyor** — ✅ 1.22 (S.engineOffAt + lost(); yeniden bağlanma denenmez) — 5 sürüşün sonundaki "bağlantı koptu" olaylarının hepsinde motor
   zaten durmuştu (devir ~232, hız 0). Motor durduktan sonraki kopma → "Kontak kapatıldı, sürüş bitti" (bilgi),
   kırmızı uyarı değil; 3 dakikalık yeniden bağlanma denenmez.
-- [ ] **2.5.3 Kırıntı sürüş** — 30 sn / 3 satır / 0 km'lik sürüş (#6) hemen ardından gelen sürüşten ayrı kaydedildi.
+- [x] **2.5.3 Kırıntı sürüş** — ✅ 1.22 (1 dk / 50 m altı, kodsuz gerçek sürüş atılır (birleştirme: sonraya)) — 30 sn / 3 satır / 0 km'lik sürüş (#6) hemen ardından gelen sürüşten ayrı kaydedildi.
   1 dakikadan kısa ve hareketsiz sürüş atılır ya da 2 dk içinde başlayan sonrakiyle birleştirilir.
-- [ ] **2.5.4 Emme havası sınırı yanlış alarm** — sıcak motoru yeniden çalıştırınca (ısı birikmesi) 61 °C > 60 sınırı.
+- [x] **2.5.4 Emme havası sınırı yanlış alarm** — ✅ 1.22 (varsayılan 70, ayar taşıma v3) — sıcak motoru yeniden çalıştırınca (ısı birikmesi) 61 °C > 60 sınırı.
   Varsayılan 70 °C ya da ilk 5 dakika / araç dururken uyarma.
-- [ ] **2.5.5 Hız aşımı "kritik" seviyede** — 51–56 km/sa için 14 kırmızı uyarı (tolerans 0 seçili). Hız uyarıları
+- [x] **2.5.5 Hız aşımı "kritik" seviyede** — ✅ 1.22 (gösterge lvl:"warn" (hız, emme havası)) — 51–56 km/sa için 14 kırmızı uyarı (tolerans 0 seçili). Hız uyarıları
   sarı (warn) olsun; kırmızı motor tehlikesine kalsın. Ayarlardaki tolerans seçeneği görünür yerde önerilsin.
-- [ ] **2.5.6 Tanılama paketi bağlı değilken boş** — cihaz konuşması, desteklenen değerler, Mode 06 sonucu yok.
+- [x] **2.5.6 Tanılama paketi bağlı değilken boş** — ✅ 1.22 (localStorage obdTakip.sonBaglanti → paket sonBaglanti) — cihaz konuşması, desteklenen değerler, Mode 06 sonucu yok.
   Son bağlantının özeti saklanıp pakete girsin.
-- [ ] **2.5.7 Aracın vermediği değerler gösteriliyor** — MAF (10), dış hava (46), yağ sıcaklığı (5C), yakıt seviyesi (2F)
+- [x] **2.5.7 Aracın vermediği değerler gösteriliyor** — ✅ 1.22 (bağlıyken desteklenmeyen gizli; bağlı değilken kalıcı liste: sonraya) — MAF (10), dış hava (46), yağ sıcaklığı (5C), yakıt seviyesi (2F)
   "göster" açık ama Fluence vermiyor; desteklenmeyenler kendiliğinden gizlensin (ayar silinmeden).
 
 Araç sağlığı gözlemleri (kullanıcıya bilgi, kesin teşhis değil):

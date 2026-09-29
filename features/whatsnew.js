@@ -5,6 +5,13 @@
 // Kalıcı: settings.seenVersion. CHANGES'in ilk öğesi her zaman APP_VERSION olmalı (test/whatsnew.test.js denetler).
 const WHATSNEW = (()=>{
   const CHANGES=[
+    {v:"1.22", items:[
+      "Kontağı kapatınca artık kırmızı \"bağlantı koptu\" uyarısı çıkmıyor; sürüş sessizce kaydediliyor.",
+      "Motor dururken (kontak açık) yakıt sayılmıyor; tüketim daha doğru.",
+      "Hız aşımı ve emme havası uyarıları sarı; kırmızı yalnızca motor tehlikesinde. Emme havası sınırı 70 °C.",
+      "Aracın vermediği değerler Canlı ekranında gizleniyor; kısa, hareketsiz kontak açmaları sürüş sayılmıyor.",
+      "Tanılama paketi bağlı değilken de son bağlantının kaydını içeriyor.",
+    ]},
     {v:"1.21", items:[
       "Ayarlar ve Arıza sayfaları alt menülere bölündü: başlığa dokun, yalnızca o bölüm açılsın. Telefonun geri tuşu listeye döner.",
       "Uyarı sınırlarında Gösterilenler / Motor / Yakıt / Elektrik süzgeci: uzun liste yerine yalnızca ilgili değerler.",
