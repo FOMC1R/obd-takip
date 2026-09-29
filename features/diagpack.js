@@ -32,7 +32,9 @@ const DIAGPACK = (()=>{
       destekleyenPIDler:S.supported ? [...S.supported].sort() : null,
       aracDurumu:{kodlar:S.dtc||null, diag:S.diag||null, aku:S.batt||null, vin:S.vin ? S.vin.slice(0,3)+"…(gizlendi)" : null},
       kendiTestleri:(typeof MONITORS!=="undefined" && MONITORS.st.groups) ? MONITORS.st.groups : null,
-      elmKonusma:{ilk:LOG.first, son:LOG.last.slice(-150)}};
+      elmKonusma:{ilk:LOG.first, son:LOG.last.slice(-150)},
+      // navigasyonla kullanımda küçük pencere / arka plan davranışı (features/background.js): sürüşten sonra ölçülebilsin
+      arkaPlan:(typeof BG!=="undefined" && BG.report) ? BG.report() : null};
   }
   function saveSnap(){
     if(!LOG.first.length || (typeof DemoLink!=="undefined" && S.link instanceof DemoLink)) return;

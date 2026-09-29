@@ -57,6 +57,7 @@ require("./harness")(String.raw`
   DIAGPACK.saveSnap(); S.link=L0; S.supported=null; S.active=false;
   const pk=await DIAGPACK.build();
   if(!pk.sonBaglanti || !pk.sonBaglanti.elmKonusma.ilk.length || pk.sonBaglanti.destekleyenPIDler.join()!=="05,0C,0D") throw new Error("son bağlantı özeti: "+JSON.stringify(pk.sonBaglanti).slice(0,200));
+  if(!pk.sonBaglanti.arkaPlan || !pk.sonBaglanti.arkaPlan.ozet) throw new Error("son bağlantıda arka plan kaydı yok");
   if(JSON.stringify(pk).includes("VF1LZB10A44123456")) throw new Error("şase numarası tam hâliyle pakete girdi");
 
   // 2.5.7: desteklenmeyen gösterge gizli (soluk değil)
