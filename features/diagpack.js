@@ -21,6 +21,29 @@ const DIAGPACK = (()=>{
     : typeof SerialLink!=="undefined" && S.link instanceof SerialLink ? "klasik-bluetooth"
     : typeof BleLink!=="undefined" && S.link instanceof BleLink ? "ble" : null;
 
+  // ---- son bağlantının özeti (kalıcı) ----
+  // Konuşma kaydı bellekte durur; uygulama kapanıp açılınca kaybolur. Kullanıcı paketi çoğu zaman sürüşten sonra,
+  // bağlı değilken alıyor (gerçek veride paket boş geldi — YOL-HARITASI 2.5.6). Bağlıyken dakikada bir ve kopunca
+  // özet telefona yazılır; bağlı değilken alınan pakete "sonBaglanti" olarak girer. Şase no kısaltılır, konum yok.
+  const SNAP_KEY="obdTakip.sonBaglanti";
+  function session(){
+    return {zaman:new Date().toISOString(), tur:linkType(), protokol:S.proto||null, cihaz:S.adapter||null, can:!!S.isCan,
+      motorFiltresi:S.cra||null, voltajATRV:!!S.useAtrv, baglanma:LOG.connect||null,
+      destekleyenPIDler:S.supported ? [...S.supported].sort() : null,
+      aracDurumu:{kodlar:S.dtc||null, diag:S.diag||null, aku:S.batt||null, vin:S.vin ? S.vin.slice(0,3)+"…(gizlendi)" : null},
+      kendiTestleri:(typeof MONITORS!=="undefined" && MONITORS.st.groups) ? MONITORS.st.groups : null,
+      elmKonusma:{ilk:LOG.first, son:LOG.last.slice(-150)}};
+  }
+  function saveSnap(){
+    if(!LOG.first.length || (typeof DemoLink!=="undefined" && S.link instanceof DemoLink)) return;
+    try{ localStorage.setItem(SNAP_KEY, JSON.stringify(session())); }catch(e){}
+  }
+  const loadSnap=()=>{ try{ return JSON.parse(localStorage.getItem(SNAP_KEY)||"null"); }catch(e){ return null; } };
+  setInterval(()=>{ if(S.active) saveSnap(); }, 60000);
+  // kopmadan önce çağrılır (disconnect kancası S.link'i hâlâ görür)
+  on("disconnect", saveSnap);
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden" && S.active) saveSnap(); });
+
   // ---- paket ----
   async function build(opts={}){
     const now=Date.now();
@@ -61,6 +84,7 @@ const DIAGPACK = (()=>{
       ayarlar:set,
       sistemler:(typeof SYS!=="undefined") ? {liste:SYS.list(), vites:SYS.gear(), ogrenilen:SYS.peaks(), ogrenmeSayisi:(settings.gear||{}).n||0} : null,
       arkaPlan:(typeof BG!=="undefined" && BG.report) ? BG.report() : null,
+      sonBaglanti: S.active ? null : loadSnap(),
     };
   }
 
@@ -98,5 +122,5 @@ const DIAGPACK = (()=>{
     finally{ $("dpBtn").disabled=false; }
   });
 
-  return {build, share, LOG};
+  return {build, share, LOG, saveSnap, loadSnap, SNAP_KEY};
 })();
