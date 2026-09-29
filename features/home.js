@@ -34,6 +34,8 @@ const HOME = (()=>{
 .home-grid button span{font-size:13px;color:var(--muted);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .home-grid button.alert span{color:var(--crit);font-weight:600}
 .home-grid button.warn span{color:var(--warn)}
+.home-nav{margin-top:8px;min-height:52px;font-size:17px;display:flex;align-items:center;justify-content:center;gap:10px}
+.home-nav svg{width:22px;height:22px}
 .home-ver{text-align:right;color:var(--muted);font-size:12px;margin:14px 2px 0;font-variant-numeric:tabular-nums}
 `;
   document.head.appendChild(css);
@@ -43,7 +45,8 @@ const HOME = (()=>{
   sec.setAttribute("aria-label","Ana sayfa"); sec.id="tab-ana";
   const main=document.querySelector("main")||document.body;
   if(main.firstChild && main.insertBefore) main.insertBefore(sec, main.firstChild); else main.appendChild(sec);
-  sec.innerHTML=`<div class="card home-head"><b id="homeVeh">OBD Takip</b><span class="sub" id="homeState"></span><div class="chips" id="homeChips"></div></div>
+  sec.innerHTML=`<div class="card home-head"><b id="homeVeh">OBD Takip</b><span class="sub" id="homeState"></span><div class="chips" id="homeChips"></div>
+    <button class="primary home-nav" id="homeNav" hidden>Navigasyona geç</button></div>
     <nav class="home-grid" id="homeGrid" aria-label="Bölümler"></nav>
     <p class="home-ver" id="homeVer"></p>`;
   const bar=$("tabbar");
@@ -51,6 +54,9 @@ const HOME = (()=>{
   if(bar.firstChild && bar.insertBefore) bar.insertBefore(btn, bar.firstChild); else bar.appendChild(btn);
   btn.addEventListener("click",()=>showTab("ana"));
   $("homeVer").textContent = "Sürüm "+(typeof APP_VERSION!=="undefined" ? APP_VERSION : "?");
+  // bağlıyken: küçük pencereyi açıp seçili haritaya geçer (features/background.js goNav)
+  $("homeNav").innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8z"/></svg><span>Navigasyona geç</span>`;
+  $("homeNav").addEventListener("click",()=>{ if(typeof BG!=="undefined" && BG.goNav) BG.goNav("ana-sayfa"); });
 
   // ---- kutucuklar ----
   const has = tab=>!!document.querySelector(`section.tab[data-tab="${tab}"]`);
@@ -125,6 +131,7 @@ const HOME = (()=>{
     const v=settings.vehicles && settings.activeVehicle ? settings.vehicles[settings.activeVehicle] : null;
     $("homeVeh").textContent = v ? (v.ad || [v.marka,v.model].filter(Boolean).join(" ") || "Aracım") : "OBD Takip";
     $("homeState").textContent = ($("statusText")||{}).textContent || "";
+    $("homeNav").hidden = !(S.active && typeof BG!=="undefined" && BG.goNav);
     const al=[...(S.alarms||new Map()).values()], crit=al.filter(a=>a.level==="crit").length;
     $("homeChips").innerHTML = (crit?`<span class="chip crit">${crit} kritik uyarı</span>`:"")
       + (al.length-crit?`<span class="chip warn">${al.length-crit} uyarı</span>`:"")

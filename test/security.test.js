@@ -10,7 +10,8 @@ else {
   const dir=n=>((csp.match(new RegExp("(?:^|;)\\s*"+n+"\\s+([^;]+)"))||[])[1]||"").split(/\s+/);
   const connect=dir("connect-src"), img=dir("img-src"), script=dir("script-src");
   // Koddaki (yorum dışı) her dış adres ya CSP'de ya da yalnız bağlantı olarak açılanlar listesinde olmalı
-  const LINK_ONLY=new Set(["https://claude.ai","https://chatgpt.com","https://github.com","https://www.google.com","https://www.goatcounter.com"]);
+  const LINK_ONLY=new Set(["https://claude.ai","https://chatgpt.com","https://github.com","https://www.google.com","https://www.goatcounter.com",
+    "https://play.google.com"]);   // navigasyon uygulaması kurulu değilse telefonun açtığı mağaza sayfası (features/background.js)
   // vehicles-data.js yalnız kaynak gösterimi (metin) içerir; uygulama o adreslere bağlanmaz
   const files=["index.html",...fs.readdirSync(path.join(ROOT,"features")).filter(f=>f!=="vehicles-data.js").map(f=>"features/"+f)];
   const hosts=new Map();

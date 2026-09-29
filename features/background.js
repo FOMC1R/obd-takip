@@ -18,6 +18,7 @@ const BG = (()=>{
   if(settings.autoReconnect===undefined) settings.autoReconnect=true;
   if(settings.autoPip===undefined) settings.autoPip=true;
 
+  let navAt=0;   // navigasyon düğmesine en son basılan an (goNav)
   // ---- iz (ölçüm) ----
   const T = {list:[], hiddenAt:null, hiddenCount:0, longestHiddenMs:0, maxGapMs:0, maxLateMs:0, lastTick:0,
     pipOk:0, pipFail:0, reconnectOk:0, reconnectFail:0};
@@ -31,7 +32,8 @@ const BG = (()=>{
     if(document.visibilityState==="hidden"){
       T.hiddenAt=now; T.hiddenCount++; trace("arka-plana-gecti");
       if(S.active) recEvent("info","Uygulama arka plana geçti");
-      if(settings.autoPip && S.active && !document.pictureInPictureElement) openPip("otomatik");
+      // navigasyon düğmesi küçük pencereyi az önce istediyse ikinci kez isteme
+      if(settings.autoPip && S.active && !document.pictureInPictureElement && Date.now()-navAt>3000) openPip("otomatik");
     }else{
       const ms = T.hiddenAt ? now-T.hiddenAt : null; T.hiddenAt=null;
       if(ms!=null) T.longestHiddenMs=Math.max(T.longestHiddenMs, ms);
@@ -60,6 +62,32 @@ const BG = (()=>{
     const now=Date.now(), late=now-beat-1000; beat=now;
     if(late>LATE_MS && S.active){ T.maxLateMs=Math.max(T.maxLateMs,late); trace("zamanlayici-gecikti", {ms:late}); }
   }, 1000);
+
+  // ---- navigasyon uygulamaları (Android Chrome "intent:" adresi: paketi doğrudan açar; kurulu değilse Play Store) ----
+  if(settings.navApp===undefined) settings.navApp="gmaps";
+  const NAV={
+    gmaps:{name:"Google Haritalar", pkg:"com.google.android.apps.maps"},
+    yandex:{name:"Yandex Navigasyon", pkg:"ru.yandex.yandexnavi"},
+    waze:{name:"Waze", pkg:"com.waze"},
+    sor:{name:"Her seferinde sor (telefonun seçimi)", pkg:null},
+  };
+  function navUrl(k){
+    const n=NAV[k]||NAV.gmaps;
+    if(!n.pkg) return "geo:0,0";
+    const store="https://play.google.com/store/apps/details?id="+n.pkg;
+    return `intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${n.pkg};S.browser_fallback_url=${encodeURIComponent(store)};end`;
+  }
+  // Tek dokunuş: önce küçük pencere (dokunuş izniyle; Chrome'un kendiliğinden açmayı engellediği durumda da çalışır),
+  // hemen ardından harita. İkisi aynı dokunuşun içinde başlar: bekleme yok (izin birkaç saniye geçerli).
+  function goNav(why){
+    navAt=Date.now();
+    if(pipSupported && S.active && !document.pictureInPictureElement && vid.readyState>=1){
+      vid.requestPictureInPicture().then(()=>{ T.pipOk++; trace("pip-acildi",{neden:"navigasyon"}); paintCard(); })
+        .catch(e=>{ T.pipFail++; trace("pip-acilamadi",{neden:"navigasyon", hata:(e && e.name)||String(e)}); });
+    }else if(pipSupported && S.active && !document.pictureInPictureElement) openPip("navigasyon");
+    trace("navigasyon",{uygulama:settings.navApp, neden:why});
+    try{ location.href=navUrl(settings.navApp); }catch(e){ trace("navigasyon-acilamadi",{hata:(e && e.name)||String(e)}); }
+  }
 
   // ---- 1) küçük pencere ----
   const cv=document.createElement("canvas"); cv.width=640; cv.height=360;
@@ -225,9 +253,12 @@ const BG = (()=>{
 
   // ---- ayar kartı ----
   const card=document.createElement("section"); card.className="card"; card.setAttribute("aria-labelledby","bgTitle");
-  card.innerHTML=`<h2 id="bgTitle">Arka planda çalışma</h2>
+  card.innerHTML=`<h2 id="bgTitle">Navigasyon ve küçük pencere</h2>
     <p class="sub">Telefon, arka plandaki sayfayı yavaşlatır ya da durdurur. Başka uygulamaya (ör. harita) geçeceksen
-    <b>küçük pencere</b>yi aç: hız, devir, hararet ve uyarılar köşede kalır, okuma sürer. Ekran kilitlenince okuma yine durur.</p>
+    <b>küçük pencere</b>yi aç: hız, devir, hararet ve uyarılar köşede kalır, okuma sürer. Ekran kilitlenince okuma yine durur.
+    Bağlıyken üst çubuktaki <b>navigasyon</b> düğmesi ikisini tek dokunuşta yapar: küçük pencereyi açar, seçtiğin haritaya geçer.</p>
+    <div class="field"><label for="bgNav">Navigasyon uygulaması</label><select id="bgNav">
+      ${Object.entries(NAV).map(([k,n])=>`<option value="${k}">${escHtml(n.name)}</option>`).join("")}</select></div>
     <div class="actions"><button class="primary" id="bgPip">Küçük pencereyi aç</button></div>
     <label class="check"><input type="checkbox" id="bgAutoPip"> Uygulamadan çıkınca küçük pencereyi kendiliğinden açmayı dene</label>
     <label class="check"><input type="checkbox" id="bgReconnect"> Bağlantı koparsa kendiliğinden yeniden bağlan (3 dakika dener)</label>
@@ -238,19 +269,26 @@ const BG = (()=>{
   $("bgReconnect").addEventListener("change",e=>{ settings.autoReconnect=e.target.checked; save(); });
   $("bgPip").addEventListener("click",()=>{ document.pictureInPictureElement ? closePip() : openPip("dugme"); });
 
-  // Canlı sekmesinde bağlıyken tek dokunuşluk düğme
-  const live=document.createElement("div"); live.className="actions"; live.id="bgLive"; live.hidden=true;
-  live.innerHTML=`<button id="bgPipLive">Küçük pencere</button>`;
-  $("ext-canli").prepend(live);
-  $("bgPipLive").addEventListener("click",()=>{ document.pictureInPictureElement ? closePip() : openPip("dugme"); });
+  $("bgNav").value=settings.navApp;
+  $("bgNav").addEventListener("change",e=>{ settings.navApp=e.target.value; save(); });
+
+  // Üst çubuk (her sekmede görünür): bağlıyken küçük pencere ve navigasyon simgeleri
+  const SVG=d=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const mk=(id,label,icon)=>{ const b=document.createElement("button"); b.className="icon"; b.id=id; b.hidden=true;
+    b.setAttribute("aria-label",label); b.title=label; b.innerHTML=SVG(icon); return b; };
+  const bNav=mk("bgNavTop","Navigasyona geç (küçük pencereyle)",'<path d="M3 11l18-8-8 18-2-8z"/>');
+  const bPip=mk("bgPipTop","Küçük pencere",'<rect x="3" y="5" width="18" height="14" rx="2"/><rect x="12" y="12" width="7" height="5" rx="1" fill="currentColor"/>');
+  { const mute=$("btnMute"), top=mute && mute.parentNode; if(top && top.insertBefore){ top.insertBefore(bNav, mute); top.insertBefore(bPip, mute); } }
+  bPip.addEventListener("click",()=>{ document.pictureInPictureElement ? closePip() : openPip("dugme"); });
+  bNav.addEventListener("click",()=>goNav("ust-cubuk"));
   on("connect", ()=>paintCard()); on("disconnect", ()=>paintCard());
 
   function paintCard(){
     const inPip=!!document.pictureInPictureElement;
     $("bgPip").textContent = inPip ? "Küçük pencereyi kapat" : "Küçük pencereyi aç";
-    $("bgPipLive").textContent = inPip ? "Küçük pencereyi kapat" : "Küçük pencere";
     $("bgPip").disabled = !pipSupported;
-    live.hidden = !pipSupported || !(S.active || R);
+    bPip.hidden = !pipSupported || !(S.active || R); bPip.setAttribute("aria-pressed", String(inPip));
+    bNav.hidden = !(S.active || R);
     const m=[];
     if(!pipSupported) m.push("Bu tarayıcı küçük pencereyi desteklemiyor.");
     if(R) m.push("Bağlantı koptu, yeniden bağlanılıyor…");
@@ -269,5 +307,5 @@ const BG = (()=>{
       iz:T.list.map(e=>({...e, saat:new Date(e.t).toLocaleTimeString("tr-TR")}))};
   }
 
-  return {trace, report, openPip, closePip, draw, canvas:cv, video:vid, get pending(){ return R; }, attempt, giveUp, T};
+  return {trace, report, openPip, closePip, goNav, navUrl, NAV, buttons:{nav:bNav, pip:bPip}, draw, canvas:cv, video:vid, get pending(){ return R; }, attempt, giveUp, T};
 })();
