@@ -5,7 +5,7 @@ const CACHE = "obd-takip-v18";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png",
   "./features/layout.js", "./features/hud.js", "./features/misfire.js", "./features/ai.js",
   "./features/maintenance.js", "./features/expenses.js", "./features/report.js",
-  "./features/score.js", "./features/perf.js", "./features/ev.js", "./features/diagpack.js", "./features/prices.js",
+  "./features/score.js", "./features/perf.js", "./features/ev.js", "./features/diagpack.js", "./features/backup.js", "./features/prices.js",
   "./features/vehicles-data.js", "./features/vehicles.js", "./features/cluster.js", "./features/stats.js", "./features/speedlimit.js", "./features/autoview.js", "./features/usage.js", "./features/background.js", "./features/systems.js", "./features/home.js", "./features/update.js", "./features/splash.js",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"];
