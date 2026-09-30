@@ -25,5 +25,13 @@ require("./harness")(String.raw`
   HOME.render();
   stop(); await wait(400);
   showTab("ana"); if(settings.tab!=="ana") throw new Error("ana sayfaya dönülmedi");
+  // başlık: çerçeve yok; üst çubuktaki ad ve bağlantı durumu tekrar edilmez; araç ve uyarı yoksa hiç görünmez
+  { const keepV=settings.activeVehicle; settings.activeVehicle=null; S.alarms.clear(); const keepT=REC.trip; REC.trip=null; HOME.render();
+    if(!$("homeHead").hidden) throw new Error("boş başlık görünüyor");
+    if(/card/.test(HOME.section.innerHTML.split("home-grid")[0])) throw new Error("başlık hâlâ çerçeveli");
+    if(/homeState/.test(HOME.section.innerHTML)) throw new Error("bağlantı durumu tekrar ediliyor");
+    S.alarms.set("x",{level:"warn",text:"deneme"}); HOME.render();
+    if($("homeHead").hidden || !/1 uyarı/.test($("homeChips").innerHTML)) throw new Error("uyarı etiketi görünmüyor");
+    S.alarms.clear(); settings.activeVehicle=keepV; REC.trip=keepT; HOME.render(); }
   console.log("ana sayfa: açılış, kutucuklar, sürüm, sekme geçişi, canlı özet ("+m+" · "+tr+"), ek sistem tamam");
 `);

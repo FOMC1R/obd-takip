@@ -23,9 +23,12 @@ const HOME = (()=>{
   const css=document.createElement("style");
   css.textContent=`
 .tabbar{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
-.home-head{display:grid;gap:4px;padding:14px 16px}
+/* çerçevesiz başlık: yalnız araç adı (tanındıysa) ve uyarı etiketleri (varsa); ikisi de yoksa hiç yer kaplamaz */
+.home-head{display:grid;gap:6px;margin:2px 2px 12px}
+.home-head[hidden]{display:none}
 .home-head b{font-size:20px}
 .home-head .chips{display:flex;flex-wrap:wrap;gap:6px}
+.home-head .chips:empty{display:none}
 .home-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .home-grid button{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;row-gap:2px;align-items:center;
   text-align:left;min-height:84px;padding:12px;border-radius:16px;background:var(--panel);border:1px solid var(--line);color:var(--text)}
@@ -43,7 +46,7 @@ const HOME = (()=>{
   sec.setAttribute("aria-label","Ana sayfa"); sec.id="tab-ana";
   const main=document.querySelector("main")||document.body;
   if(main.firstChild && main.insertBefore) main.insertBefore(sec, main.firstChild); else main.appendChild(sec);
-  sec.innerHTML=`<div class="card home-head"><b id="homeVeh">OBD Takip</b><span class="sub" id="homeState"></span><div class="chips" id="homeChips"></div></div>
+  sec.innerHTML=`<div class="home-head" id="homeHead" hidden><b id="homeVeh"></b><div class="chips" id="homeChips"></div></div>
     <nav class="home-grid" id="homeGrid" aria-label="Bölümler"></nav>
     <p class="home-ver" id="homeVer"></p>`;
   const bar=$("tabbar");
@@ -121,14 +124,16 @@ const HOME = (()=>{
     const btns=grid.querySelectorAll ? grid.querySelectorAll("button") : [];
     btns.forEach(b=>{ const t=T.find(x=>x.k===b.dataset.k); if(!t) return;
       const [txt,cls]=t.sub(); b.lastChild.textContent=txt; b.className=cls||""; });
-    // üst kart
+    // başlık: uygulama adı ve bağlantı durumu üst çubukta zaten yazıyor; burada tekrar edilmez
     const v=settings.vehicles && settings.activeVehicle ? settings.vehicles[settings.activeVehicle] : null;
-    $("homeVeh").textContent = v ? (v.ad || [v.marka,v.model].filter(Boolean).join(" ") || "Aracım") : "OBD Takip";
-    $("homeState").textContent = ($("statusText")||{}).textContent || "";
+    const name = v ? (v.ad || [v.marka,v.model].filter(Boolean).join(" ") || "") : "";
+    $("homeVeh").textContent = name; $("homeVeh").hidden = !name;
     const al=[...(S.alarms||new Map()).values()], crit=al.filter(a=>a.level==="crit").length;
-    $("homeChips").innerHTML = (crit?`<span class="chip crit">${crit} kritik uyarı</span>`:"")
+    const chips = (crit?`<span class="chip crit">${crit} kritik uyarı</span>`:"")
       + (al.length-crit?`<span class="chip warn">${al.length-crit} uyarı</span>`:"")
       + (REC.trip?`<span class="chip info">Kayıt sürüyor</span>`:"");
+    $("homeChips").innerHTML = chips;
+    $("homeHead").hidden = !name && !chips;
   }
   let last=0;
   const soon=()=>{ if(!sec.hidden && Date.now()-last>900){ last=Date.now(); render(); } };
