@@ -52,7 +52,7 @@ Uygulama açılırken yaklaşık 3 saniyelik bir animasyon oynar. Bir aracın ko
 ### Ana sayfa
 Uygulama bu sayfayla açılır. Telefon uygulamalarındaki gibi büyük kutucuklar var: **Motor, Şanzıman, Arızalar, Sürüşler, İstatistik, Gösterge paneli, Ön cam (HUD), Bakım, Masraf, Ayarlar**. Araçta başka bir sistem bulunursa (örneğin hibrit sistem) onun da kutucuğu çıkar.
 - Kutucukların altında o bölümün kısa özeti yazar: motor sıcaklığı ve akü voltajı, o anki vites, arıza kodu sayısı gibi.
-- Üstte bağlantı durumu ve süren uyarılar görünür.
+- Kutucukların üstünde, araç tanındıysa adı ve süren uyarılar görünür (bağlantı durumu üst çubukta).
 - Sağ alt köşede **sürüm numarası** yazar. Bir sorun bildirirken bu numarayı da söyle.
 - Güncellemeden sonraki ilk açılışta **Yenilikler** penceresi o sürümde nelerin değiştiğini kısaca anlatır. Her sürümde bir kez çıkar; araç giderken çıkmaz. Sonradan Ayarlar → Yardım ve yenilikler'den okunur.
 - Yeni sürüm yayınlanınca üstte **"Yeni sürüm hazır — Yenile"** uyarısı çıkar. Araca bağlıyken yenilersen bağlantı kesilir, sürüş kaydı kaydedilir.

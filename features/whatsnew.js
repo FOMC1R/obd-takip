@@ -5,6 +5,9 @@
 // Kalıcı: settings.seenVersion. CHANGES'in ilk öğesi her zaman APP_VERSION olmalı (test/whatsnew.test.js denetler).
 const WHATSNEW = (()=>{
   const CHANGES=[
+    {v:"1.26", items:[
+      "Ana sayfa sadeleşti: üst çubuktakini tekrar eden çerçeve kaldırıldı. Araç adı ve uyarılar yalnızca varken görünür.",
+    ]},
     {v:"1.25", items:[
       "Araç sınıfına göre hız sınırı: kamyonet, panelvan, minibüs, kamyon, motosiklet… Ayarlar → Sürüş ve navigasyon → Hız sınırı. Değerler Karayolları'nın resmî tablosundan.",
       "Haritadaki tabela aracının yasal sınırından yüksekse düşük olan kullanılır (ör. kamyonet otoyolda 120 tabelada 95).",
