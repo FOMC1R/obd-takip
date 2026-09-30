@@ -5,6 +5,12 @@
 // Kalıcı: settings.seenVersion. CHANGES'in ilk öğesi her zaman APP_VERSION olmalı (test/whatsnew.test.js denetler).
 const WHATSNEW = (()=>{
   const CHANGES=[
+    {v:"1.25", items:[
+      "Araç sınıfına göre hız sınırı: kamyonet, panelvan, minibüs, kamyon, motosiklet… Ayarlar → Sürüş ve navigasyon → Hız sınırı. Değerler Karayolları'nın resmî tablosundan.",
+      "Haritadaki tabela aracının yasal sınırından yüksekse düşük olan kullanılır (ör. kamyonet otoyolda 120 tabelada 95).",
+      "Doblo, Kangoo, Caddy gibi hem otomobil hem ticari ruhsatlanan modellerde ruhsattaki cinsi seçmen hatırlatılır.",
+      "Ana sayfadaki navigasyon düğmesi kaldırıldı; üst çubuktaki ok simgesi yeterli.",
+    ]},
     {v:"1.24", items:[
       "Navigasyona geç düğmesi artık bağlı değilken de görünüyor (üst çubukta ok simgesi, ana sayfada büyük düğme). Bağlı değilken yalnızca haritayı açar; bağlıyken küçük pencereyi de açar.",
     ]},
