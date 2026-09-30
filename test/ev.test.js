@@ -75,6 +75,8 @@ require("./harness")(String.raw`
   d.charging=true; await wait(3500);
   const cs=EVA.chargeState(); console.log("şarj:", cs.text, "| şarj cihazı kodu", S.g.EV_CHG.v);
   if(cs.k!=="chg" || !/Şarj oluyor · 7,\d kW/.test(cs.text)) throw new Error("şarj algılanmadı");
+  // şarj enerjisi kayıt satırlarından birikir; makine yüklüyken (tam test turu) birkaç saniye gecikebilir: koşulu bekle
+  for(let i=0;i<40 && !(REC.trip && REC.trip.kwhCharged>0);i++) await wait(250);
   d.charging=false; await wait(1500);
 
   // 6) Sürüş kaydı: harcanan kWh ve kWh/100 km
