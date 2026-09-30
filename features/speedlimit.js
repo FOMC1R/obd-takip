@@ -6,30 +6,65 @@ const SPEEDLIM = (()=>{
   const SRC=["https://raw.githubusercontent.com/FOMC1R/obd-takip/main/data/speedlimits.json","data/speedlimits.json"];
   const CACHE_KEY="obdTakip.speedlimits";
   // İnternet hiç yokken ilk açılış için gömülü kopya (data/speedlimits.json ile aynı)
-  const BUILTIN={surum:1, guncelleme:"2026-09-24",
+  // siniflar: Karayolları Trafik Yönetmeliği md. 100 tablosu (KGM "Hız Sınırları" sayfası, 30.09.2026'da doğrulandı)
+  const BUILTIN={surum:2, guncelleme:"2026-09-30",
     otomobil:{yerlesim:50, sehirlerarasi:90, bolunmus:110, otoyol:120},
+    siniflar:{otomobil:{ad:"Otomobil", kod:"M1, M1G", yerlesim:50, sehirlerarasi:90, bolunmus:110, otoyol:120},
+      panelvan:{ad:"Panelvan", kod:"N1", yerlesim:50, sehirlerarasi:85, bolunmus:100, otoyol:110},
+      kamyonet:{ad:"Kamyonet", kod:"N1, N1G", yerlesim:50, sehirlerarasi:80, bolunmus:85, otoyol:95},
+      minibus:{ad:"Minibüs", kod:"M2", yerlesim:50, sehirlerarasi:80, bolunmus:90, otoyol:100},
+      otobus:{ad:"Otobüs", kod:"M2, M3", yerlesim:50, sehirlerarasi:80, bolunmus:90, otoyol:100},
+      kamyon:{ad:"Kamyon / çekici", kod:"N2, N3", yerlesim:50, sehirlerarasi:80, bolunmus:85, otoyol:90, agir:true},
+      motosiklet:{ad:"Motosiklet", kod:"L3", yerlesim:50, sehirlerarasi:80, bolunmus:90, otoyol:100},
+      motosiklet2:{ad:"Motosiklet (sepetli, üç / dört tekerli)", kod:"L4, L5, L7", yerlesim:50, sehirlerarasi:70, bolunmus:80, otoyol:80},
+      tehlikeli:{ad:"Tehlikeli madde taşıyan", kod:"ADR", yerlesim:30, sehirlerarasi:50, bolunmus:60, otoyol:70, agir:true}},
     yolAdi:{yerlesim:"Yerleşim yeri içi", sehirlerarasi:"Şehirlerarası çift yönlü yol", bolunmus:"Bölünmüş yol", otoyol:"Otoyol"},
-    otoyolNot:"Bazı otoyollarda sınır 130 ya da 140 km/sa'e çıkarıldı (İçişleri Bakanlığı, 1 Temmuz 2022). Haritada bu yollar genellikle kendi sınırıyla işaretlidir.",
+    otoyolNot:"Otomobiller için bazı otoyollarda sınır 130 (Edirne-İstanbul, İstanbul-Ankara, Niğde-Mersin-Şanlıurfa ve Çeşme-İzmir-Aydın'ın bazı kesimleri) ya da 140 km/sa (Kuzey Marmara, Malkara-Çanakkale, Gebze-İzmir, Ankara-Niğde) — İçişleri Bakanlığı, 1 Temmuz 2022. Haritada bu yollar genellikle kendi sınırıyla işaretlidir. Diğer araç sınıflarında değişiklik yok.",
     bolgeKodlari:{"TR:urban":"yerlesim","TR:rural":"sehirlerarasi","TR:trunk":"bolunmus","TR:dual_carriageway":"bolunmus","TR:motorway":"otoyol"},
     yolTuru:{motorway:"otoyol", motorway_link:"otoyol", residential:"yerlesim", living_street:"yerlesim"},
     ceza:{yerlesimIciBaslangic:6, yerlesimDisiBaslangic:11}};
   const valid=d=>d && d.otomobil && typeof d.otomobil.yerlesim==="number";
+  // Sınıfsız eski tablo (sunucuda ya da telefonda saklı sürüm 1) gelirse sınıflar gömülü kopyadan tamamlanır
+  const fill=d=>(d.siniflar ? d : Object.assign({}, d, {siniflar:BUILTIN.siniflar}));
   let table=BUILTIN;
-  try{ const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null"); if(valid(c)) table=c; }catch(e){}
+  try{ const c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null"); if(valid(c)) table=fill(c); }catch(e){}
 
   async function load(){
     for(const u of SRC){
       try{
         const r=await fetch(u,{cache:"no-cache"}); if(!r.ok) continue;
         const d=await r.json(); if(!valid(d)) continue;
-        table=d; try{ localStorage.setItem(CACHE_KEY,JSON.stringify(d)); }catch(e){}
+        table=fill(d); try{ localStorage.setItem(CACHE_KEY,JSON.stringify(d)); }catch(e){}
         paint(); return d;
       }catch(e){}
     }
     return table;
   }
-  // Harita kodundan ("TR:urban") ya da yol türünden yasal sınır
-  function legalFor(key){ const v=key && table.otomobil[key]; return v ? {v, tur:key, ad:(table.yolAdi||{})[key]||key} : null; }
+  // ---- araç sınıfı (araç başına: settings.aracSinifi, vehicles.js PER) ----
+  // Ticari araçların yasal sınırı otomobilden düşüktür (ör. kamyonet otoyolda 95). Eski tablo (siniflar yok) → otomobil.
+  if(settings.aracSinifi===undefined) settings.aracSinifi="otomobil";
+  const cls=()=>(table.siniflar && table.siniflar[settings.aracSinifi]) ? settings.aracSinifi : "otomobil";
+  // otomobil için tablonun ana "otomobil" satırı esas (sunucudaki dosya yalnız onu güncelleyebilir)
+  const classRow=()=>cls()==="otomobil" ? Object.assign({ad:"Otomobil"}, table.siniflar && table.siniflar.otomobil, table.otomobil) : table.siniflar[cls()];
+  // Harita kodundan ("TR:urban") ya da yol türünden, seçili sınıfın yasal sınırı
+  function legalFor(key){ const v=key && classRow()[key]; return v ? {v, tur:key, ad:(table.yolAdi||{})[key]||key} : null; }
+  // Tabelalı yolun türü (sınıf sınırını bulmak için): otoyol, bölünmüş (trunk ya da tek yönlü ana yol), 50 ve altı yerleşim
+  function roadKind(tags, v){
+    const h=tags.highway||"";
+    if(/^motorway/.test(h)) return "otoyol";
+    if(/^trunk/.test(h) || (tags.oneway==="yes" && /^(primary|secondary)/.test(h))) return "bolunmus";
+    if(v!=null && v<=50) return "yerlesim";
+    return "sehirlerarasi";
+  }
+  // Tabela genel (otomobil) sınırıdır; sınıfın yasal sınırı daha düşükse o geçerli. Ağır araçta "maxspeed:hgv" de bakılır.
+  function capForClass(res, tags){
+    if(!res || cls()==="otomobil") return res;
+    const C=classRow(), kind=res.tur||roadKind(tags,res.v);
+    let v=res.v;
+    if(C.agir){ const h=speedFromTag(tags["maxspeed:hgv"]); if(h && h.v<v) v=h.v; }
+    if(C[kind]!=null && C[kind]<v) v=C[kind];
+    return v!==res.v ? Object.assign({}, res, {v, tabela:res.v, tur:kind, sinif:classRow().ad}) : res;
+  }
 
   // ---------- Bulunduğun yolun sınırı (isteğe bağlı, varsayılan kapalı) ----------
   // Açıksa konum, araç ilerledikçe OpenStreetMap'in Overpass sunucusuna gönderilir ve en yakın yolun
@@ -53,8 +88,8 @@ const SPEEDLIM = (()=>{
     const z=(table.bolgeKodlari||{})[first], L=legalFor(z);
     return L ? {v:L.v, tur:z} : null;
   }
-  function limitOfWay(tags){
-    tags=tags||{};
+  function limitOfWay(tags){ tags=tags||{}; return capForClass(postedOfWay(tags), tags); }
+  function postedOfWay(tags){
     let r=speedFromTag(tags.maxspeed);
     if(!r){ const f=speedFromTag(tags["maxspeed:forward"]), b=speedFromTag(tags["maxspeed:backward"]);
       if(f || b) r = f && b ? (f.v<=b.v ? f : b) : (f || b); }
@@ -139,7 +174,7 @@ const SPEEDLIM = (()=>{
 
   // Şu an geçerli sınır: {v, kaynak:"yol"|"yasal"|"ayar", yer?, tur?}
   function now(){
-    if(onRoad() && R.road) return {v:R.road.v, kaynak:R.road.kaynak, yer:R.road.ad||"", tur:R.road.tur};
+    if(onRoad() && R.road) return {v:R.road.v, kaynak:R.road.kaynak, yer:R.road.ad||"", tur:R.road.tur, tabela:R.road.tabela, sinif:R.road.sinif};
     const L=settings.lim["0D"]; return {v:L && L.max!=null ? L.max : null, kaynak:"ayar"};
   }
   function tolFor(v){
@@ -158,32 +193,47 @@ const SPEEDLIM = (()=>{
   // ---- arayüz ----
   const card=document.createElement("section"); card.className="card"; card.id="speedLimCard";
   card.innerHTML=`<h2>Hız sınırı</h2>
+    <div class="field"><label for="slClass">Araç sınıfı (ruhsattaki "Cinsi")</label><select id="slClass"></select></div>
+    <p class="sub" id="slHint" hidden></p>
     <div class="field"><label for="slMode">Hız uyarısı hangi sınıra göre verilsin?</label>
       <select id="slMode"><option value="ayar">Elle girdiğim sınır (Sınırlar tablosu)</option><option value="yol">Bulunduğum yolun sınırı (haritadan)</option></select></div>
     <p class="sub" id="slPriv">Açarsan konumun, araç ilerledikçe en çok 20 saniyede bir OpenStreetMap'in sunucusuna gönderilir; başka hiçbir yere gitmez ve kaydedilmez. Haritada yolun sınırı yoksa yol türüne göre yasal sınır, o da bilinmiyorsa elle girdiğin sınır kullanılır.</p>
     <div class="field" id="slTolBox"><label for="slTol">Ne zaman uyarsın?</label>
       <select id="slTol"><option value="0">Sınır geçilince</option><option value="5">Sınırın 5 km/sa üstünde</option><option value="10">Sınırın 10 km/sa üstünde</option><option value="ceza">Ceza başlamadan hemen önce (şehir içi +5, dışı +10)</option></select></div>
     <p class="sub" id="slNow" role="status"></p>
-    <details><summary>Yasal sınırlar (otomobil)</summary><dl class="kv" id="slTable"></dl><p class="sub" id="slNote"></p></details>`;
+    <details><summary id="slSum">Yasal sınırlar</summary><dl class="kv" id="slTable"></dl><p class="sub" id="slNote"></p></details>`;
   $("ext-ayar").appendChild(card);
   const selStyle="font:inherit;width:100%;min-height:44px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--text)";
-  ["slMode","slTol"].forEach(id=>{ const e=$(id); if(e && e.setAttribute) e.setAttribute("style",selStyle); });
+  ["slClass","slMode","slTol"].forEach(id=>{ const e=$(id); if(e && e.setAttribute) e.setAttribute("style",selStyle); });
   function paintNow(){
     const n=now(), el=$("slNow");
     $("slTolBox").hidden=!onRoad();
     if(!onRoad()){ el.textContent=n.v ? `Şu an ${n.v} km/sa'i geçince uyarır.` : "Hız uyarısı kapalı (Sınırlar tablosunda üst sınır yok)."; return; }
     if(!S.active){ el.textContent="Araca bağlanınca bulunduğun yolun sınırı burada görünür."; return; }
     if(n.kaynak==="ayar"){ el.textContent=`Yolun sınırı henüz bilinmiyor; elle girdiğin ${n.v ?? "—"} km/sa kullanılıyor.`; return; }
-    const where=n.yer ? n.yer+" · " : "", from=n.kaynak==="yol" ? "haritadaki tabela" : "yol türüne göre yasal sınır";
+    const where=n.yer ? n.yer+" · " : "", from=n.tabela ? `tabela ${n.tabela}; ${n.sinif} için yasal üst sınır` : n.kaynak==="yol" ? "haritadaki tabela" : "yol türüne göre yasal sınır";
     el.textContent=`Şu an: ${where}${n.v} km/sa (${from}).`;
   }
+  // Hafif ticari modeller hem otomobil (M1) hem kamyonet / panelvan (N1) olarak ruhsatlanabiliyor: kullanıcı seçsin
+  const COMMERCIAL=/doblo|fiorino|qubo|kangoo|caddy|transit|tourneo|connect|courier|berlingo|partner|rifter|combo|nemo|bipper|jumpy|expert|jumper|boxer|ducato|scudo|vito|sprinter|citan|crafter|transporter|amarok|master|trafic|movano|vivaro|h-?1|h350|starex|hiace|proace|hilux|l200|ranger|navara|d-?max|dokker|express|t-?serisi|isuzu|karsan|porter|bongo/i;
   function paint(){
-    const T=table, rows=["yerlesim","sehirlerarasi","bolunmus","otoyol"].filter(k=>T.otomobil[k]).map(k=>[(T.yolAdi||{})[k]||k, T.otomobil[k]+" km/sa"]);
+    const T=table, C=classRow(), rows=["yerlesim","sehirlerarasi","bolunmus","otoyol"].filter(k=>C[k]).map(k=>[(T.yolAdi||{})[k]||k, C[k]+" km/sa"]);
     kv($("slTable"), rows);
+    const S2=T.siniflar||{otomobil:{ad:"Otomobil"}};
+    $("slClass").innerHTML=Object.entries(S2).map(([k,c])=>`<option value="${k}">${escHtml(c.ad)}${c.kod?` (${escHtml(c.kod)})`:""}</option>`).join("");
+    $("slClass").value=cls();
+    $("slSum").textContent=`Yasal sınırlar (${C.ad||"otomobil"})`;
+    const v=settings.vehicles && settings.activeVehicle && settings.vehicles[settings.activeVehicle];
+    const com=v && COMMERCIAL.test(`${v.model||""} ${v.ad||""}`);
+    $("slHint").hidden=!com;
+    if(com) $("slHint").textContent=`${[v.marka,v.model].filter(Boolean).join(" ")} otomobil, kamyonet ya da panelvan olarak ruhsatlanabiliyor; yasal hız sınırları farklı. Ruhsattaki "Cinsi" satırına bakıp seç.`;
     $("slNote").textContent=[T.otoyolNot, T.guncelleme ? "Tablo tarihi: "+new Date(T.guncelleme).toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"}) : ""].filter(Boolean).join(" ");
     $("slMode").value=settings.speedLim.mode; $("slTol").value=settings.speedLim.tol;
     paintNow();
   }
+  $("slClass").addEventListener("change",e=>{ settings.aracSinifi=e.target.value; save(); reset(); if(onRoad()) startWatch(); paint(); });
+  // araç değişince (vehicles.js buildSettings çağırır) o aracın sınıfı görünsün
+  { const ob=buildSettings; buildSettings=function(){ ob(); try{ paint(); }catch(e){} }; }
   $("slMode").addEventListener("change",e=>{ settings.speedLim.mode=e.target.value; save(); reset(); if(onRoad()) startWatch(); paint(); });
   $("slTol").addEventListener("change",e=>{ settings.speedLim.tol=e.target.value; save(); paintNow(); });
   on("connect",()=>{ startWatch(); paintNow(); });
@@ -192,8 +242,8 @@ const SPEEDLIM = (()=>{
 
   paint();
   load();
-  const api={load, legalFor, now, poll, reset, speedFromTag, limitOfWay, pickWay, distToWay, tolFor,
-    get table(){ return table; }, set table(d){ table=d; },
+  const api={load, legalFor, now, poll, capForClass, roadKind, COMMERCIAL, get sinif(){ return cls(); }, reset, speedFromTag, limitOfWay, pickWay, distToWay, tolFor,
+    get table(){ return table; }, set table(d){ table=d; }, fill,
     get state(){ return {road:R.road, requests:R.requests, lastQ:R.lastQ, backoff:R.backoff, watch:R.watch}; }};
   try{ window.SPEEDLIM=api; }catch(e){}
   return api;
