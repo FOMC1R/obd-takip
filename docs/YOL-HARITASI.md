@@ -100,6 +100,14 @@ yaygın markalar, elektrikli araçlar) sonucudur. İş bittikçe kutu işaretlen
   - `STI` ile algıla; varsa `STPX` (başlık + veri tek satırda) — çok beyinli taramada hızlı. Yoksa ATSH/ATCRA.
   - Öneri cihaz: OBDLink MX+ (klasik Bluetooth), CX (BLE). Ucuz "v2.1" klonlarda BUFFER FULL ve CR/LF sorunları.
 
+- [x] **2.G Köprü, tünel ve otoyol geçiş ücretleri** (kullanıcı isteği, 08.10.2026) — HGS geçmişine dışarıdan erişim yok
+  (PTT / e-Devlet, girişli) → GPS izi telefonda gişe konumlarıyla karşılaştırılır. — ✅ 1.28 (features/tolls.js,
+  data/tolls.json, tools/tolls; KGM 2026 PDF'leri + avrasyatuneli.com; konumlar OSM/ODbL; İstanbul gerçek koordinat testi)
+  - Kapsama: 15 kapalı yolda gişelerin ~%80'i konumlu (bir kısmı kavşaktan "yaklaşık"); köprüler ve Avrasya tam.
+  - Sonraya: konumsuz gişeler (İzmir–Aydın'ın 3'ü, Menemen–Çandarlı'nın 4'ü, O-4 Kocaeli/Düzce kesimi vb.),
+    Kuzey Marmara serbest geçiş noktaları (havalimanı bağlantıları), il il elle doğrulama (şimdilik yalnız İstanbul).
+  - Her ocak (YİD'de temmuz) tarife güncellemesi: tools/tolls/README.md.
+
 ## Bölüm 2.5 — Gerçek araç verisinden düzeltmeler (Renault Fluence 1.6 K4M, 23–29.09.2026)
 
 Kaynak: 12 gerçek sürüş, 95 km, 11.807 ölçüm satırı + tanılama paketi (dosyalar repo dışında, `D:\FO-YEDEK\OBD-Veri`;

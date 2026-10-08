@@ -5,6 +5,12 @@
 // Kalıcı: settings.seenVersion. CHANGES'in ilk öğesi her zaman APP_VERSION olmalı (test/whatsnew.test.js denetler).
 const WHATSNEW = (()=>{
   const CHANGES=[
+    {v:"1.28", items:[
+      "Köprü, tünel ve otoyol ücretleri: ücretli yoldan geçtiysen sürüş ayrıntısında hangi gişeden girip çıktığın ve tahmini ücret görünür.",
+      "Türkiye'deki KGM ve Yap-İşlet-Devret yollarının 2026 tarifeleri uygulamada (Boğaz köprüleri, Avrasya Tüneli, Kuzey Marmara, Osmangazi, 1915 Çanakkale ve otoyollar).",
+      "Yeni sürüşlerin geçiş ücreti istersen masraf defterine kendiliğinden eklenir. Ayarlar → Sürüş ve navigasyon → Köprü ve otoyol ücretleri.",
+      "Hesap telefonda, GPS izinden yapılır; konumun hiçbir yere gönderilmez. Tutar tahminidir; HGS'nin kestiği farklı olabilir.",
+    ]},
     {v:"1.27", items:[
       "Bağlanırken adaptör geç uyanırsa uygulama artık vazgeçmiyor: 4 kez dener (\"Cihaz uyanıyor… 2/4\"). Kontak açılır açılmaz bağlanınca sürüşün başı kaybolmuyor.",
       "Aracın kendi testlerinde henüz tamamlanmamış testler artık \"sınır dışı\" uyarısı vermiyor; \"Henüz yapılmadı\" diye görünüyor.",
