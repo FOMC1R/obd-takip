@@ -60,6 +60,9 @@ const MONITORS = (()=>{
 
   // Sonuç: geçti / sınırda (sınır aralığının %10'u içinde) / kaldı. Değer = sınır da geçer sayılır.
   function judge(r){
+    // SAE J1979: test henüz tamamlanmadıysa sınırlar (ve çoğu zaman değer) 0 bildirilir. Bu "kaldı" değil "yapılmadı":
+    // gerçek veride kodlar silindikten sonra katalizör testi her sürüş başında 0/0 sınırla "sınır dışı" görünüyordu.
+    if(r.min===0 && r.max===0 && r.uas!==0x2E) return {state:"notrun"};
     if(r.uas===0x2E) return {state: r.val ? "ok" : "fail"};
     const v=scale(r.uas,r.val), lo=scale(r.uas,r.min), hi=scale(r.uas,r.max);
     if(v==null) return {state:"unknown"};
@@ -115,7 +118,7 @@ const MONITORS = (()=>{
     <div id="m6Box"><p class="empty">Bağlanınca okunur.</p></div>`;
   $("ext-ariza").appendChild(card);
   $("m6Btn").addEventListener("click",read);
-  const chip={ok:'<span class="chip info">Geçti</span>', near:'<span class="chip warn">Sınırda</span>', fail:'<span class="chip crit">Kaldı</span>', unknown:'<span class="chip">?</span>'};
+  const chip={ok:'<span class="chip info">Geçti</span>', near:'<span class="chip warn">Sınırda</span>', fail:'<span class="chip crit">Kaldı</span>', notrun:'<span class="chip">Henüz yapılmadı</span>', unknown:'<span class="chip">?</span>'};
   const num=(v,d)=>v==null?"–":fmt(v,d);
   function paint(){
     $("m6Btn").disabled=!S.active || st.busy;
@@ -125,13 +128,15 @@ const MONITORS = (()=>{
     if(st.status==="none"){ box.innerHTML='<p class="empty">Araç test sonucu vermedi. Bazı araçlar bunu desteklemez ya da testler henüz tamamlanmamıştır.</p>'; return; }
     if(st.status==="err"){ box.innerHTML='<p class="empty">Okunamadı. Tekrar dene.</p>'; return; }
     if(!st.groups){ box.innerHTML=`<p class="empty">${S.active?"Oku düğmesine bas.":"Bağlanınca okunur."}</p>`; return; }
-    const all=st.groups.flatMap(g=>g.tests), f=all.filter(t=>t.state==="fail").length, n=all.filter(t=>t.state==="near").length;
-    let h=`<p class="m6-sum">${all.length} test: ${all.length-f-n} geçti${n?`, ${n} sınırda`:""}${f?`, <span style="color:var(--crit)">${f} kaldı</span>`:""}.</p>`;
+    const all=st.groups.flatMap(g=>g.tests), f=all.filter(t=>t.state==="fail").length, n=all.filter(t=>t.state==="near").length,
+      z=all.filter(t=>t.state==="notrun").length;
+    let h=`<p class="m6-sum">${all.length} test: ${all.length-f-n-z} geçti${n?`, ${n} sınırda`:""}${f?`, <span style="color:var(--crit)">${f} kaldı</span>`:""}${z?`, ${z} henüz yapılmadı`:""}.</p>`;
+    if(z) h+=`<p class="sub">"Henüz yapılmadı": araç bu testi son kod silmeden ya da akü sökülmesinden beri tamamlamamış. Birkaç normal sürüşte kendiliğinden yapılır.</p>`;
     for(const g of st.groups){
       h+=`<div class="m6-g"><h3>${escHtml(g.name)}</h3>`;
       for(const t of g.tests){
         const u=t.unit?" "+escHtml(t.unit):"";
-        h+=`<div class="m6-t"><span>${escHtml(t.name)}</span>${chip[t.state]||""}<small>${t.uas===0x2E?(t.val?"tamam":"değil"):`${num(t.v,t.dec)}${u} · sınır ${num(t.lo,t.dec)} – ${num(t.hi,t.dec)}${u}`}</small></div>`;
+        h+=`<div class="m6-t"><span>${escHtml(t.name)}</span>${chip[t.state]||""}<small>${t.state==="notrun"?"sonuç yok":t.uas===0x2E?(t.val?"tamam":"değil"):`${num(t.v,t.dec)}${u} · sınır ${num(t.lo,t.dec)} – ${num(t.hi,t.dec)}${u}`}</small></div>`;
       }
       h+=`</div>`;
     }
