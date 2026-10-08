@@ -138,7 +138,7 @@ Araç sağlığı gözlemleri (kullanıcıya bilgi, kesin teşhis değil) — **
 sonucu tamamlanmamış testin 0/0 sınırından kaynaklanan yanlış alarmdı (2.5.12); arka O2 dalgalanması tek başına zayıf
 kanıt. Voltaj (PID 42) bu araçta desteklenmiyor; değerler adaptörün kendi ölçümü (ATRV, soket gerilimi; ucuz ELM327'de
 ±0,2–0,5 V sapma olabilir) → "şarj düşük" yorumu güvenilir değil. Kodlar 5–6 Ekim arası silinmiş (sayaç: 56 km, 3 ısınma);
-uygulamanın gönderdiği kayıtlı komutlarda silme yok — kullanıcıya soruldu.
+uygulamanın gönderdiği kayıtlı komutlarda silme yok — kullanıcı doğruladı: kodları başka bir OBD uygulamasıyla sildi.
 Eski gözlemler:
 - Şarj voltajı 13,3–13,4 V (en çok 13,6); motor kapalı 12,5 V; soğuk marşta 10,7 V. Tipik 13,8–14,4 V'un altında.
   Beynin bildirdiği voltaj akü kutbundan 0,2–0,4 V düşük olabilir → akü testi / ölçü aletiyle doğrulanmalı.
