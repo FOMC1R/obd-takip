@@ -96,7 +96,7 @@ Araca bağlanınca uygulama, motor dışında standart veri veren başka beyinle
   - Ayarlar'a Claude API anahtarı girersen yorum doğrudan uygulamada görünür. API anahtarı, Anthropic'in hizmetini programdan kullanmak için verdiği kişisel şifredir. Anahtar yalnızca bu telefonda saklanır; her yorum birkaç sent tutar.
   - Şase numarası yalnızca kutucuğunu işaretlersen metne eklenir. Konum hiçbir zaman eklenmez.
 - **Diğer beyinler:** ABS (fren), hava yastığı, gösterge paneli ve gövde beyinlerindeki arıza kodlarını okur. Marka şase numarasından anlaşılır, istersen elle seçilir (Renault/Dacia, VW grubu, Hyundai/Kia, Peugeot/Citroën/Opel, Ford, Toyota). **Yalnız okur:** kod silmez, ayar değiştirmez. Araç duruyorken, kontak açıkken tara.
-- **Aracın kendi test sonuçları:** Motor beyninin emisyon parçaları için yaptığı ölçümler ve sınırları (Mode 06). Sınıra yakın olan "yakın", aşan "kaldı" diye işaretlenir.
+- **Aracın kendi test sonuçları:** Motor beyninin emisyon parçaları için yaptığı ölçümler ve sınırları (Mode 06). Sınıra yakın olan "yakın", aşan "kaldı" diye işaretlenir. Araç bir testi henüz tamamlamadıysa (örneğin kodlar ya da akü yeni söküldüyse) "Henüz yapılmadı" yazar; bu bir arıza değildir.
 - **Rapor oluştur (PDF):** Ustaya gösterilecek tek sayfalık rapor hazırlar. Açılan yazdırma ekranında "PDF olarak kaydet"i seç.
 
 ### Sürüşler

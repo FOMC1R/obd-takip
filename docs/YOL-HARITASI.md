@@ -124,11 +124,22 @@ yeniden hesaplanınca aynı (sert olay yok; GPS de doğruluyor).
 - [x] **2.5.7 Aracın vermediği değerler gösteriliyor** — ✅ 1.22 (bağlıyken desteklenmeyen gizli; bağlı değilken kalıcı liste: sonraya) — MAF (10), dış hava (46), yağ sıcaklığı (5C), yakıt seviyesi (2F)
   "göster" açık ama Fluence vermiyor; desteklenmeyenler kendiliğinden gizlensin (ayar silinmeden).
 
+- [x] **2.5.12 Mode 06 "henüz yapılmadı" yanlış alarmı** — SAE J1979: tamamlanmamış testte sınırlar 0/0. Kodlar
+  silindikten sonra katalizör testi her sürüş başında "sınır dışı" uyarısı veriyordu (veri 08.10.2026: değer 0, sınır 0–0,
+  hazırlık "Katalizör: tamamlanmadı"). — ✅ 1.27 (judge → "notrun", uyarı yok, kartta "Henüz yapılmadı")
+- [x] **2.5.11 Bağlantı çabuk vazgeçiyordu** — kontak açılınca ELM327 v1.5 iki ATZ'ye (2×5 sn) cevap vermedi, uygulama
+  bıraktı; kullanıcı 2,5 dk sonra elle bağlandı (cevap 0,8 sn), sürüşün başı kaydedilmedi. — ✅ 1.27 (4 deneme ≈ 23 sn,
+  "Cihaz uyanıyor… (2/4)" durum yazısı)
 - [x] **2.5.10 Araç sınıfına göre hız sınırı** — ticari araçların yasal sınırı otomobilden düşük. KGM tablosu (Karayolları Trafik Yönetmeliği md. 100) `data/speedlimits.json` → `siniflar`; tabela sınıf sınırını aşarsa sınıf sınırı; ağır araçta `maxspeed:hgv`. — ✅ 1.25 (araç başına `aracSinifi`; 130/140 yalnız adı sayılan otoyollarda, otomobil için — doğrulandı)
 - [x] **2.5.9 Navigasyonla kullanım tek dokunuş** — Chrome dokunuşsuz küçük pencereyi engelleyebilir; "Navigasyona geç" düğmesi (üst çubuk + ana sayfa) dokunuş izniyle küçük pencereyi açıp seçili haritaya (intent: paket, yoksa Play Store) geçer. — ✅ 1.23 (Google Haritalar varsayılan; Yandex, Waze, sor); 1.24: düğme bağlı değilken de görünür (yalnız harita); 1.25: ana sayfadaki ikinci düğme kaldırıldı
 - [x] **2.5.8 Arka plan izi kayboluyordu** — küçük pencere / navigasyon davranışı da yalnız bellekteydi. — ✅ 1.23 (son bağlantı özetine `arkaPlan`)
 
-Araç sağlığı gözlemleri (kullanıcıya bilgi, kesin teşhis değil):
+Araç sağlığı gözlemleri (kullanıcıya bilgi, kesin teşhis değil) — **08.10.2026 düzeltmesi:** katalizör "sınır dışı"
+sonucu tamamlanmamış testin 0/0 sınırından kaynaklanan yanlış alarmdı (2.5.12); arka O2 dalgalanması tek başına zayıf
+kanıt. Voltaj (PID 42) bu araçta desteklenmiyor; değerler adaptörün kendi ölçümü (ATRV, soket gerilimi; ucuz ELM327'de
+±0,2–0,5 V sapma olabilir) → "şarj düşük" yorumu güvenilir değil. Kodlar 5–6 Ekim arası silinmiş (sayaç: 56 km, 3 ısınma);
+uygulamanın gönderdiği kayıtlı komutlarda silme yok — kullanıcıya soruldu.
+Eski gözlemler:
 - Şarj voltajı 13,3–13,4 V (en çok 13,6); motor kapalı 12,5 V; soğuk marşta 10,7 V. Tipik 13,8–14,4 V'un altında.
   Beynin bildirdiği voltaj akü kutbundan 0,2–0,4 V düşük olabilir → akü testi / ölçü aletiyle doğrulanmalı.
 - Katalizör: Mode 06 katalizör testi 1 sonuç sınır dışı; arka oksijen sensörü dalgalı (sapma 0,26 V, ön sensörün

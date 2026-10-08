@@ -5,6 +5,10 @@
 // Kalıcı: settings.seenVersion. CHANGES'in ilk öğesi her zaman APP_VERSION olmalı (test/whatsnew.test.js denetler).
 const WHATSNEW = (()=>{
   const CHANGES=[
+    {v:"1.27", items:[
+      "Bağlanırken adaptör geç uyanırsa uygulama artık vazgeçmiyor: 4 kez dener (\"Cihaz uyanıyor… 2/4\"). Kontak açılır açılmaz bağlanınca sürüşün başı kaybolmuyor.",
+      "Aracın kendi testlerinde henüz tamamlanmamış testler artık \"sınır dışı\" uyarısı vermiyor; \"Henüz yapılmadı\" diye görünüyor.",
+    ]},
     {v:"1.26", items:[
       "Ana sayfa sadeleşti: üst çubuktakini tekrar eden çerçeve kaldırıldı. Araç adı ve uyarılar yalnızca varken görünür.",
     ]},
