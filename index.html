@@ -1372,7 +1372,17 @@ const wait = ms=>new Promise(r=>setTimeout(r,ms));
 async function init(){
   const e=S.elm;
   setStatus("busy","Cihaz hazırlanıyor…");
-  try{ await e.send("ATZ",5000); }catch(x){ await e.send("ATZ",5000); }
+  // Kontak açılır açılmaz adaptör birkaç saniye cevap vermeyebilir (gerçek veri, Fluence + ELM327 v1.5: iki ATZ
+  // zaman aşımı → uygulama vazgeçti, sürüşün ilk 2,5 dakikası kaydedilmedi; elle yeniden bağlanınca 0,8 sn'de cevap).
+  // Bu yüzden 4 deneme (~23 sn) beklenir; her denemede durum yazısı değişir.
+  const ATZ_TRIES=4;
+  for(let i=1;;i++){
+    try{ await e.send("ATZ",5000); break; }
+    catch(x){
+      if(i>=ATZ_TRIES) throw new Error("Cihaz cevap vermiyor. Adaptörün takılı ve kontağın açık olduğundan emin ol, sonra yeniden bağlan.");
+      setStatus("busy",`Cihaz uyanıyor… (${i+1}/${ATZ_TRIES})`); await wait(1000);
+    }
+  }
   await wait(400);
   for(const c of ["ATE0","ATL0","ATS0","ATH0","ATAT1","ATSP0"]) await e.send(c);
   const ver=(await e.send("ATI")).replace(/[\r\n>]/g," ").trim();
