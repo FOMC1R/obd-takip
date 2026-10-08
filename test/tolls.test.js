@@ -5,7 +5,7 @@ require("./harness")(String.raw`
   const T=TOLLS;
   const D={surum:1, tarifeTarihi:"2026-01-01", yollar:[
     {id:"OT", ad:"Deneme Otoyolu", tip:"kapali", gise:[{ad:"Aköy", k:[[40.0000,29.0000],[40.0003,29.0004]]},{ad:"Bköy", k:[[40.1000,29.2000]]},{ad:"Cköy", k:[[40.2000,29.4000]]}],
-      ucret:{"1":{"Aköy|Bköy":50,"Aköy|Cköy":90,"Bköy|Cköy":45},"2":{"Aköy|Bköy":80}}},
+      m:{"1":[null,50,90, null,null,45, null,null,null],"2":[null,80,null, null,null,null, null,null,null]}},
     {id:"KP", ad:"Deneme Köprüsü", tip:"kopru", gise:[{ad:"Köprü gişesi", k:[[41.0000,28.0000]]}], sabit:{"1":59,"2":75}},
     {id:"TN", ad:"Deneme Tüneli", tip:"tunel", gise:[{ad:"Tünel gişesi", k:[[41.5000,28.5000]]}], sabit:{"1":200},
       saatli:{gece:{saat:"23:59-05:00","1":100}}}]};
@@ -46,5 +46,34 @@ require("./harness")(String.raw`
   const n1=settings.expenses.length; emit("tripOpen", old, S1); await wait(300);
   if(!old.tolls || old.tolls.toplam!==149) throw new Error("geriye dönük hesap: "+JSON.stringify(old.tolls));
   if(settings.expenses.length!==n1) throw new Error("eski sürüş masrafa kendiliğinden eklendi");
+  // yön farkı, yöne göre ad, dahil kuralı, iki ağızlı tünel, tarihe göre tarife
+  const D2={yollar:[
+    {id:"YO", ad:"Yönlü Otoyol", tip:"kapali", tarih:"2026-07-01",
+      gise:[{ad:"Köprü (Güney yönü)", adCikis:"Köprü (Kuzey yönü)", k:[[42.0,30.0]]},{ad:"Köprü (Kuzey yönü)", k:[]},{ad:"Uzak", k:[[42.2,30.2]]}],
+      // satır giriş, sütun çıkış: Güney→Uzak 100; Uzak→Kuzey 70 (köprü dahil)
+      m:{"1":[null,null,100, null,null,null, null,70,null]}, onceki:{m:{"1":[null,null,80, null,null,null, null,50,null]}}},
+    {id:"BK", ad:"Büyük Köprü", tip:"kopru", tarih:"2026-07-01", gise:[{ad:"Köprü", k:[[41.95,29.95]]}], sabit:{"1":500}, onceki:{sabit:{"1":400}},
+      dahil:[{yol:"YO", cikis:"Köprü (Kuzey yönü)"}]},
+    {id:"TU", ad:"İki Ağızlı Tünel", tip:"tunel", ikiNokta:true, gise:[{ad:"Tünel", k:[[43.0,31.0],[43.0,31.05]]}], sabit:{"1":300}}]};
+  T.data=D2;
+  const aug=new Date(2026,7,1,12).getTime(), mar=new Date(2026,2,1,12).getTime();
+  // güneye: köprüden geçip köprü gişesinden gir, Uzak'tan çık → köprü ayrı (500) + otoyol "Köprü (Güney yönü)→Uzak" 100
+  let q=T.compute([...line([41.9,29.9],[41.95,29.95],aug,10), ...line([41.99,29.99],[42.0,30.0],aug+300000,10), ...line([42.19,30.19],[42.2,30.2],aug+1800000,10)],{sinif:"1"});
+  if(q.toplam!==600) throw new Error("güney yönü: "+JSON.stringify(q.gecis));
+  // kuzeye: Uzak'tan gir, köprü gişesinden çık (köprü dahil) → yalnız otoyol 70; köprü 0
+  q=T.compute([...line([42.21,30.21],[42.2,30.2],aug,10), ...line([42.01,30.01],[42.0,30.0],aug+1800000,10), ...line([41.96,29.96],[41.95,29.95],aug+2100000,10)],{sinif:"1"});
+  if(q.toplam!==70 || q.gecis.find(x=>x.yol==="BK").not!=="ücreti otoyol ücretine dahil") throw new Error("kuzey yönü (dahil): "+JSON.stringify(q.gecis));
+  // Mart'ta aynı güney yolu eski tarifeyle: 400 + 80
+  q=T.compute([...line([41.9,29.9],[41.95,29.95],mar,10), ...line([41.99,29.99],[42.0,30.0],mar+300000,10), ...line([42.19,30.19],[42.2,30.2],mar+1800000,10)],{sinif:"1"});
+  if(q.toplam!==480) throw new Error("eski tarife: "+JSON.stringify(q.gecis));
+  // tünel: iki ağız → 300; tek ağız → yok
+  if(T.compute([...line([42.99,30.99],[43.0,31.0],aug,10), ...line([43.0,31.05],[43.01,31.06],aug+300000,10)],{sinif:"1"}).toplam!==300) throw new Error("tünel iki ağız");
+  if(T.compute(line([42.99,30.99],[43.0,31.0],aug,10),{sinif:"1"}).gecis.length) throw new Error("tünel tek ağız sayıldı");
+  // aynı yerde iki yolun gişesi: OT'de Aköy→Cköy eşleşirken aynı noktadaki öbür yolun yarım girişi atılır
+  T.data={yollar:[...D.yollar, {id:"KM", ad:"Komşu Otoyol", tip:"kapali", gise:[{ad:"Aköy KM", k:[[40.0001,29.0001]]},{ad:"Zköy", k:[[45,45]]}], m:{"1":[null,10,null,null]}}]};
+  q=T.compute(S1,{sinif:"1"});
+  if(q.gecis.some(x=>x.yol==="KM")) throw new Error("hayalet giriş atılmadı: "+JSON.stringify(q.gecis));
+  if(T.nice("ANADOLU (ÇAMLICA)")!=="Anadolu (Çamlıca)" || T.nice("TARSUS OSB")!=="Tarsus OSB" || T.nice("Kurtköy")!=="Kurtköy") throw new Error("ad düzeltme: "+T.nice("ANADOLU (ÇAMLICA)")+" / "+T.nice("TARSUS OSB"));
+  T.data=D;
   console.log("geçiş ücretleri: kapalı sistem, ters yön, köprü, gece/gündüz tünel, çıkışsız giriş, sınıf, masraf, geriye dönük tamam");
 `);

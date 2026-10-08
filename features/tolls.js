@@ -41,13 +41,14 @@ const TOLLS = (()=>{
     for(const s of pts){ la0=Math.min(la0,s.lat); la1=Math.max(la1,s.lat); lo0=Math.min(lo0,s.lon); lo1=Math.max(lo1,s.lon); }
     const pad=0.01, out=[];
     for(const y of D.yollar){
+      if(y.ikiNokta){ const p=twoPoint(y, pts); if(p) out.push(p); continue; }
       for(const g of y.gise||[]){
         for(const k of g.k||[]){
           if(k[0]<la0-pad || k[0]>la1+pad || k[1]<lo0-pad || k[1]>lo1+pad) continue;
-          let best=null;
+          let best=null; const R=g.r||R_M;   // g.r: yaklaşık konum (kavşaktan) için daha geniş yarıçap
           for(const s of pts){
             const d=meters(k,[s.lat,s.lon]);
-            if(d<=R_M){ if(best && s.t-best.t>MERGE_MS){ out.push(best); best=null; }
+            if(d<=R){ if(best && s.t-best.t>MERGE_MS){ out.push(best); best=null; }
               if(!best || d<best.d) best={yol:y.id, gise:g.ad, t:s.t, d}; }
           }
           if(best) out.push(best);
@@ -59,11 +60,27 @@ const TOLLS = (()=>{
     const ded=[]; for(const p of out){ const l=ded[ded.length-1]; if(l && l.yol===p.yol && l.gise===p.gise && p.t-l.t<MERGE_MS) continue; ded.push(p); }
     return ded;
   }
-  function priceOf(y, a, b, c){
-    const tab=y.ucret && y.ucret[c]; if(!tab) return null;
-    return tab[a+"|"+b] ?? tab[b+"|"+a] ?? null;
+  // Tünel: GPS içeride çekmez; iki ağzın ikisine de 20 dk içinde yaklaşılmışsa geçilmiş sayılır
+  // (yalnız birinin yanından geçen şehir trafiği sayılmasın)
+  function twoPoint(y, pts){
+    const g=(y.gise||[])[0]; if(!g || !g.k || g.k.length<2) return null;
+    const hits=g.k.map(k=>pts.filter(s=>meters(k,[s.lat,s.lon])<=R_M).map(s=>s.t));
+    for(const a of hits[0]) for(const b of hits[1]) if(Math.abs(a-b)<=20*60000) return {yol:y.id, gise:g.ad, t:Math.min(a,b), d:0};
+    return null;
   }
-  function fixedOf(y, c, t){
+  // Tarife: sürüş, yolun güncel tarifesinden önceyse ve eski tarife varsa o (ör. YİD'de 1 Temmuz 2026 zammı)
+  const tariff=(y,t)=>(y.onceki && y.tarih && t<Date.parse(y.tarih)) ? y.onceki : y;
+  // Kapalı sistem ücret ızgarası: m[sınıf] = n×n dizi (satır giriş, sütun çıkış; gişe sırası y.gise). Yön önemli
+  // (bazı çiftlerde gidiş-dönüş farklı); tek yönlü yazılmış tabloda ters yöne bakılır.
+  function priceOf(y, a, b, c, t){
+    const T=tariff(y,t), m=T.m && T.m[c]; if(!m) return null;
+    // a, b tablo sütun adları (yöne göre ad çözülmüş olarak gelir: compute → adGiris / adCikis)
+    const n=y.gise.length, i=y.gise.findIndex(g=>g.ad===a), j=y.gise.findIndex(g=>g.ad===b);
+    if(i<0 || j<0) return null;
+    return m[i*n+j] ?? m[j*n+i] ?? null;
+  }
+  function fixedOf(y0, c, t){
+    const y=tariff(y0,t);
     if(y.saatli){
       const h=new Date(t), m=h.getHours()*60+h.getMinutes();
       for(const k of Object.keys(y.saatli)){ const z=y.saatli[k], [s,e]=(z.saat||"").split("-").map(x=>{ const [hh,mm]=x.split(":").map(Number); return hh*60+(mm||0); });
@@ -75,7 +92,10 @@ const TOLLS = (()=>{
   function compute(samples, opt={}){
     const D=opt.data||data, c=opt.sinif||cls(); if(!D) return null;
     const ps=passages(samples, D), byId=Object.fromEntries(D.yollar.map(y=>[y.id,y])), res=[];
-    let open=null;
+    // Kapalı sistemde yalnız iki gişeden geçilir: aynı yolda arka arkaya görülen geçişlerin İLKİ giriş, SONUNCUSU çıkış.
+    // Aradakiler yok sayılır (ana yolun yanındaki gişe noktaları, kavşaktan yaklaşık konumlar). 45 dk'dan uzun ara = yeni oturum.
+    const dangling=o=>({yol:o.yol, ad:byId[o.yol].ad, giris:o.gise, cikis:null, tl:null, t:o.t, not:"çıkış gişesi bulunamadı"});
+    const sess={};
     for(const p of ps){
       const y=byId[p.yol]; if(!y) continue;
       if(y.tip!=="kapali"){
@@ -83,15 +103,27 @@ const TOLLS = (()=>{
         res.push({yol:y.id, ad:y.ad, giris:p.gise, tl:f?f.tl:null, t:p.t, not:f&&f.not||null});
         continue;
       }
-      if(open && open.yol===p.yol && p.gise!==open.gise && p.t-open.t<=PAIR_MS){
-        res.push({yol:y.id, ad:y.ad, giris:open.gise, cikis:p.gise, tl:priceOf(y,open.gise,p.gise,c), t:open.t});
-        open=null;
-      }else{
-        if(open) res.push({yol:open.yol, ad:byId[open.yol].ad, giris:open.gise, cikis:null, tl:null, t:open.t, not:"çıkış gişesi bulunamadı"});
-        open=p;
-      }
+      const list=sess[p.yol]||(sess[p.yol]=[]), cur=list[list.length-1];
+      if(cur && p.t-cur[cur.length-1].t<=45*60000 && p.t-cur[0].t<=PAIR_MS) cur.push(p); else list.push([p]);
     }
-    if(open) res.push({yol:open.yol, ad:byId[open.yol].ad, giris:open.gise, cikis:null, tl:null, t:open.t, not:"çıkış gişesi bulunamadı"});
+    for(const id in sess) for(const ss of sess[id]){
+      const y=byId[id], o=ss[0], e=ss[ss.length-1];
+      if(o.gise===e.gise){ res.push(dangling(o)); continue; }
+      const gi=y.gise.find(g=>g.ad===o.gise)||{}, go=y.gise.find(g=>g.ad===e.gise)||{};
+      const a=gi.adGiris||o.gise, b=go.adCikis||e.gise;
+      res.push({yol:y.id, ad:y.ad, giris:a, cikis:b, tl:priceOf(y,a,b,c,o.t), t:o.t, t2:e.t, not:(gi.r||go.r)?"yaklaşık (gişe konumu kavşaktan)":null});
+    }
+    res.sort((a,b)=>a.t-b.t);
+    // Aynı yerde iki yolun gişesi olabilir (ör. Kurtköy: Anadolu Otoyolu ve Kuzey Marmara). Bir yolda eşleşmiş geçişle aynı
+    // dakikalarda öbür yolda yarım kalan "giriş" hayalettir: atılır.
+    for(let i=res.length-1;i>=0;i--){ const r=res[i]; if(r.cikis!==null || r.tl!==null || byId[r.yol].tip!=="kapali") continue;
+      if(res.some(x=>x!==r && x.yol!==r.yol && x.cikis && (Math.abs(x.t-r.t)<=180000 || Math.abs((x.t2||x.t)-r.t)<=180000))) res.splice(i,1); }
+    // Ücreti başka bir tabloya dahil olan köprü (ör. YSS → Kuzey Marmara; Osmangazi → O-5 İstanbul yönü çıkışı) ayrıca sayılmaz
+    for(const r of res){
+      const y=byId[r.yol]; if(!y || !y.dahil || r.tl==null) continue;
+      if(y.dahil.some(d=>res.some(x=>x!==r && x.yol===d.yol && x.tl!=null && (!d.cikis || x.cikis===d.cikis) && r.t>=x.t-600000 && r.t<=(x.t2||x.t)+600000))){
+        r.not="ücreti otoyol ücretine dahil"; r.tl=0; }
+    }
     return {sinif:c, tarife:D.tarifeTarihi||null, gecis:res, toplam:res.reduce((s,x)=>s+(x.tl||0),0)};
   }
 
@@ -103,7 +135,7 @@ const TOLLS = (()=>{
       if(!(g.tl>0)) continue;
       const d=new Date(g.t), p2=x=>String(x).padStart(2,"0");
       const x=Expenses.add({date:`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`, type:"Otopark-Köprü", amount:g.tl,
-        note:`${g.ad}: ${g.giris}${g.cikis?" → "+g.cikis:""} (tahmini, sınıf ${r.sinif})`});
+        note:`${g.ad}: ${nice(g.giris)}${g.cikis?" → "+nice(g.cikis):""} (tahmini, sınıf ${r.sinif})`});
       if(x){ x.src="gecis"; x.trip=t.id; n++; }
     }
     t.tollsExp=true; save();
@@ -127,11 +159,17 @@ const TOLLS = (()=>{
   card.innerHTML=`<h2>Geçiş ücretleri (tahmini)</h2><div id="tollBox"></div>`;
   $("ext-viewer").appendChild(card);
   let cur=null;
+  // KGM tabloları adları büyük harfle yazar ("ANADOLU (ÇAMLICA)") → "Anadolu (Çamlıca)"
+  const nice=s=>{
+    if(!s || s!==s.toLocaleUpperCase("tr-TR")) return s;
+    const w=s.toLocaleLowerCase("tr-TR").split(/([\s()\-.\/]+)/);   // ayraçlar da dizide kalır
+    return w.map(x=>!x || /^[\s()\-.\/]+$/.test(x) ? x : (x==="osb" ? "OSB" : x[0].toLocaleUpperCase("tr-TR")+x.slice(1))).join("");
+  };
   function paintTrip(t){
     const r=t && t.tolls; card.hidden=!(r && r.gecis.length);
     if(card.hidden) return;
     const fmtT=ms=>new Date(ms).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
-    $("tollBox").innerHTML=`<dl class="kv">${r.gecis.map(g=>`<dt>${escHtml(fmtT(g.t))} · ${escHtml(g.ad)}</dt><dd>${escHtml(g.giris)}${g.cikis?" → "+escHtml(g.cikis):""}: <b>${g.tl!=null?fmt(g.tl,2)+" TL":"ücret bulunamadı"}</b>${g.not?` <span class="sub">(${escHtml(g.not)})</span>`:""}</dd>`).join("")}</dl>
+    $("tollBox").innerHTML=`<dl class="kv">${r.gecis.map(g=>`<dt>${escHtml(fmtT(g.t))} · ${escHtml(g.ad)}</dt><dd>${escHtml(nice(g.giris))}${g.cikis?" → "+escHtml(nice(g.cikis)):""}: <b>${g.tl!=null?fmt(g.tl,2)+" TL":"ücret bulunamadı"}</b>${g.not?` <span class="sub">(${escHtml(g.not)})</span>`:""}</dd>`).join("")}</dl>
       <p><b>Toplam: ${fmt(r.toplam,2)} TL</b> · sınıf ${escHtml(r.sinif)}${r.tarife?` · tarife ${escHtml(r.tarife)}`:""}</p>
       <p class="sub">GPS izinden hesaplanan tahmindir; HGS'nin kestiği tutar indirim, ihlal ya da tarife değişikliği yüzünden farklı olabilir.</p>
       ${t.tollsExp?'<p class="sub">Masraf defterine eklendi.</p>':(r.toplam>0?'<div class="actions"><button id="tollAdd">Masraf defterine ekle</button></div>':"")}`;
@@ -164,6 +202,6 @@ const TOLLS = (()=>{
   paintSettings();
   load();
 
-  return {load, passages, compute, process, toExpenses, cls, CLASS_NAMES, FROM_SPEED, meters,
+  return {load, passages, compute, process, toExpenses, cls, nice, CLASS_NAMES, FROM_SPEED, meters,
     get data(){ return data; }, set data(d){ data=d; }};
 })();
