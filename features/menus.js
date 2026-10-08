@@ -30,7 +30,7 @@ const MENUS = (()=>{
       {k:"yakit", icon:IC.fuel,  name:"Yakıt ve fiyat",       sub:"Yakıt türü, litre fiyatı, motor hacmi",         match:/^Yakıt/},
       {k:"ev",    icon:IC.batt,  name:"Elektrikli araç",      sub:"Araç profili, özel değer listesi",              match:/^Elektrikli araç/},
       {k:"genel", icon:IC.gear,  name:"Ses, kayıt ve ekran",  sub:"Sesli uyarı, kayıt, GPS, açılış",  match:/^(Uygulama|Açılış animasyonu|Uygulama olarak yükle)$/},
-      {k:"surus", icon:IC.road,  name:"Sürüş ve navigasyon",  sub:"Navigasyon uygulaması, küçük pencere, hız sınırı", match:/^(Navigasyon ve küçük pencere|Sürüşte otomatik aç|Hız sınırı)$/},
+      {k:"surus", icon:IC.road,  name:"Sürüş ve navigasyon",  sub:"Navigasyon, küçük pencere, hız sınırı, geçiş ücretleri", match:/^(Navigasyon ve küçük pencere|Sürüşte otomatik aç|Hız sınırı|Köprü ve otoyol ücretleri)$/},
       {k:"ai",    icon:IC.spark, name:"Yapay zekâ",           sub:"Yorum için API anahtarı",                       match:/^Yapay zekâ/},
       {k:"yedek", icon:IC.save,  name:"Yedek ve tanılama",    sub:"Yedek al, geri yükle, tanılama paketi",         match:/^(Yedekle|Tanılama)/},
       {k:"gizli", icon:IC.lock,  name:"Gizlilik",             sub:"Kullanım istatistiği",                          match:/^Kullanım istatistiği/},

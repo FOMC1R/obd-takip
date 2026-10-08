@@ -2,7 +2,7 @@
 // sınır süzgecinin kategorileri. Gerçek sayfa düzeni headless Chrome ile ayrıca ölçülür (bkz. CONTRIBUTING).
 require("./harness")(String.raw`
   const M=MENUS;
-  const want={ayar:{"Araçlarım":"arac","Uyarı sınırları":"sinir","Yakıt":"yakit","Elektrikli araç":"ev","Uygulama":"genel","Navigasyon ve küçük pencere":"surus",
+  const want={ayar:{"Araçlarım":"arac","Uyarı sınırları":"sinir","Yakıt":"yakit","Elektrikli araç":"ev","Uygulama":"genel","Navigasyon ve küçük pencere":"surus","Köprü ve otoyol ücretleri":"surus",
     "Açılış animasyonu":"genel","Uygulama olarak yükle":"genel","Sürüşte otomatik aç":"surus","Hız sınırı":"surus","Yapay zekâ yorumu":"ai",
     "Yedekle ve geri yükle":"yedek","Tanılama paketi":"yedek","Kullanım istatistiği":"gizli","Nasıl kullanılır":"yardim","Yenilikler":"yardim","Bilinmeyen yeni kart":"diger"},
     ariza:{"Arıza kodları":"","Araç durumu":"durum","Diğer beyinler":"beyin","Akü testi":"test","Tekleme sayacı":"test","Aracın kendi test sonuçları":"test",
